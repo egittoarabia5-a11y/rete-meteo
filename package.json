@@ -1,0 +1,24 @@
+{
+  "name": "xy",
+  "version": "1.0.0",
+  "description": "descrizione",
+  "keywords": [
+    "123"
+  ],
+  "homepage": "https://github.com/egittoarabia5-a11y/sito-di-prova#readme",
+  "bugs": {
+    "url": "https://github.com/egittoarabia5-a11y/sito-di-prova/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/egittoarabia5-a11y/sito-di-prova.git"
+  },
+  "license": "ISC",
+  "author": "montys",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node index.js",
+    "test": "123"
+  }
+}
