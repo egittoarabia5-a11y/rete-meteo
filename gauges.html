@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Meteo - Dati Stazione</title> 
+    <!-- Caricamento di Tailwind CSS e Font Inter -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Caricamento di Chart.js per i grafici avanzati -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* Stili Custom per il tema del pannello grigio chiaro */
+        :root {
+            --card-bg: #ffffff; 
+            --text-main: #1F2937; 
+            --text-secondary: #4B5573; 
+            --max-color: #EF4444; /* Rosso */
+            --min-color: #3B82F6; /* Blu */
+            --icon-stroke: #fdfbfb; 
+            --icon-fill: #FFFFFF; 
+            --empty-bg: #c2d5fc; 
+        }
+
+        /* ************************************************************ */
+        /* LAYOUT BASE */
+        /* ************************************************************ */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--empty-bg); 
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+            justify-content: flex-start; 
+            min-height: 100vh;
+            zoom: 1.15;
+        }
+
+        .grid-wrapper {
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .grid-container {
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: 6.5rem; /* Altezza di base della riga */
+        }
+
+        /* Stile base per tutte le card */
+        .gauge-card {
+            background-color: var(--card-bg);
+            border-radius: 17px;
+            box-shadow: 0 4px 6px -1px rgba(253, 253, 253, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 1rem; 
+            border: none;
+            transition: background-color 0.5s ease;
+            overflow: hidden;
+        }
+
+        /* ************************************************************ */
+        /* TIPOGRAFIA E VALORI */
+        /* ************************************************************ */
+        .main-value-lg { font-size: 5rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+        .main-value-unit-lg { font-size: 5rem; font-weight: 800; line-height: 1; }
+        
+        /* Valore principale per card 1x1 (2.5rem - invariato) */
+        .main-value-sm { font-size: 2.5rem; font-weight: 800; color: var(--text-main); line-height: 1; white-space: nowrap; }
+        .main-value-unit-sm { font-size: 2.5rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+        
+        /* STILE AGGIORNATO: Valore Pioggia Totale (85.2) - Ora è 'sm' per ingrandirlo */
+        .rain-current-value { 
+            font-size: 2.5rem; /* text-4xl o 2.5rem */
+            font-weight: 800; 
+            color: var(--text-main); 
+            line-height: 1; 
+            white-space: nowrap; 
+        }
+        .rain-current-unit {
+            font-size: 1.25rem; /* leggermente più piccolo, ma non minuscolo */
+            font-weight: 700;
+            line-height: 1;
+            color: #4B5563; 
+        }
+        
+        .small-card-title {
+            color: var(--text-main);
+            font-size: 0.8rem; 
+            font-weight: 700;
+            line-height: 1.1; 
+            text-align: left;
+        }
+        
+        /* Sovrascrittura unità */
+        .main-value-lg sup, 
+        .main-value-unit-lg sup,
+        .main-value-sm sup,
+        .main-value-unit-sm sup,
+        .main-value-xs sup, 
+        .min-max-value sup { 
+            position: static; 
+            font-weight: 800;
+            line-height: 1;
+            font-size: 100%; 
+        }
+        
+        /* Colori per Min/Max */
+        .max-value { color: var(--max-color); }
+        .min-value { color: var(--min-color); }
+        
+        /* STILE AGGIORNATO: Stile per i Min/Max impilati (ORA PIÙ GRANDI - text-base/text-lg) */
+        .stacked-min-max {
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: flex-end; 
+            font-size: 1rem; /* text-base */
+            font-weight: 900; /* Extra bold per maggiore enfasi */
+            line-height: 1.2; 
+            white-space: nowrap;
+        }
+        
+        /* STILE AGGIORNATO: Stile per il Max/Min orizzontale della card principale (A1) */
+        .main-temp-minmax {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        /* Valori Min/Max in A1 resi più grandi e audaci */
+        .main-temp-minmax .max-value { color: var(--max-color); font-weight: 900; }
+        .main-temp-minmax .min-value { color: var(--min-color); font-weight: 900; }
+
+        /* Icone */
+        .icon-box {
+            width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background-color: var(--icon-fill); border: 2px solid var(--icon-stroke); flex-shrink: 0; 
+        }
+        .icon-style {
+            stroke: var(--icon-stroke); stroke-width: 1.5; fill: none; width: 28px; height: 28px;
+        }.icon-style-large { stroke: var(--icon-stroke); stroke-width: 2; fill: none;
+  width: 110px;
+  height: 80px;  transform: scaleX(1.5);
+}.icon-style-medium { stroke: var(--icon-stroke); stroke-width: 2; fill: none;
+  width: 80px;
+  height: 50px;  transform: scaleX(1);}
+        .icon-style-filled { fill: #FFD700; } 
+        .icon-style-drop-blue { fill: #00BFFF; } 
+        .icon-style-fire { fill: #FF6600; }
+        .icon-style-wind { fill: #a3a3a3; }
+        .icon-style-mountain { fill: #A8D0A8; }
+        
+/* ===== Mobile (<768px) ===== */
+@media (max-width: 767px) {
+  .grid-container {
+    grid-template-columns: 1fr; /* 1 colonna sola */
+    grid-auto-rows: auto; /* altezza automatica per contenuto */
+  }
+
+  .gauge-card {
+    grid-column: 1 / -1 !important; /* ogni card occupa tutta la larghezza */
+    grid-row: auto !important;       /* altezza automatica */
+  }
+
+  /* Espandiamo la temperatura in alto */
+  #gauge-temp {
+    grid-row: auto !important;
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Piccole card sotto */
+  .gauge-card:not(#gauge-temp) {
+    margin-top: 0.5rem;
+  }
+}
+    </style>
+    <script>
+      
+const apiKeyWU = "e1f10a1e78da46f5b10a1e78da96f525";
+
+let station = null;
+let stationSource = null;
+
+let titleEl = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+
+  station = hashParams.get("station");
+  stationSource = hashParams.get("source");
+
+  titleEl = document.getElementById("main-title-location");
+
+  if (!titleEl) return;
+
+  if (!station || !stationSource) {
+    titleEl.textContent = "ERRORE: Parametri mancanti";
+    return;
+  }
+
+  titleEl.textContent = station;
+
+  const source = stationSource.toLowerCase();
+
+  if (source === "limet") {
+    updateLimetData();
+    setInterval(updateLimetData, 10000);
+
+  } else if (source === "genova") {
+    updateWUData();
+    setInterval(updateWUData, 10000);
+
+  } else if (source === "omirl") {
+    updateOmirlData();
+    setInterval(updateOmirlData, 10000);
+  }
+});
+
+  const formatValue = (value) => {
+    if (value === undefined || value === null) return "N/D";
+    return parseFloat(value).toFixed(1);
+  };
+
+  const formatWithUnit = (value, unit) => {
+    if (!unit) return value;
+    if (unit === "°" || unit === "%") return `${value}${unit}`;
+    return `${value}<span style="font-size:0.5em;">${unit}</span>`;
+  };
+
+  const setMainSmWithMinMax = (valueId, minMaxId, value, min, max, unit = "") => {
+    const valueEl = document.getElementById(valueId);
+    if (valueEl) {
+      valueEl.innerHTML = formatWithUnit(formatValue(value), unit);
+      if (valueId === "temp-value") {
+        valueEl.className = "main-value-lg"; // temperatura grande
+      } else {
+        valueEl.className = "main-value-sm main-value-unit-sm";
+      }
+    }
+
+    const minMaxEl = document.getElementById(minMaxId);
+    if (minMaxEl) {
+      const maxUnit = unit === "°" || unit === "%" ? unit : "";
+      const minUnit = unit === "°" || unit === "%" ? unit : "";
+      minMaxEl.innerHTML = `
+        <span class="max-value">${formatValue(max)}${maxUnit}</span>
+        <span class="min-value">${formatValue(min)}${minUnit}</span>
+      `;
+      minMaxEl.className = "stacked-min-max";
+    }
+  };
+
+  const updateLimetData = async () => {
+    try {
+      const res = await fetch(`https://api-stazioni-meteo.vercel.app/limet/${station}.json`);
+      if (!res.ok) throw new Error("Errore nel caricamento dati LIMET");
+
+      const data = await res.json();
+      if (!data || Object.keys(data).length === 0) {
+        titleEl.textContent = `ERRORE: Dati LIMET non trovati (${station})`;
+        return;
+      }
+
+      titleEl.textContent = station;
+
+      // TEMPERATURA PRINCIPALE (stile originale)
+      const temperatura = data.T;
+      const tMin = data.TL;
+      const tMax = data.TH;
+      const tempEl = document.getElementById("temp-value");
+      tempEl.textContent = formatValue(temperatura) + "°";
+      tempEl.className = "main-value-lg";
+
+      const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
+      tempMinMaxEl.innerHTML = `
+        <span style="font-weight: normal; color: black;">Max: </span>
+        <span class="max-value" style="font-weight: bold; color: red;">${formatValue(tMax)}°</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span style="font-weight: normal; color: black;">Min: </span>
+        <span class="min-value" style="font-weight: bold; color: blue;">${formatValue(tMin)}°</span>
+      `;
+
+      // ALTRI VALORI SMALL CON MIN/MAX
+      setMainSmWithMinMax("dewpoint-value", "dewpoint-minmax", data.D, data.DL ?? data.D, data.DH ?? data.D, "°");
+      setMainSmWithMinMax("umidity-value", "umidity-minmax", data.H, data.HL ?? data.H, data.HH ?? data.H, "%");
+      setMainSmWithMinMax("wind-value", "wind-minmax", data.V, data.V, data.V, " km/h");
+      setMainSmWithMinMax("rainrate-value", "rainrate-minmax", data.RR, data.RR, data.RR, " mm/h");
+      setMainSmWithMinMax("raintotal-value", "raintotal-minmax", data.R, data.R, data.R, " mm");
+      setMainSmWithMinMax("heatindex-value", "heatindex-minmax", data.HI || 0, data.HI || 0, data.HI || 0, "°");
+      setMainSmWithMinMax("radsol-value", "radsol-minmax", data.SR || 0, data.SR || 0, data.SR || 0, " W/m²");
+      setMainSmWithMinMax("uv-value", "uv-minmax", data.UV || 0, data.UV || 0, data.UV || 0, " UV");
+      setMainSmWithMinMax("850hpa-value", "850hpa-minmax", data.T850 || 0, data.T850 || 0, data.T850 || 0, "°");
+      setMainSmWithMinMax("pressione-value", "pressione-minmax", data.P, data.PL ?? data.P, data.PH ?? data.P, " hPa");
+
+      document.getElementById("metadata-status").textContent = "Online";
+      document.getElementById("metadata-timestamp").textContent =
+        new Date(data.timestamp).toLocaleString("it-IT");
+
+    } catch (err) {
+      console.error("Errore caricamento dati LIMET:", err);
+      titleEl.textContent = `ERRORE: Dati LIMET non caricati (${station})`;
+    }
+  };
+
+  const updateWUData = async () => {
+    try {
+      // Dati correnti WU
+      const jsonUrl = `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKeyWU}&stationId=${station}&numericPrecision=decimal&format=json&units=m`;
+      const res = await fetch(jsonUrl);
+      if (!res.ok) throw new Error("Errore nel caricamento dati Wunderground");
+
+      const currentData = await res.json();
+      if (!currentData || !currentData.observations || currentData.observations.length === 0) {
+        titleEl.textContent = `ERRORE: Dati WU non trovati (${station})`;
+        return;
+      }
+
+      const obs = currentData.observations[0];
+      titleEl.textContent = `${obs.stationID} - ${obs.neighborhood}`;
+
+      // Dati giornalieri high/low
+      const dailyUrl = `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKeyWU}&stationId=${station}&numericPrecision=decimal&format=json&units=m`;
+      const dailyRes = await fetch(dailyUrl);
+      let daily = {};
+      if (dailyRes.ok) {
+        const dailyData = await dailyRes.json();
+        if (dailyData.summaries && dailyData.summaries.length > 0) {
+          daily = dailyData.summaries[0];
+        }
+      }
+
+      // TEMPERATURA PRINCIPALE (stile originale)
+      const temperatura = obs.metric.temp;
+      const tMin = daily.metric?.tempLow ?? temperatura;
+      const tMax = daily.metric?.tempHigh ?? temperatura;
+
+      const tempEl = document.getElementById("temp-value");
+      tempEl.textContent = formatValue(temperatura) + "°";
+      tempEl.className = "main-value-lg";
+
+      const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
+      tempMinMaxEl.innerHTML = `
+        <span style="font-weight: normal; color: black;">Max: </span>
+        <span class="max-value" style="font-weight: bold; color: red;">${formatValue(tMax)}°</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span style="font-weight: normal; color: black;">Min: </span>
+        <span class="min-value" style="font-weight: bold; color: blue;">${formatValue(tMin)}°</span>
+      `;
+
+      // ALTRI VALORI SMALL CON MIN/MAX
+      setMainSmWithMinMax("dewpoint-value", "dewpoint-minmax", obs.metric.dewpt, daily.metric?.dewptLow ?? obs.metric.dewpt, daily.metric?.dewptHigh ?? obs.metric.dewpt, "°");
+      setMainSmWithMinMax("umidity-value", "umidity-minmax", obs.humidity, daily.humidityLow ?? obs.humidity, daily.humidityHigh ?? obs.humidity, "%");
+      setMainSmWithMinMax("wind-value", "wind-minmax", obs.metric.windSpeed, daily.metric?.windspeedLow ?? obs.metric.windSpeed, daily.metric?.windspeedHigh ?? obs.metric.windSpeed, " km/h");
+      setMainSmWithMinMax("rainrate-value", "rainrate-minmax", obs.metric.precipRate, obs.metric.precipRate, obs.metric.precipRate, " mm/h");
+      setMainSmWithMinMax("raintotal-value", "raintotal-minmax", obs.metric.precipTotal, obs.metric.precipTotal, obs.metric.precipTotal, " mm");
+      setMainSmWithMinMax("heatindex-value", "heatindex-minmax", obs.metric.heatIndex, daily.metric?.heatindexLow ?? obs.metric.heatIndex, daily.metric?.heatindexHigh ?? obs.metric.heatIndex, "°");
+      setMainSmWithMinMax("radsol-value", "radsol-minmax", obs.solarRadiation, daily.solarRadiationLow ?? obs.solarRadiation, daily.solarRadiationHigh ?? obs.solarRadiation, " W/m²");
+      setMainSmWithMinMax("uv-value", "uv-minmax", obs.uv, daily.uvLow ?? obs.uv, daily.uvHigh ?? obs.uv, " UV");
+      setMainSmWithMinMax("850hpa-value", "850hpa-minmax", 0, 0, 0, "°");
+      setMainSmWithMinMax("pressione-value", "pressione-minmax", obs.metric.pressure, daily.metric?.pressureMin ?? obs.metric.pressure, daily.metric?.pressureMax ?? obs.metric.pressure, " hPa");
+
+      document.getElementById("metadata-status").textContent = "Online";
+      document.getElementById("metadata-timestamp").textContent =
+        new Date(obs.obsTimeUtc).toLocaleString("it-IT");
+
+    } catch (err) {
+      console.error("Errore caricamento dati Wunderground:", err);
+      titleEl.textContent = `ERRORE: Dati WU non caricati (${station})`;
+    }
+  };
+  const updateOmirlData = async () => {
+  try {
+    const res = await fetch("https://api-stazioni-meteo.eggittof.workers.dev/omirl.json");
+    if (!res.ok) throw new Error("Errore nel caricamento dati OMIRL");
+
+    const text = await res.text();
+    const lines = text.trim().split("\n").map(l => JSON.parse(l));
+    const timestamp = lines[0].timestamp;
+
+    // Trasforma underscore in spazi nella variabile station
+    const stationName = station.replace(/_/g, " ").toLowerCase();
+
+    // Trova la stazione per nome (case insensitive)
+    const data = lines.find(d => d.N && d.N.toLowerCase() === stationName);
+
+    if (!data) {
+      titleEl.textContent = `ERRORE: Dati OMIRL non trovati (${station.replace(/_/g, " ")})`;
+      return;
+    }
+
+    // Mostra il nome corretto con spazi
+    titleEl.textContent = data.N.replace(/_/g, " ");
+
+    const T = data.T; // Temperatura
+    const H = data.H; // Umidità relativa %
+
+    // Calcolo Dew Point (Magnus formula)
+    let dewPoint = null;
+    if (T != null && H != null) {
+      const a = 17.27;
+      const b = 237.7;
+      const alpha = ((a * T) / (b + T)) + Math.log(H / 100);
+      dewPoint = (b * alpha) / (a - alpha);
+    }
+
+    // Calcolo Heat Index (solo se T >= 27°C e H >= 40%)
+    let heatIndex = T;
+    if (T != null && H != null) {
+      const tF = T * 9/5 + 32; // Converti in Fahrenheit
+      heatIndex = -42.379 + 2.04901523*tF + 10.14333127*H
+                  - 0.22475541*tF*H - 6.83783e-3*tF*tF
+                  - 5.481717e-2*H*H + 1.22874e-3*tF*tF*H
+                  + 8.5282e-4*tF*H*H - 1.99e-6*tF*tF*H*H;
+      heatIndex = (heatIndex - 32) * 5/9; // Ritorna in °C
+    }
+
+    const tMin = data.TL;
+    const tMax = data.TH;
+
+    // Aggiorna temperatura principale
+    const tempEl = document.getElementById("temp-value");
+    tempEl.textContent = formatValue(T) + "°";
+    tempEl.className = "main-value-lg";
+
+    const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
+    tempMinMaxEl.innerHTML = `
+      <span style="font-weight: normal; color: black;">Max: </span>
+      <span class="max-value" style="font-weight: bold; color: red;">${formatValue(tMax)}°</span>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      <span style="font-weight: normal; color: black;">Min: </span>
+      <span class="min-value" style="font-weight: bold; color: blue;">${formatValue(tMin)}°</span>
+    `;
+
+    // Aggiorna valori small con min/max
+    setMainSmWithMinMax("dewpoint-value", "dewpoint-minmax", dewPoint ?? 0, dewPoint ?? 0, dewPoint ?? 0, "°");
+    setMainSmWithMinMax("umidity-value", "umidity-minmax", H ?? 0, data.HL ?? H ?? 0, data.HH ?? H ?? 0, "%");
+    setMainSmWithMinMax("wind-value", "wind-minmax", data.V ?? 0, data.V ?? 0, data.G ?? data.V ?? 0, " km/h");
+    setMainSmWithMinMax("rainrate-value", "rainrate-minmax", data.RR ?? 0, data.RR ?? 0, data.RR ?? 0, " mm/h");
+    setMainSmWithMinMax("raintotal-value", "raintotal-minmax", data.R ?? 0, data.R ?? 0, data.R ?? 0, " mm");
+    setMainSmWithMinMax("heatindex-value", "heatindex-minmax", heatIndex ?? 0, heatIndex ?? 0, heatIndex ?? 0, "°");
+    setMainSmWithMinMax("radsol-value", "radsol-minmax", 0, 0, 0, " W/m²");
+    setMainSmWithMinMax("uv-value", "uv-minmax", 0, 0, 0, " UV");
+    setMainSmWithMinMax("850hpa-value", "850hpa-minmax", 0, 0, 0, "°");
+    setMainSmWithMinMax("pressione-value", "pressione-minmax", 0, 0, 0, " hPa");
+
+    document.getElementById("metadata-status").textContent = "Online";
+    document.getElementById("metadata-timestamp").textContent =
+      new Date(timestamp).toLocaleString("it-IT");
+
+  } catch (err) {
+    console.error("Errore caricamento dati OMIRL:", err);
+    titleEl.textContent = `ERRORE: Dati OMIRL non caricati (${station.replace(/_/g, " ")})`;
+  }
+};
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const urlParams = new URLSearchParams(window.location.search);
+
+  const station = urlParams.get("station");
+  const stationSource = urlParams.get("source");
+
+  const titleEl = document.getElementById("main-title-location");
+
+  if (!station || !stationSource) {
+    titleEl.textContent = "ERRORE: parametri mancanti";
+    return;
+  }
+
+  const source = stationSource.toLowerCase();
+
+  if (source === "limet") {
+
+    updateLimetData();
+    setInterval(updateLimetData, 10000);
+
+  } else if (source === "wunderground" || source === "genova") {
+
+    updateWUData();
+    setInterval(updateWUData, 10000);
+
+  } else if (source === "omirl") {
+
+    updateOmirlData();
+    setInterval(updateOmirlData, 10000);
+
+  } else {
+
+    console.error("Fonte sconosciuta:", stationSource);
+    titleEl.textContent = "ERRORE: source non valido";
+  }
+
+});
+
+
+        
+        // ************************************************************
+        // 1. SET DI DATI PER STAZIONI MULTIPLE
+        //    (I dati dei grafici sono A 24 PUNTI come richiesto)
+        // ************************************************************
+        
+        /**
+         * Genera dati casuali per 24 ore, con un punto dati per ogni ora.
+         * @param {number} min - Valore minimo.
+         * @param {number} max - Valore massimo.
+         * @returns {number[]} Array di 24 valori.
+         */
+        function generate24HourData(min, max, cycleOffset = 0) {
+            const data = [];
+            for (let i = 0; i < 24; i++) {
+                // Simula un ciclo giornaliero (sinusoidale)
+                const value = min + (max - min) * (0.5 + 0.5 * Math.sin(Math.PI * (i - 8 + cycleOffset) / 12));
+                // Aggiunge un piccolo rumore casuale
+                const noise = (Math.random() - 0.5) * (max - min) * 0.1;
+                data.push(parseFloat((value + noise).toFixed(1)));
+            }
+            return data;
+        }
+        
+        const HOUR_LABELS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')); 
+
+        // COLLEZIONE GLOBALE DEI DATI DI TUTTE LE STAZIONI
+        const ALL_STATION_DATA = {
+            // DATI STAZIONE LA SPEZIA (SP001) - Mite e Umido
+            'SP001': {
+                metadata: { location: "La Spezia", timestamp: "29/09 17:17", status: "Gradevole" },
+                current: {
+                    temp: { value: 15.3, unit: '°', min: 3.4, max: 18.1, decimals: 1, size: 'lg', label: "TEMPERATURA" }, 
+                    dewpoint: { value: 12.1, unit: '°', min: 2.9, max: 13.4, decimals: 1, label: "DEWPOINT" },
+                    humidity: { value: 95, unit: '%', min: 85, max: 99, decimals: 0, label: "UMIDITÀ RELATIVA" },
+                    pressure: { value: 995.6, unit: 'hPa', min: 995.4, max: 1000.6, decimals: 1, size: 'sm', label: "PRESSIONE ATMOSFERICA" },
+                    wind: { value: 19.4, unit: 'km/h', min: 0.0, max: 34.4, decimals: 1, label: "VELOCITÀ VENTO" },
+                    rain_rate: { value: 0.0, unit: 'mm/h', min: 0.0, max: 13.4, decimals: 1, size: 'sm', label: "TASSO DI PIOGGIA" },
+                    // Pioggia totale (85.2 mm ingrandito come da richiesta precedente)
+                    rain_total: { value: 85.2, unit: 'mm', month: 120.5, year: 980.2, decimals: 1, label: "PIOGGIA TOTALE" }, 
+                    heat_index: { value: 18.7, unit: '°', min: 3.4, max: 20.4, decimals: 1, label: "HEAT INDEX" },
+                    solar_rad: { value: 513, unit: 'W/m²', min: 0, max: 567, decimals: 0, label: "RADIAZIONE SOLARE" },
+                    uv_index: { value: 1, unit: 'UV', min: 0, max: 2, decimals: 0, label: "INDICE UV" },
+                    temp_850hpa: { value: 6.8, unit: '°', min: 5.6, max: 7.4, decimals: 1, label: "TEMPERATURA 850hPa" }
+                },
+                charts: {
+                    temp_labels: HOUR_LABELS,
+                    temp_data: generate24HourData(8.0, 18.1), 
+                    pressure_labels: HOUR_LABELS,
+                    pressure_data: generate24HourData(995.4, 1000.6)
+                },
+                records: [ /* Dati record identici per semplicità */
+                    { label: "Temperatura", value: 15.3, unit: '°', min: 3.4, max: 18.1, decimals: 1 },
+                    { label: "Umidità", value: 95, unit: '%', min: 85, max: 99, decimals: 0 },
+                    { label: "Vento", value: 19.4, unit: 'km/h', min: 0.0, max: 34.4, decimals: 1 },
+                    { label: "Pressione", value: 995.6, unit: 'hPa', min: 995.4, max: 1000.6, decimals: 1 }, 
+                    { label: "Pioggia Totale", value: 85.2, unit: 'mm', min: 120.5, max: 980.2, decimals: 1 }, 
+                    { label: "Radiazione Sol.", value: 513, unit: 'W/m²', min: 0, max: 567, decimals: 0 },
+                    { label: "Dewpoint", value: 12.1, unit: '°', min: 2.9, max: 13.4, decimals: 1 },
+                    { label: "Heat Index", value: 18.7, unit: '°', min: 3.4, max: 20.4, decimals: 1 }
+                ]
+            },
+            
+
+        };
+
+
+        // ************************************************************
+        // 2. FUNZIONI DI UTILITY E DATA RETRIEVAL
+        // ************************************************************
+
+        /**
+         * Estrae il parametro 'stationId' dalla stringa di query URL.
+         * @returns {string} L'ID della stazione o l'ID di default ('SP001').
+         */
+        function getStationIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('stationId') || 'SP001'; // Default: La Spezia
+        }
+
+        /**
+         * Funzione robusta per formattare i valori, gestendo gli input non numerici.
+         * Questo previene l'errore 'val.toFixed is not a function'.
+         * @param {number|string} value - Il valore da formattare.
+         * @param {number} decimals - Numero di decimali.
+         * @param {boolean} forceZeroDecimal - Se forzare la visualizzazione di .0 (usato per Rain Rate 0.0).
+         * @returns {string} Valore formattato o un placeholder.
+         */
+        function formatSafeValue(value, decimals, forceZeroDecimal = false) {
+            const numericValue = parseFloat(value);
+            
+            if (isNaN(numericValue) || value === null || typeof value === 'undefined') {
+                return '-'; 
+            }
+            
+            let displayValue = numericValue.toFixed(decimals);
+            
+            // Rimuovi lo zero decimale se è solo .0, a meno che non sia forzato.
+            if (!forceZeroDecimal) {
+                displayValue = displayValue.replace(/\.0+$/, '');
+            }
+
+            return displayValue;
+        }
+
+        // ************************************************************
+        // 3. FUNZIONI DI AGGIORNAMENTO UI (INVARIATE, ECCETTO PER L'USO DEL NUOVO DATASET)
+        // ************************************************************
+        
+        function updateGaugeValue(elementId, data) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const unit = data.unit;
+            const decimals = data.decimals;
+            const size = data.size || 'sm'; 
+            
+            const forceZero = (elementId === 'rainrate-value' && parseFloat(data.value) === 0.0);
+
+            const displayValue = formatSafeValue(data.value, decimals, forceZero);
+
+            let valueClass = '';
+            let unitClass = '';
+
+            if (size === 'lg') {
+                valueClass = 'main-value-lg';
+                unitClass = 'main-value-unit-lg'; 
+            } else if (elementId === 'raintotal-value') { 
+                valueClass = 'rain-current-value'; // 2.5rem per Pioggia Totale
+                unitClass = 'rain-current-unit'; 
+            } else {
+                valueClass = 'main-value-sm';
+                unitClass = 'main-value-unit-sm'; 
+            }
+            
+            let displayUnit = unit;
+            if (unit === '°') {
+                displayUnit = '&deg;';
+            } else if (unit === '%') {
+                // Lascia come '%'
+            } else {
+                displayUnit = unit; 
+            }
+            
+            let finalValueHtml = '';
+
+            if (size === 'lg') {
+                finalValueHtml = `
+                    <span class="${valueClass} flex items-start">${displayValue}</span>
+                    <span class="${unitClass} ml-1" style="font-size: 5rem; font-weight: 800; line-height: 1;">${displayUnit}</span>
+                `; 
+            } else if (elementId === 'raintotal-value') {
+                 // Pioggia Totale ingrandito (85.2 mm)
+                finalValueHtml = `
+                    <span class="${valueClass}">${displayValue}</span>
+                    <span class="ml-1 ${unitClass}">${unit}</span>
+                `;
+            } else {
+                const currentUnitClass = 'main-value-sm';
+                
+                if (unit === '°' || unit === '%') {
+                     finalValueHtml = `<span class="${currentUnitClass}">${displayValue}${displayUnit}</span>`;
+                } else {
+                     finalValueHtml = `<span class="${valueClass}">${displayValue}</span><span class="ml-1 text-xl font-extrabold text-gray-700">${displayUnit}</span>`;
+                }
+            }
+            
+            element.innerHTML = finalValueHtml;
+        }
+        
+        function updateStackedMinMaxValue(elementId, data) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const decimals = data.decimals;
+            const unit = data.unit;
+
+            const formatValue = (value) => {
+                const val = formatSafeValue(value, decimals);
+                let unitDisplay = '';
+                
+                if (unit === '°') {
+                    unitDisplay = ' &deg;';
+                } else if (unit === '%') {
+                    unitDisplay = ' %';
+                }
+                else if (unit === 'hPa' || unit === 'km/h' || unit === 'W/m²') {
+                    unitDisplay = ''; 
+                }
+                return `${val}${unitDisplay}`;
+            };
+            
+            const maxDisplayValue = formatValue(data.max);
+            const minDisplayValue = formatValue(data.min);
+            
+            element.innerHTML = `
+                <span class="max-line max-value">${maxDisplayValue}</span>
+                <span class="min-line min-value">${minDisplayValue}</span>
+            `; 
+        }
+
+        function updateRainMinMax(elementId, data) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const decimals = data.decimals;
+            
+            const monthVal = data.month;
+            const monthDisplayValue = formatSafeValue(monthVal, decimals);
+            
+            const yearVal = data.year;
+            const yearDisplayValue = formatSafeValue(yearVal, decimals);
+
+            element.innerHTML = `
+                <div class="flex flex-col items-end justify-center h-full space-y-1 text-sm">
+                    <span class="font-extrabold max-value">${monthDisplayValue}</span>
+                    <span class="font-extrabold min-value">${yearDisplayValue}</span>
+                </div>
+            `; 
+        }
+
+        function updateMainTempMinMax(elementId, data) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const decimals = data.decimals;
+            const unit = data.unit;
+            
+            const formatValue = (value) => {
+                const val = formatSafeValue(value, decimals);
+                let unitDisplay = '';
+                
+                if (unit === '°') {
+                    unitDisplay = ' &deg;';
+                } else if (unit === '%') {
+                    unitDisplay = ' %';
+                }
+                return `${val}${unitDisplay}`;
+            };
+
+            const maxDisplayValue = formatValue(data.max);
+            const minDisplayValue = formatValue(data.min);
+
+            element.innerHTML = `
+                <span class="text-gray-700 mr-1 text-base font-bold">Max:</span>
+                <span class="max-value mr-4">${maxDisplayValue}</span>
+                <span class="text-gray-700 mr-1 text-base font-bold">Min:</span>
+                <span class="min-value">${minDisplayValue}</span>
+            `;
+        }
+        
+        function populateRecords(records) {
+            const recordsList = document.getElementById('records-list');
+            if (!recordsList) return;
+            recordsList.innerHTML = ''; 
+
+            records.forEach(item => {
+                const li = document.createElement('li');
+                li.className = `flex justify-between items-center p-3 rounded-lg hover:bg-gray-200 transition-colors`;
+                
+                const formatValue = (value, unit, decimals, isRainRate) => {
+                    const valDisplay = formatSafeValue(value, decimals, isRainRate && parseFloat(value) === 0.0);
+                    
+                    let unitHtml = unit;
+                    if (unit === '°') unitHtml = '&deg;'; 
+                    else if (unit !== '%') unitHtml = ` ${unit}`; 
+                    
+                    if (item.label === "Pioggia Totale" && (item.value !== value)) {
+                        unitHtml = ''; 
+                    }
+
+                    return `${valDisplay}${unitHtml}`;
+                }
+
+                const valueDisplay = formatValue(item.value, item.unit, item.decimals, item.label === "Pioggia");
+                
+                let minDisplay = formatValue(item.min, item.unit, item.decimals, item.label === "Pioggia");
+                let maxDisplay = formatValue(item.max, item.unit, item.decimals, item.label === "Pioggia");
+                
+                let minLabel = 'MIN (24h)';
+                let maxLabel = 'MAX (24h)';
+
+                const isRainTotal = item.label === "Pioggia Totale";
+
+                if (isRainTotal) {
+                    minLabel = 'MESE'; 
+                    maxLabel = 'ANNO'; 
+                    minDisplay = formatSafeValue(item.min, item.decimals);
+                    maxDisplay = formatSafeValue(item.max, item.decimals);
+                }
+
+                const minMaxClasses = 'record-min-max-values'; 
+
+                li.innerHTML = `
+                    <div class="font-semibold text-gray-700 w-1/3">${item.label}</div>
+                    <div class="flex flex-col items-center w-1/3">
+                        <span class="text-xs text-gray-500">ATTUALE</span>
+                        <span class="text-xl font-black text-gray-800">${valueDisplay}</span>
+                    </div>
+                    <div class="flex justify-end space-x-4 w-1/3 text-sm font-bold">
+                        <div class="flex flex-col items-end">
+                            <span class="text-xs text-gray-500">${minLabel}</span>
+                            <span class="min-value ${minMaxClasses}">${minDisplay}</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-xs text-gray-500">${maxLabel}</span>
+                            <span class="max-value ${minMaxClasses}">${maxDisplay}</span>
+                        </div>
+                    </div>
+                `;
+                recordsList.appendChild(li);
+            });
+        }
+        
+        function updateChartMinMaxIndicators(canvasId, dataValues, yAxisUnit) {
+            const container = document.getElementById(canvasId).closest('.chart-box');
+            
+            if (!container || dataValues.length === 0) return;
+
+            const numericDataValues = dataValues.filter(v => !isNaN(parseFloat(v)));
+
+            if (numericDataValues.length === 0) return;
+
+            const minVal = Math.min(...numericDataValues);
+            const maxVal = Math.max(...numericDataValues);
+            
+            const unit = yAxisUnit.trim();
+            let unitDisplay = unit;
+            if (unit === '°') {
+                unitDisplay = '&deg;';
+            } else if (unit === 'hPa') {
+                unitDisplay = ' hPa';
+            } else {
+                unitDisplay = ''; 
+            }
+            
+            const maxDisplay = `Max: ${maxVal.toFixed(1).replace(/\.0+$/, '')}${unitDisplay}`;
+            const minDisplay = `Min: ${minVal.toFixed(1).replace(/\.0+$/, '')}${unitDisplay}`;
+
+            let maxEl = container.querySelector('.chart-max-indicator');
+            let minEl = container.querySelector('.chart-min-indicator');
+
+            if (!maxEl) {
+                maxEl = document.createElement('span');
+                maxEl.className = 'chart-min-max-indicator chart-max-indicator';
+                container.appendChild(maxEl);
+            }
+            if (!minEl) { 
+                minEl = document.createElement('span');
+                minEl.className = 'chart-min-max-indicator chart-min-indicator'; 
+                container.appendChild(minEl); 
+            }
+
+            maxEl.innerHTML = maxDisplay;
+            minEl.innerHTML = minDisplay;
+        }
+        
+        function createChart(canvasId, label, dataValues, dataLabels, color, yAxisUnit) {
+            if (canvasId === 'tempChart' && tempChartInstance) {
+                tempChartInstance.destroy();
+            } else if (canvasId === 'pressureChart' && pressureChartInstance) {
+                pressureChartInstance.destroy();
+            }
+            
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error(`Canvas element with ID '${canvasId}' not found.`);
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error(`Could not get 2D context for canvas ID '${canvasId}'.`);
+                return;
+            }
+
+            const newChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataLabels, 
+                    datasets: [{
+                        label: label, 
+                        data: dataValues, 
+                        borderColor: color, 
+                        backgroundColor: `${color}40`, 
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#FFFFFF',
+                        pointBorderColor: color,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: false }, 
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return 'Ora: ' + tooltipItems[0].label + ':00';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: false },
+                            grid: { display: false },
+                            ticks: {
+                                callback: function(value, index) {
+                                    return this.getLabelForValue(value) + ':00';
+                                },
+                                maxTicksLimit: 12 
+                            }
+                        },
+                        y: {
+                            title: { display: false },
+                            beginAtZero: false,
+                            grid: { color: '#d1d5db', borderDash: [5, 5] },
+                            ticks: {
+                                callback: function(value) {
+                                    const cleanedUnit = yAxisUnit.trim();
+                                    if (cleanedUnit === '°') {
+                                        return value + '°';
+                                    } else if (cleanedUnit === '%') {
+                                        return value + '%';
+                                    } else if (cleanedUnit === 'hPa') {
+                                        return value + ' hPa';
+                                    }
+                                    return value;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 800,
+                        easing: 'easeInOutQuad'
+                    }
+                },
+                plugins: [] 
+            });
+
+            if (canvasId === 'tempChart') {
+                tempChartInstance = newChart;
+            } else if (canvasId === 'pressureChart') {
+                pressureChartInstance = newChart;
+            }
+            
+            updateChartMinMaxIndicators(canvasId, dataValues, yAxisUnit);
+        }
+        
+        // ************************************************************
+        // 4. FUNZIONE DI INIZIALIZZAZIONE GLOBALE AGGIORNATA
+        // ************************************************************
+
+        async function fetchDataAndRender() {
+    const params = new URLSearchParams(window.location.search);
+    const stationId = params.get('station');
+    const stationSource = params.get('source');
+
+    if (!stationId || !stationSource) {
+        document.getElementById('main-title-location').textContent = "ERRORE: Parametri mancanti!";
+        return;
+    }
+
+    // Aggiorna il titolo in alto
+    document.getElementById('main-title-location').textContent = `${stationId} - ${stationSource}`;
+
+    // Costruisci l’URL JSON remoto
+    const jsonUrl = `https://api-stazioni-meteo.vercel.app/${stationSource}/${stationId}.json`;
+
+    try {
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error(`Errore HTTP ${response.status}`);
+        const data = await response.json();
+
+        console.log("Dati ricevuti:", data);
+
+        // Estrazione dati principali
+        const temp = data.T ?? null; updateTempColor(temp);
+        const tempLow = data.TL ?? null;
+        const tempHigh = data.TH ?? null;
+        const dewpoint = data.D ?? null;
+        const humidity = data.H ?? null;
+        const wind = data.V ?? null;
+        const gust = data.G ?? null;
+        const rainDaily = data.R ?? null;
+        const rainRate = data.RR ?? null;
+        const heatIndex = data.HI ?? null;
+        const uvIndex = data.UV ?? null;
+        const radSol = data.RAD ?? null; // se disponibile
+        const temp850 = data.T850 ?? null; // se disponibile
+
+        // Aggiorna gauges
+        updateGauge("temp", temp);
+        updateGauge("dewpoint", dewpoint);
+        updateGauge("humidity", humidity);
+        updateGauge("wind", wind);
+        updateGauge("rain_rate", rainRate);
+        updateGauge("rain_total", rainDaily);
+        updateGauge("heatindex", heatIndex);
+        updateGauge("uv", uvIndex);
+        updateGauge("radsol", radSol);
+        updateGauge("850hpa", temp850);
+
+        // Aggiorna record dettagliati
+        const records = [
+            { name: "Temperatura", value: temp, unit: "°", min: tempLow, max: tempHigh },
+            { name: "Dew Point", value: dewpoint, unit: "°" },
+            { name: "Umidità", value: humidity, unit: "%" },
+            { name: "Vento", value: wind, unit: "km/h" },
+            { name: "Raffica", value: gust, unit: "km/h" },
+            { name: "Pioggia Giornaliera", value: rainDaily, unit: "mm" },
+            { name: "Tasso di Pioggia", value: rainRate, unit: "mm/h" },
+            { name: "Heat Index", value: heatIndex, unit: "°" },
+            { name: "Indice UV", value: uvIndex },
+            { name: "Radiazione Solare", value: radSol, unit: "W/m²" },
+            { name: "Temperatura 850hPa", value: temp850, unit: "°" }
+        ];
+        populateRecords(records);
+
+        // Disegna grafici (supponendo 24 punti dati passati in data.charts)
+        if (data.charts) {
+            createChart('tempChart', 'Temperatura', data.charts.temp_data, data.charts.temp_labels, 'var(--max-color)', '°C');
+            createChart('pressureChart', 'Pressione', data.charts.pressure_data, data.charts.pressure_labels, 'var(--min-color)', 'hPa');
+        }
+
+        // Timestamp aggiornamento
+        const utcTime = new Date(data.timestamp);
+        const localTime = utcTime.toLocaleString("it-IT", { timeZone: "Europe/Rome" });
+        document.getElementById("last-update").textContent = `Ultimo aggiornamento: ${localTime}`;
+
+    } catch (err) {
+        console.error("Errore nel caricamento dati:", err);
+        document.getElementById('main-title-location').textContent = `${stationId} - ${stationSource}`;
+    }
+}
+
+
+
+
+        window.onload = fetchDataAndRender;
+        function updateTempColor(temp) {
+  const card = document.getElementById("gauge-temp");
+  if (!card) return;
+
+  const color = getColorTemp(temp);
+  card.style.backgroundColor = color;
+}function getColorTemp(temp) {
+  if (temp >= 38.0) return "#843BEB";
+  if (temp >= 35.0) return "#FF69B4";
+  if (temp >= 30.0) return "#8B0000";
+  if (temp >= 25.0) return "#FF0000";
+  if (temp >= 20.0) return "#E67D00";
+  if (temp >= 15.0) return "#E6B800";
+  if (temp >= 11.0) return "#3AA300";
+  if (temp >= 5.0) return "#006400";
+  if (temp >= 0.0) return "#87CEEB";
+  if (temp >= -5.0) return "#4682B4";
+  if (temp >= -10.0) return "#0000FF";
+  return "#191970";
+}
+    </script>
+</head>
+
+<body onload="fetchDataAndRender()" class="p-4 sm:p-8">
+
+
+    <div class="grid-wrapper">
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-800 mb-6 text-center sm:text-left">
+            Dati Stazione: 
+            <span id="main-title-location" class="text-blue-600">Caricamento...</span>
+        </h1>
+        
+        <!-- Contenitore Griglia (4 Colonne) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 transition-all duration-300 auto-rows-auto">
+
+
+            <!-- Card A1 (1x2): TEMPERATURA ATTUALE (GRANDE) -->
+            <div id="gauge-temp" class="gauge-card col-span-2 row-span-2 md:col-span-1 md:row-span-2 p-4 flex flex-col justify-start">
+                <p class="text-sm font-bold text-gray-800 mb-2">Temperatura</p>
+                
+                <div class="flex items-center justify-start flex-grow">
+                    <!-- Valore principale LG (Popolato da JSON) -->
+                    <span class="flex items-end" id="temp-value">...</span>
+                </div>
+                
+                <!-- Max/Min Orizzontale -->
+                <div class="main-temp-minmax flex items-center justify-start mt-3 mb-2" id="temp-minmax-horizontal">
+                    <!-- Max: [Valore] Min: [Valore] -->
+                </div>
+                
+                <!-- Metadati -->
+                <div class="flex justify-between items-center text-sm font-semibold text-gray-700 mt-auto">
+                    <div class="flex items-center space-x-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zM10 8a2 2 0 100 4 2 2 0 000-4z" />
+                        </svg>
+                        <span id="metadata-status">Caricamento...</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span id="metadata-timestamp">Caricamento...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card A2 (1x1): Dewpoint -->
+            <div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+              <div class="icon-box">
+                <img src="https://i.ibb.co/GfMNyGcY/dew.png" alt="Dew Point" class="icon-style-large" />
+              </div>
+              <span class="flex items-end" id="dewpoint-value">...</span>
+              <div class="stacked-min-max" id="dewpoint-minmax">...</div>
+            </div>
+            
+            
+<!-- Card A3 (1x1): Umidità -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/bjhPCZhk/UR.png" 
+          alt="Umidità" 
+          class="icon-style-medium" 
+      />
+  </div>
+  <span class="flex items-end" id="umidity-value">...</span>
+  <div class="stacked-min-max" id="umidity-minmax">...</div>
+</div>
+
+
+<!-- Card B1 (1x1): Pressione Atmosferica -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/60XrBZtD/PRESS.png" 
+          alt="Pressione Atmosferica" 
+          class="icon-style-large" 
+      />
+  </div>
+  <span class="flex items-end" id="pressione-value">...</span>
+  <div class="stacked-min-max" id="pressione-minmax">...</div>
+</div>
+
+            
+<!-- Card B2 (1x1): Tasso di Pioggia -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/5xfpfQy9/RATE.png" 
+          alt="Tasso di Pioggia" 
+          class="icon-style-large"
+      />
+  </div>
+  <span class="flex items-end" id="rainrate-value">...</span>
+  <div class="stacked-min-max" id="rainrate-minmax">...</div>
+</div>
+
+
+<!-- Card B3 (1x1): Pioggia Totale Giornaliera -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/G4Dn7ZS4/DAILY.png" 
+          alt="Pioggia Totale Giornaliera" 
+          class="icon-style-large"
+      />
+  </div>
+  <span class="flex items-end" id="raintotal-value">...</span>
+  <div class="flex flex-row space-x-1 items-center justify-end" id="raintotal-minmax">...</div>
+</div>
+
+            
+<!-- Card C1 (1x1): Vento -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.postimg.cc/w3GHk2Lq/wind-icon.png" 
+          alt="Vento" 
+          class="icon-style-large"
+      />
+  </div>
+  <span class="flex items-end" id="wind-value">...</span>
+  <div class="stacked-min-max" id="wind-minmax">...</div>
+</div>
+
+            
+<!-- Card C2 (1x1): Heat Index -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/YFJfQ5Tt/HEAT.png" 
+          alt="Heat Index" 
+          class="icon-style-large" 
+      />
+  </div>
+  <span class="flex items-end" id="heatindex-value">...</span>
+  <div class="stacked-min-max" id="heatindex-minmax">...</div>
+</div>
+
+            
+            <!-- Card C3 (1x1): Radiazione Solare -->
+            <div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+              <div class="icon-box">
+                  <img 
+                      src="https://i.postimg.cc/t1NDXrp4/radiazione.png" 
+                      alt="Radiazione Solare" 
+                      class="icon-style-large"
+                  />
+              </div>
+              <span class="flex items-end" id="radsol-value">...</span>
+              <div class="stacked-min-max" id="radsol-minmax">...</div>
+          </div>
+            
+<!-- Card D1 (1x1): Indice UV -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/prbVNMhQ/UV.png" 
+          alt="UV" 
+          class="icon-style-large"
+      />
+  </div>
+  <span class="flex items-end" id="uv-value">...</span>
+  <div class="stacked-min-max" id="uv-minmax">...</div>
+</div>
+
+            
+<!-- Card D2 (1x1): Temperatura a 850hPa -->
+<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
+  <div class="icon-box">
+      <img 
+          src="https://i.ibb.co/chVtwvz1/850hpa.png" 
+          alt="Temperatura 850hPa" 
+          class="icon-style-large"
+      />
+  </div>
+  <span class="flex items-end" id="850hpa-value">...</span>
+  <div class="stacked-min-max" id="850hpa-minmax">...</div>
+</div>
+            <!-- Card F1 (4x1/2): Fonte Dati -->
+<div class="gauge-card col-span-4 row-span-1 p-4 flex items-center justify-center text-center">
+    <p class="text-sm font-bold text-gray-800">
+        Dati provenienti da:
+        <span class="font-normal text-gray-700">Wunderground, LIMET, OMIRL, DMA, CML, Ignorete, Comune di Genova</span>
+    </p>
+</div>
+
+        </div>
+    </div>
+
+</body>
+</html>
