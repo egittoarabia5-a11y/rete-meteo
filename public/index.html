@@ -197,6 +197,7 @@
 <div id="map"></div>
 
 <script>
+  const isMobile = window.innerWidth < 768;
 let currentVariable = "temp";
 let modes = {
   temp: "current",
@@ -400,17 +401,26 @@ function toNum(v) {
   return isNaN(n) ? null : n;
 }
 
+function getScale() {
+  if (window.innerWidth < 768) return 2;
+  if (window.innerWidth < 1024) return 1.6;
+  return 1;
+}
+
 function getMarkerSize() {
-  return 26;
+  const base = 26;
+  return base * getScale();
 }
 
 // ================= RENDER =================
-// ================= RENDER =================
-function renderCircle(el, value, color, size = 36) {
+function renderCircle(el, value, color, size = 26) {
 
   el.innerHTML = "";
 
-  // WRAPPER VERTICALE
+  const scale = getScale();
+  const finalSize = size * scale;
+
+  // WRAPPER
   const wrapper = document.createElement("div");
   wrapper.style.display = "flex";
   wrapper.style.flexDirection = "column";
@@ -419,8 +429,8 @@ function renderCircle(el, value, color, size = 36) {
   // ===== CERCHIO =====
   const circle = document.createElement("div");
 
-  circle.style.width = size + "px";
-  circle.style.height = size + "px";
+  circle.style.width = finalSize + "px";
+  circle.style.height = finalSize + "px";
   circle.style.borderRadius = "50%";
   circle.style.backgroundColor = color;
   circle.style.border = "2px solid white";
@@ -431,22 +441,22 @@ function renderCircle(el, value, color, size = 36) {
 
   circle.style.fontFamily = `"Inter","SF Pro Display","Segoe UI",sans-serif`;
   circle.style.fontWeight = "600";
-  circle.style.fontSize = "11px";
+  circle.style.fontSize = (11 * scale * 1.5) + "px";
   circle.style.color = "white";
   circle.style.overflow = "hidden";
 
   circle.textContent =
     value != null ? value.toFixed(1) : "";
 
-  // ===== PUNTA (TRIANGOLO) =====
+  // ===== PUNTA =====
   const pointer = document.createElement("div");
 
   pointer.style.width = "0";
   pointer.style.height = "0";
-  pointer.style.borderLeft = "8px solid transparent";
-  pointer.style.borderRight = "8px solid transparent";
-  pointer.style.borderTop = "6px solid white";
-  pointer.style.marginTop = "-2px";
+  pointer.style.borderLeft = (8 * scale) + "px solid transparent";
+  pointer.style.borderRight = (8 * scale) + "px solid transparent";
+  pointer.style.borderTop = (6 * scale) + "px solid white";
+  pointer.style.marginTop = (-2 * scale) + "px";
 
   // ===== COMPOSIZIONE =====
   wrapper.appendChild(circle);
@@ -1257,7 +1267,6 @@ async function fetchPWSGenova() {
     console.error("❌ fetchAeris error:", err);
   }
 }
-
 
 
 
