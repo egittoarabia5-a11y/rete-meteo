@@ -213,7 +213,9 @@ function toggleMenu(id) {
 }
 function setMode(variable, mode) {
   modes[variable] = mode;
+ if (document.visibilityState === "visible") {
   Object.keys(markers).forEach(updateMarker);
+}
 }
 const dewButton = document.getElementById("dewButton");
 const tempButton = document.getElementById("tempButton");
@@ -1319,13 +1321,20 @@ map.setPaintProperty("hillshade", "hillshade-accent-color", "#222222");
   // ======================
   // FETCH INITIAL
   // ======================
-  Object.keys(stations).forEach(id => fetchPws(id));
-  fetchOMIRL();
-  fetchIgnorete();
-  fetchComuneGenova();
-  fetchLimet();
-  fetchPWSGenova();
-  fetchWF();
+async function loadAll() {
+  await fetchPws();
+  await new Promise(r => setTimeout(r, 300));
+  await fetchOMIRL();
+  await new Promise(r => setTimeout(r, 300));
+  await fetchIgnorete();
+  await new Promise(r => setTimeout(r, 300));
+  await fetchComuneGenova();
+  await new Promise(r => setTimeout(r, 300));
+  await fetchLimet();
+  await new Promise(r => setTimeout(r, 300));
+  await fetchWF();
+}
+loadAll();
 
   // ======================
   // INTERVALS
