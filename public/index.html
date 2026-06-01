@@ -2,18 +2,14 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Mappa 3D Rilievi</title>
+<title>3D Terrain Map</title>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
 
 <style>
-body { margin:0; overflow:hidden; }
-
-#map {
-  width:100vw;
-  height:100vh;
-}
+  body { margin:0; overflow:hidden; }
+  #map { width:100vw; height:100vh; }
 </style>
 </head>
 
@@ -21,24 +17,18 @@ body { margin:0; overflow:hidden; }
 <div id="map"></div>
 
 <script>
-
-// ================= MAP =================
 const map = new maplibregl.Map({
   container: "map",
-  style: "https://api.maptiler.com/maps/019e7938-6b2c-72a8-a6d2-a1adc1577dbc/style.json?key=yoJV05O0V6lTp5gne3Fr",
-  center: [8.95, 44.41],   // Genova
+  style: "https://api.maptiler.com/maps/basic-v2/style.json?key=yoJV05O0V6lTp5gne3Fr",
+  center: [8.95, 44.4],
   zoom: 11,
-  pitch: 75,
-  bearing: 0,
-  antialias: true
+  pitch: 60,
+  bearing: 0
 });
 
-map.addControl(new maplibregl.NavigationControl());
-
-// ================= LOAD =================
 map.on("load", () => {
 
-  // 🌄 TERRAIN (rilievi)
+  // ================= TERRAIN =================
   map.addSource("terrain", {
     type: "raster-dem",
     url: "https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=yoJV05O0V6lTp5gne3Fr",
@@ -50,96 +40,27 @@ map.on("load", () => {
     exaggeration: 1.4
   });
 
-  // ☁️ SKY
+  // ================= HILLSHADE (FONDAMENTALE) =================
+  map.addSource("hillshade", {
+    type: "raster-dem",
+    url: "https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=yoJV05O0V6lTp5gne3Fr",
+    tileSize: 512
+  });
+
   map.addLayer({
-    id: "sky",
-    type: "sky",
+    id: "hillshade",
+    type: "hillshade",
+    source: "hillshade",
     paint: {
-      "sky-type": "atmosphere"
+      "hillshade-exaggeration": 0.6
     }
   });
-
-  // ================= SAMPLE METEO LAYER =================
-  const geojson = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {
-          name: "Genova Centro",
-          value: 18.5
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [8.93, 44.41]
-        }
-      },
-      {
-        type: "Feature",
-        properties: {
-          name: "Savona",
-          value: 16.2
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [8.48, 44.30]
-        }
-      }
-    ]
-  };
-
-  map.addSource("stations", {
-    type: "geojson",
-    data: geojson
-  });
-
-  // 🔴 cerchi
-  map.addLayer({
-    id: "stations-circle",
-    type: "circle",
-    source: "stations",
-    paint: {
-      "circle-radius": 8,
-      "circle-color": "#ff4d4d",
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#fff"
-    }
-  });
-
-  // 🔢 valori testo
-  map.addLayer({
-    id: "stations-text",
-    type: "symbol",
-    source: "stations",
-    layout: {
-      "text-field": ["to-string", ["get", "value"]],
-      "text-size": 12,
-      "text-offset": [0, 1.2]
-    },
-    paint: {
-      "text-color": "#fff"
-    }
-  });
-
-  // ================= CLICK POPUP =================
-  map.on("click", "stations-circle", (e) => {
-
-    const f = e.features[0];
-
-    new maplibregl.Popup()
-      .setLngLat(f.geometry.coordinates)
-      .setHTML(`
-        <div style="font-family:Inter;">
-          <b>${f.properties.name}</b><br/>
-          ${f.properties.value}°C
-        </div>
-      `)
-      .addTo(map);
-
-  });
-
+map.setLight({
+  anchor: "map",
+  intensity: 1.4,
+  position: [0, 90, 120]
 });
-
+});
 </script>
 </body>
 </html>
