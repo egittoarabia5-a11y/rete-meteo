@@ -194,37 +194,33 @@
   padding:10px;
   cursor:pointer;
 }
-#pitch-controls {
+#pitchToggle {
   position: absolute;
   bottom: 20px;
   left: 20px;
   z-index: 1000;
 
-  display: flex;
-  gap: 8px;
-}
-
-#pitch-controls button {
-  color: #111;
   background: white;
-  border: none;
+  color: #111;
 
-  padding: 8px 12px;
+  padding: 8px 14px;
+  border-radius: 10px;
+
+  font-size: 13px;
+  font-family: "Inter", sans-serif;
+
   cursor: pointer;
 
-  border-radius: 10px;
-  font-size: 13px;
-
-  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  user-select: none;
 
   transition: all 0.2s ease;
 }
-
-#pitch-controls button:hover {
+#pitchToggle:hover {
   background: #f5f5f5;
 }
 
-#pitch-controls button:active {
+#pitchToggle:active {
   transform: scale(0.96);
 }
 #regionMenu button:hover{
@@ -314,9 +310,8 @@
   </div>
 </div>
 </div>
-<div id="pitch-controls">
-  <button id="pitchNo">Piatta</button>
-  <button id="pitchSi">Rilievi</button>
+<div id="pitchToggle">
+  Rilievi
 </div>
 
 <div id="map"></div>
@@ -500,18 +495,32 @@ const map = new maplibregl.Map({
 });
 
 // ================= PITCH CONTROLS =================
-document.getElementById("pitchNo").addEventListener("click", () => {
-  map.easeTo({
-    pitch: 0,
-    duration: 800
-  });
-});
+let is3D = false;
 
-document.getElementById("pitchSi").addEventListener("click", () => {
-  map.easeTo({
-    pitch: 60,
-    duration: 800
-  });
+const pitchToggle = document.getElementById("pitchToggle");
+
+// stato iniziale
+map.setPitch(0);
+pitchToggle.innerText = "Rilievi";
+
+pitchToggle.addEventListener("click", () => {
+  is3D = !is3D;
+
+  if (is3D) {
+    map.easeTo({
+      pitch: 60,
+      duration: 800
+    });
+
+    pitchToggle.innerText = "Piatta";
+  } else {
+    map.easeTo({
+      pitch: 0,
+      duration: 800
+    });
+
+    pitchToggle.innerText = "Rilievi";
+  }
 });
 let regionStationIds = new Set();
 function clearPreviousRegionStations() {
