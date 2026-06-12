@@ -244,6 +244,7 @@
     <button data-region="liguria">Liguria</button>
     <button data-region="piemonte">Piemonte</button>
     <button data-region="lombardia">Lombardia</button>
+    <button data-region="globale">Globale</button>
   </div>
 
 </div>
@@ -1384,6 +1385,89 @@ const fetchLimet = async () => {
     console.error("Errore fetch LIMET:", err);
   }
 };
+async function fetchPWSWorld() {
+  try {
+
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/aerisWorld.json"
+    );
+
+    const data = await res.json();
+
+
+    if (!data?.stations) {
+      console.warn("❌ nessuna stations");
+      return;
+    }
+
+    data.stations.forEach(st => {
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (!lat || !lon) return;
+
+      allStations[id] = {
+        source: "AERIS_WORLD",
+
+        // ================= TEMPERATURE =================
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ================= DEWPOINT =================
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ================= HEAT INDEX =================
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ================= HUMIDITY =================
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ================= PRESSURE =================
+        pressure: st.P ?? null,
+        pressureHigh: st.PH ?? null,
+        pressureLow: st.PL ?? null,
+
+        // ================= WIND =================
+        wind: st.V ?? null,
+        windHigh: st.VH ?? null,
+        windLow: st.VL ?? null,
+
+        windGust: st.G ?? null,
+        windGustHigh: st.GH ?? null,
+
+        windDir: st.WD ?? null,
+
+        // ================= PRECIPITATION =================
+        rainDaily: st.R ?? null,
+        rainRate: st.RR ?? null,
+
+        // ================= RADIATION =================
+        rad: st.RAD ?? null,
+        radHigh: st.RADH ?? null,
+        radLow: st.RADL ?? null,
+
+        // ================= META =================
+        lat,
+        lon,
+        time: st.timestamp ?? null
+      };
+      updateLayer(id);
+    });
+
+  } catch (err) {
+    console.error("❌ fetchAeris error:", err);
+  }
+}
 async function fetchPWSGenova() {
   try {
 
@@ -1470,114 +1554,87 @@ async function fetchPWSGenova() {
 async function fetchNetatmoGenova() {
   try {
 
-    // 🔗 LISTA ENDPOINT (puoi aggiungerne altri)
-    const netatmoUrls = [
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=9.0087890625&lat_sw=44.402391829093915&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7C4f82c74b51049335243e1de00130786b",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.33956524809713&lon_ne=9.1845703125&lat_sw=44.32384807250689&lon_sw=9.16259765625&date_end=last&access_token=52d42bfc1777599b298b456c%7C4f82c74b51049335243e1de00130786b",
-
-    ];
-
-    // 🚫 LISTA ID DA ESCLUDERE
-    const excludedIds = [
-      "70:ee:50:2e:e3:74",
-      "70:ee:50:27:20:62",
-      "70:ee:50:b9:5d:c4",
-      "70:ee:50:b0:96:b2",
-    ];
-
-    const responses = await Promise.all(
-      netatmoUrls.map(url =>
-        fetch(url).then(r => r.json()).catch(() => null)
-      )
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/netatmo.json"
     );
 
-    for (const data of responses) {
+    const data = await res.json();
 
-      if (!data?.body) {
-        console.warn("❌ risposta Netatmo non valida");
-        continue;
-      }
-
-      data.body.forEach(st => {
-        const id = st._id;
-
-        // 🚫 FILTRO ID
-        if (excludedIds.includes(id)) return;
-
-        const lat = Number(st.place?.location?.[1]);
-        const lon = Number(st.place?.location?.[0]);
-
-        if (!lat || !lon) return;
-
-        let temp = null;
-        let hum = null;
-        let pressure = null;
-        let wind = null;
-        let windGust = null;
-        let rain = null;
-
-        // ================= PARSE MEASURES =================
-        if (st.measures) {
-          for (const measure of Object.values(st.measures)) {
-            const types = measure.type || [];
-            const resMap = measure.res || {};
-
-            const timestamps = Object.keys(resMap || {});
-            const lastTs = timestamps[timestamps.length - 1];
-            const values = resMap[lastTs];
-
-            if (!values) continue;
-
-            types.forEach((t, i) => {
-              if (t === "temperature") temp = values[i];
-              if (t === "humidity") hum = values[i];
-              if (t === "pressure") pressure = values[i];
-            });
-
-            if (measure.rain_60min != null) {
-              rain = measure.rain_60min;
-            }
-
-            if (measure.wind_strength != null) {
-              wind = measure.wind_strength;
-            }
-
-            if (measure.gust_strength != null) {
-              windGust = measure.gust_strength;
-            }
-          }
-        }
-
-        // 🔥 correzione temperatura globale
-        if (temp != null) {
-          temp = temp - 2.5;
-        }
-
-        allStations[id] = {
-          source: "NETATMO_GENOVA_FILTERED",
-
-          // ================= METEO =================
-          temp: temp ?? null,
-          tempHigh: null,
-          tempLow: null,
-          hum: hum ?? null,
-          pressure: pressure ?? null,
-          wind: wind ?? null,
-          windGust: windGust ?? null,
-          rainDaily: rain ?? null,
-
-          // ================= META =================
-          lat,
-          lon,
-          time: data.time_server ?? null
-        };
-
-        updateLayer(id);
-      });
+    if (!data?.stations) {
+      console.warn("❌ nessuna stations Netatmo");
+      return;
     }
 
+    data.stations.forEach(st => {
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (!lat || !lon) return;
+
+      allStations[id] = {
+        source: "NETATMO_GENOVA",
+
+        // ================= TEMPERATURE =================
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ================= DEWPOINT =================
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ================= HEAT INDEX =================
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ================= HUMIDITY =================
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ================= PRESSURE =================
+        pressure: st.P ?? null,
+        pressureHigh: st.PH ?? null,
+        pressureLow: st.PL ?? null,
+
+        // ================= WIND =================
+        wind: st.V ?? null,
+        windHigh: st.WH ?? null,
+        windLow: st.WL ?? null,
+
+        windGust: st.G ?? null,
+        windGustHigh: st.GH ?? null,
+
+        windDir: st.WD ?? null,
+
+        // ================= PRECIPITATION =================
+        rainDaily: st.R ?? null,
+        rainRate: st.RR ?? null,
+
+        // ================= RADIATION =================
+        rad: st.RAD ?? null,
+        radHigh: st.RADH ?? null,
+        radLow: st.RADL ?? null,
+
+        // ================= META =================
+        lat,
+        lon,
+        time: st.timestamp ?? null
+      };
+
+      updateLayer(id);
+
+    });
+
   } catch (err) {
-    console.error("❌ fetchNetatmo error:", err);
+
+    console.error("❌ fetchNetatmoGenova error:", err);
+
   }
 }
 function setRegion(region){
@@ -1589,6 +1646,7 @@ function setRegion(region){
   if(region === "liguria") startLiguria();
   if(region === "piemonte") startPiemonte();
   if(region === "lombardia") startLombardia();
+  if(region === "globale") startWorld();
 
   document.getElementById("regionButton").innerText =
     region.charAt(0).toUpperCase() + region.slice(1);
@@ -1628,6 +1686,10 @@ document
 
       case "lombardia":
         startLombardia();
+        break;
+
+      case "globale":
+        startWorld();
         break;
     }
 
@@ -1673,7 +1735,16 @@ function startLiguria(){
   intervals.push(setInterval(fetchWF, 300000));
   intervals.push(setInterval(fetchNetatmoGenova, 300000));
 }
+function startWorld(){
 
+  clearAllIntervals();
+  clearPreviousRegionStations();
+
+
+  fetchPWSWorld();
+  // ===== INTERVALS =====
+  intervals.push(setInterval(fetchPWSWorld, 600000));
+}
 
 function startPiemonte(){
 
