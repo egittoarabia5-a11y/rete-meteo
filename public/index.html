@@ -762,9 +762,9 @@ map.addLayer({
       'circle-radius': [
         'interpolate', ['linear'], ['zoom'],
         // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
-        7,  isMobile ? 9 : 9,
-        10, isMobile ? 10 : 11,
-        14, isMobile ? 14 : 15
+        7,  isMobile ? 12 : 9,
+        10, isMobile ? 15 : 11,
+        14, isMobile ? 18 : 15
       ],
       'circle-color': ['get', 'color'],
       'circle-stroke-color': '#ffffff',
