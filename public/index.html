@@ -762,9 +762,9 @@ map.addLayer({
       'circle-radius': [
         'interpolate', ['linear'], ['zoom'],
         // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
-        7,  isMobile ? 12 : 9,
-        10, isMobile ? 15 : 11,
-        14, isMobile ? 18 : 15
+        7,  isMobile ? 11 : 9,
+        10, isMobile ? 14 : 11,
+        14, isMobile ? 17 : 15
       ],
       'circle-color': ['get', 'color'],
       'circle-stroke-color': '#ffffff',
@@ -786,10 +786,10 @@ map.addLayer({
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
         // Incrementati drasticamente i valori minimi di zoom
-        7,  isMobile ? 7 : 7,
-        10, isMobile ? 9 : 9,
-        14, isMobile ? 12 : 12,
-        16, isMobile ? 14 : 14
+        7,  isMobile ? 9 : 7,
+        10, isMobile ? 11 : 9,
+        14, isMobile ? 13 : 12,
+        16, isMobile ? 15 : 14
       ],
       'text-anchor': 'center',
       // IMPORTANTE: Se lasci false, Mapbox nasconde i testi che collidono tra loro.
