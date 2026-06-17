@@ -613,7 +613,6 @@ function getValueAndColor(st) {
 
   return {
     value,
-    valueBis: value != null ? String(Math.round(value)) : "",
     color: getColor(currentVariable, value),
     valueStr: value !== null ? value.toFixed(1) : ""
   };
@@ -631,7 +630,6 @@ properties: {
   name: st.N,
   source: st.source,
   value,
-  valueBis,
   valueStr,
   color
 }
