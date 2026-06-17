@@ -625,17 +625,13 @@ function updateLayer() {
     return {
       type: "Feature",
       geometry: { type: "Point", coordinates: [st.lon, st.lat] },
- properties: {
-    id: st.id,
-    name: st.N,
-
-    // valore numerico vero
-    value: st[currentVariable],
-
-    // stringa formattata
+properties: {
+  id: st.id,
+  name: st.N,
+  source: st.source,
   valueStr,
-    color
-  }
+  color
+}
     };
   });
 
@@ -784,7 +780,7 @@ map.addLayer({
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-    'text-field': ['get', 'valueStr'],
+      'text-field': ['get', 'valueStr'],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
@@ -817,9 +813,7 @@ map.on('click', (e) => {
 });
   map.on('mouseenter', 'stations-circle', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'stations-circle', () => map.getCanvas().style.cursor = '');
-  
-  // ================= FETCH INIZIALI =================
-  const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
+const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
 
   // fetchPws (modificata)
   async function fetchPws(id, stationMap = stations) {
