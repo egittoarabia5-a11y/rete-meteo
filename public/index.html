@@ -784,19 +784,29 @@ map.addLayer({
       'text-field': [
   'case',
 
-  // zoom < 8 → intero
+  // zoom < 8
   ['<', ['zoom'], 8],
 
   [
     'to-string',
     [
       'round',
-      ['to-number', ['get', 'valueStr']]
+      [
+        'to-number',
+        ['get', 'valueStr']
+      ]
     ]
   ],
 
-  // zoom >= 8 → valore originale
-  ['get', 'valueStr']
+  // zoom >= 8
+  [
+    'case',
+
+    ['==', ['get', 'valueStr'], ''],
+    '',
+
+    ['get', 'valueStr']
+  ]
 ],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
