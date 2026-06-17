@@ -613,6 +613,7 @@ function getValueAndColor(st) {
 
   return {
     value,
+    valueBis: value != null ? String(Math.round(value)) : "",
     color: getColor(currentVariable, value),
     valueStr: value !== null ? value.toFixed(1) : ""
   };
@@ -630,6 +631,7 @@ properties: {
   name: st.N,
   source: st.source,
   value,
+  valueBis,
   valueStr,
   color
 }
@@ -785,13 +787,14 @@ map.addLayer({
 'text-field': [
   'case',
 
+  // zoom < 8 → usa valueBis
   ['<', ['zoom'], 8],
 
-  ['to-string', ['round', ['get', 'value']]],
+  ['get', 'valueBis'],
 
+  // zoom ≥ 8 → usa valueStr
   ['get', 'valueStr']
-],
-      'text-font': ['Inter Bold', 'Arial Bold'],
+]     'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
         // Incrementati drasticamente i valori minimi di zoom
