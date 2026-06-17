@@ -785,7 +785,23 @@ map.addLayer({
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-    'text-field': ['get', 'valueStr'],
+    'text-field': [
+  'case',
+
+  // Se zoom < 8
+  ['<', ['zoom'], 8],
+
+  // Togli gli ultimi 2 caratteri
+  [
+    'slice',
+    ['get', 'valueStr'],
+    0,
+    ['-', ['length', ['get', 'valueStr']], 2]
+  ],
+
+  // Altrimenti mostra il testo completo
+  ['get', 'valueStr']
+],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
