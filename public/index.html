@@ -1711,6 +1711,11 @@ document
 
   });
 setRegion("lombardia");
+if (zoom < 8)
+  shownValue = Math.round(num).toString();
+
+else
+  shownValue = num.toFixed(1);
   // Avvio
   function loadLiguriaData(){
 
