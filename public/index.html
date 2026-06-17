@@ -638,11 +638,6 @@ properties: {
   const source = map.getSource('weather-stations');
   if (source) source.setData(geojson);
 }
-if (zoom < 8)
-  shownValue = Math.round(num).toString();
-
-else
-  shownValue = num.toFixed(1);
 // ================= POPUP =================
 function showPopup(feature) {
 
