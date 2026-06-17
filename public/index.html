@@ -621,7 +621,7 @@ function getValueAndColor(st) {
 // ================= UPDATE LAYER =================
 function updateLayer() {
   geojson.features = Object.values(allStations).map(st => {
-    const { color, valueStr } = getValueAndColor(st);
+    const { value, color, valueStr } = getValueAndColor(st);
     return {
       type: "Feature",
       geometry: { type: "Point", coordinates: [st.lon, st.lat] },
@@ -629,6 +629,7 @@ properties: {
   id: st.id,
   name: st.N,
   source: st.source,
+  value,
   valueStr,
   color
 }
@@ -781,32 +782,14 @@ map.addLayer({
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-      'text-field': [
+'text-field': [
   'case',
 
-  // zoom < 8
   ['<', ['zoom'], 8],
 
-  [
-    'to-string',
-    [
-      'round',
-      [
-        'to-number',
-        ['get', 'valueStr']
-      ]
-    ]
-  ],
+  ['to-string', ['round', ['get', 'value']]],
 
-  // zoom >= 8
-  [
-    'case',
-
-    ['==', ['get', 'valueStr'], ''],
-    '',
-
-    ['get', 'valueStr']
-  ]
+  ['get', 'valueStr']
 ],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
