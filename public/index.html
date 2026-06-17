@@ -785,18 +785,7 @@ map.addLayer({
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-    'text-field': [
-  'case',
-
-  // zoom < 8
-  ['<', ['zoom'], 8],
-
-  // mostra intero
-  ['to-string', ['round', ['get', 'value']]],
-
-  // zoom >= 8
-  ['get', 'valueStr']
-],
+    'text-field': ['get', 'valueStr'],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
