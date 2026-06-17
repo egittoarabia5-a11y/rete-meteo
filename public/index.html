@@ -625,13 +625,18 @@ function updateLayer() {
     return {
       type: "Feature",
       geometry: { type: "Point", coordinates: [st.lon, st.lat] },
-properties: {
-  id: st.id,
-  name: st.N,
-  source: st.source,
-  valueStr,
-  color
-}
+ properties: {
+    id: st.id,
+    name: st.N,
+
+    // valore numerico vero
+    value: st[currentVariable],
+
+    // stringa formattata
+    valueStr,
+
+    color
+  }
     };
   });
 
@@ -780,25 +785,16 @@ map.addLayer({
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-      'text-field': [
+    'text-field': [
   'case',
 
-  // Se zoom è minore di 8
+  // zoom < 8
   ['<', ['zoom'], 8],
 
-  // Arrotonda il numero e trasformalo in stringa
-  [
-    'to-string',
-    [
-      'round',
-      [
-        'to-number',
-        ['get', 'valueStr']
-      ]
-    ]
-  ],
+  // mostra intero
+  ['to-string', ['round', ['get', 'value']]],
 
-  // Altrimenti mostra il valore originale
+  // zoom >= 8
   ['get', 'valueStr']
 ],
       'text-font': ['Inter Bold', 'Arial Bold'],
