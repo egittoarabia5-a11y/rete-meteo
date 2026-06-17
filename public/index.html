@@ -780,7 +780,27 @@ map.addLayer({
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-      'text-field': ['get', 'valueStr'],
+      'text-field': [
+  'case',
+
+  // Se zoom è minore di 8
+  ['<', ['zoom'], 8],
+
+  // Arrotonda il numero e trasformalo in stringa
+  [
+    'to-string',
+    [
+      'round',
+      [
+        'to-number',
+        ['get', 'valueStr']
+      ]
+    ]
+  ],
+
+  // Altrimenti mostra il valore originale
+  ['get', 'valueStr']
+],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
