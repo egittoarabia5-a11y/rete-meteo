@@ -485,7 +485,7 @@ const stationsPiemonte = {
 };
 const map = new maplibregl.Map({
   container: "map",
-  style: "https://api.maptiler.com/maps/019e7938-6b2c-72a8-a6d2-a1adc1577dbc/style.json?key=pqBJy7MZ3UAPlcS3juEh",
+  style: "https://api.maptiler.com/maps/019e7938-6b2c-72a8-a6d2-a1adc1577dbc/style.json?key=Bp0b3UUOmsXMC3M4b3SW",
   center: [8.98, 44.41],
   zoom: 12,
   pitch: 0,
@@ -746,7 +746,7 @@ map.on("load", () => {
   // 3D Terrain
   map.addSource("terrain", {
     type: "raster-dem",
-    url: "https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=pqBJy7MZ3UAPlcS3juEh",
+    url: "https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=Bp0b3UUOmsXMC3M4b3SW",
     tileSize: 512
   });
   map.setTerrain({ source: "terrain", exaggeration: 1.3 });
