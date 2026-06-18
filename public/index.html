@@ -630,7 +630,7 @@ function updateLayer() {
     // Scegliamo cosa mostrare in base allo zoom corrente della mappa
     let textDisplay = "";
     if (value !== null) {
-      textDisplay = currentZoom < 8 ? Math.round(value).toString() : valueStr;
+      textDisplay = currentZoom < 9 ? Math.round(value).toString() : valueStr;
     }
 
     return {
@@ -776,7 +776,7 @@ map.addLayer({
         'interpolate', ['linear'], ['zoom'],
         // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
  4,  isMobile ? 2 : 5,
-        7,  isMobile ? 4 : 7,
+        7,  isMobile ? 7 : 7,
         10, isMobile ? 13 : 11,
         14, isMobile ? 15 : 15
       ],
