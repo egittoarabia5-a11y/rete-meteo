@@ -777,16 +777,22 @@ map.addLayer({
   });
 
   // Text Layer (Corretto: i font sotto i 10px su mobile spariscono)
+    // Text Layer (Modificato per rimuovere il decimale sotto zoom 8)
   map.addLayer({
     id: 'stations-text',
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-'text-field': ['get', 'valueStr'],
-'text-font': ['Inter Bold', 'Arial Bold'],
+      // SE lo zoom è < 8 arrotonda il valore all'intero più vicino, ALTRIMENTI usa il valore stringa con decimale
+      'text-field': [
+        'case',
+        ['<', ['zoom'], 8], 
+        ['to-string', ['round', ['get', 'value']]], // Sotto zoom 8: Intero (es. 26)
+        ['get', 'valueStr']                         // Zoom >= 8: Stringa con decimale (es. 26.4)
+      ],
+      'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
-        // Incrementati drasticamente i valori minimi di zoom
         4,  isMobile ? 0 : 5,
         6,  isMobile ? 0 : 6,
         7,  isMobile ? 0 : 7,
@@ -796,8 +802,6 @@ map.addLayer({
         16, isMobile ? 15 : 14
       ],
       'text-anchor': 'center',
-      // IMPORTANTE: Se lasci false, Mapbox nasconde i testi che collidono tra loro.
-      // Per le stazioni meteo spesso serve vedere il dato, impostalo a true se vuoi forzarli.
       'text-allow-overlap': false,
       'text-ignore-placement': false
     },
@@ -805,6 +809,7 @@ map.addLayer({
       'text-color': '#ffffff'
     }
   });
+
 
   // Gestione Eventi Click & Touch
 map.on('click', (e) => {
