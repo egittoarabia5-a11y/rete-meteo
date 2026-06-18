@@ -620,12 +620,18 @@ function getValueAndColor(st) {
 
 // ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
+// ================= UPDATE LAYER =================
 function updateLayer() {
+  const currentZoom = map.getZoom();
+
   geojson.features = Object.values(allStations).map(st => {
     const { value, color, valueStr } = getValueAndColor(st);
     
-    // Generiamo l'intero direttamente qui in JavaScript in modo sicuro
-    const valueShortStr = value !== null ? Math.round(value).toString() : "";
+    // Scegliamo cosa mostrare in base allo zoom corrente della mappa
+    let textDisplay = "";
+    if (value !== null) {
+      textDisplay = currentZoom < 8 ? Math.round(value).toString() : valueStr;
+    }
 
     return {
       type: "Feature",
@@ -636,7 +642,7 @@ function updateLayer() {
         source: st.source,
         value,
         valueStr,
-        valueShortStr, // <--- Nuova proprietà pronta all'uso
+        textDisplay, // <--- Stringa pronta e sicura per MapLibre
         color
       }
     };
@@ -787,18 +793,13 @@ map.addLayer({
     // Text Layer (Modificato per rimuovere il decimale sotto zoom 8)
     // Text Layer (Corretto e ottimizzato contro i valori null/undefined)
     // Text Layer pulito e leggero
+    // Text Layer statico (MapLibre deve solo leggere la proprietà pre-calcolata)
   map.addLayer({
     id: 'stations-text',
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-      // Se lo zoom è inferiore a 8 usa la stringa corta senza decimali, altrimenti quella intera
-      'text-field': [
-        'case',
-        ['<', ['zoom'], 8], 
-        ['get', 'valueShortStr'], 
-        ['get', 'valueStr']
-      ],
+      'text-field': ['get', 'textDisplay'], // <--- Sarà gestito dinamicamente da JS
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
@@ -821,6 +822,7 @@ map.addLayer({
 
 
 
+
   // Gestione Eventi Click & Touch
 map.on('click', (e) => {
   const features = map.queryRenderedFeatures(e.point, {
@@ -833,6 +835,19 @@ map.on('click', (e) => {
 });
   map.on('mouseenter', 'stations-circle', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'stations-circle', () => map.getCanvas().style.cursor = '');
+// Ascolta lo zoom della mappa per aggiornare i decimali al volo
+let lastZoomState = map.getZoom() < 8; // true se <8, false se >=8
+
+map.on('zoom', () => {
+  const isUnderZoom8 = map.getZoom() < 8;
+  
+  // Aggiorna il layer solo se abbiamo effettivamente "attraversato" la soglia dello zoom 8
+  if (isUnderZoom8 !== lastZoomState) {
+    lastZoomState = isUnderZoom8;
+    updateLayer();
+  }
+});
+
 const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
 
   // fetchPws (modificata)
