@@ -630,7 +630,7 @@ function updateLayer() {
     // Scegliamo cosa mostrare in base allo zoom corrente della mappa
     let textDisplay = "";
     if (value !== null) {
-      textDisplay = currentZoom < 9 ? Math.round(value).toString() : valueStr;
+      textDisplay = currentZoom < 10 ? Math.round(value).toString() : valueStr;
     }
 
     return {
@@ -836,17 +836,19 @@ map.on('click', (e) => {
   map.on('mouseenter', 'stations-circle', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'stations-circle', () => map.getCanvas().style.cursor = '');
 // Ascolta lo zoom della mappa per aggiornare i decimali al volo
-let lastZoomState = map.getZoom() < 8; // true se <8, false se >=8
+// Ascolta lo zoom della mappa per aggiornare i decimali al volo (Soglia: 10)
+let lastZoomState = map.getZoom() < 10; // true se <10, false se >=10
 
 map.on('zoom', () => {
-  const isUnderZoom8 = map.getZoom() < 8;
+  const isUnderZoom10 = map.getZoom() < 10;
   
-  // Aggiorna il layer solo se abbiamo effettivamente "attraversato" la soglia dello zoom 8
-  if (isUnderZoom8 !== lastZoomState) {
-    lastZoomState = isUnderZoom8;
+  // Aggiorna solo quando si attraversa la soglia dello zoom 10 (in entrambe le direzioni)
+  if (isUnderZoom10 !== lastZoomState) {
+    lastZoomState = isUnderZoom10;
     updateLayer();
   }
 });
+
 
 const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
 
