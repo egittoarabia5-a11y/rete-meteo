@@ -778,26 +778,31 @@ map.addLayer({
 
   // Text Layer (Corretto: i font sotto i 10px su mobile spariscono)
     // Text Layer (Modificato per rimuovere il decimale sotto zoom 8)
+    // Text Layer (Corretto e ottimizzato contro i valori null/undefined)
   map.addLayer({
     id: 'stations-text',
     type: 'symbol',
     source: 'weather-stations',
     layout: {
-      // SE lo zoom è < 8 arrotonda il valore all'intero più vicino, ALTRIMENTI usa il valore stringa con decimale
+      // Controlliamo lo zoom e gestiamo in modo sicuro i dati mancanti
       'text-field': [
         'case',
-        ['<', ['zoom'], 8], 
-        ['to-string', ['round', ['get', 'value']]], // Sotto zoom 8: Intero (es. 26)
-        ['get', 'valueStr']                         // Zoom >= 8: Stringa con decimale (es. 26.4)
+        ['<', ['zoom'], 8],
+        // SOTTO ZOOM 8: Arrotonda all'intero. Se il valore manca, mostra una stringa vuota ""
+        ['coalesce', ['to-string', ['round', ['get', 'value']]], ""],
+        // DA ZOOM 8 IN SU: Usa la stringa con il decimale già pronta
+        ['coalesce', ['get', 'valueStr'], ""]
       ],
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
-        4,  isMobile ? 0 : 5,
-        6,  isMobile ? 0 : 6,
-        7,  isMobile ? 0 : 7,
-        8,  isMobile ? 3 : 8,
-        10, isMobile ? 10 : 9,
+        // NOTA: Se tieni 0 su mobile fino a zoom 7, sotto zoom 8 non vedrai scritte a prescindere dal codice!
+        // Ho alzato leggermente i valori minimi per renderli visibili se stai testando da telefono.
+        4,  isMobile ? 4 : 5,
+        6,  isMobile ? 6 : 6,
+        7,  isMobile ? 8 : 7,
+        8,  isMobile ? 9 : 8,
+        10, isMobile ? 11 : 9,
         14, isMobile ? 13 : 12,
         16, isMobile ? 15 : 14
       ],
