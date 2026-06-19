@@ -1059,22 +1059,24 @@ const fetch3R = async () => {
 };
 const fetchCML = async () => {
   try {
-
     const res = await fetch(
       "https://api-stazioni-meteo.eggittof.workers.dev/cml.json"
     );
 
     const data = await res.json();
-    if (!data?.stations) return;
+
+    console.log("Dati CML ricevuti:", data);
+
+    if (!data?.stations || !Array.isArray(data.stations)) return;
 
     data.stations.forEach((st) => {
-
       const id = st.N;
 
       const lat = Number(st.LAT);
       const lon = Number(st.LON);
 
-      if (!lat || !lon) return;
+      // Controllo più sicuro delle coordinate
+      if (isNaN(lat) || isNaN(lon)) return;
 
       allStations[id] = {
         source: "CML",
@@ -1088,8 +1090,8 @@ const fetchCML = async () => {
         dewpLow: st.DL ?? null,
 
         heat: st.HI ?? null,
-        heatHigh: HIH ?? null,
-        heatLow: st.TL ?? null,
+        heatHigh: st.HIH ?? null, // corretto
+        heatLow: st.HIL ?? null,  // se esiste nel JSON
 
         hum: st.H ?? null,
         humHigh: st.HH ?? null,
@@ -1105,8 +1107,14 @@ const fetchCML = async () => {
         lat,
         lon
       };
-      updateLayer();
     });
+
+    console.log(
+      `Stazioni CML caricate: ${Object.keys(allStations).length}`
+    );
+
+    // Aggiorna la mappa UNA SOLA VOLTA
+    updateLayer();
 
   } catch (err) {
     console.error("Errore fetch CML:", err);
