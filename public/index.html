@@ -1057,70 +1057,85 @@ const fetch3R = async () => {
     console.error("Errore fetch 3R API:", err);
   }
 };
+const excludedStations = new Set([
+  "Cambi� di Gambarana",
+  "Vigolzone",
+  "Milano Cadorna",
+  "Comezzano-Cizzago",
+  "Villa Pedergnano",
+  "Ala",
+  "Bagolino",
+  "Prevalle",
+  "Gussago",
+  "Piani di Bobbio - Orscellera",
+  "Albairate",
+  "Frontignano di Barbariga"
+]);
 const fetchCML = async () => {
   try {
+
     const res = await fetch(
       "https://api-stazioni-meteo.eggittof.workers.dev/cml.json"
     );
 
     const data = await res.json();
 
-    console.log("Dati CML ricevuti:", data);
+    if (!Array.isArray(data)) return;
 
-    if (!data?.stations || !Array.isArray(data.stations)) return;
+    data.forEach((st) => {
 
-    data.stations.forEach((st) => {
+      if (!st.N) return;
+
+      // 🚫 filtro esclusione
+      if (excludedStations.has(st.N)) return;
+
       const id = st.N;
 
       const lat = Number(st.LAT);
       const lon = Number(st.LON);
 
-      // Controllo più sicuro delle coordinate
       if (isNaN(lat) || isNaN(lon)) return;
 
       allStations[id] = {
         source: "CML",
 
-        temp: st.T ?? null,
-        tempHigh: st.TH ?? null,
-        tempLow: st.TL ?? null,
+        id,
+        N: st.N,
 
-        dewp: st.D ?? null,
-        dewpHigh: st.DH ?? null,
-        dewpLow: st.DL ?? null,
+        temp: st.T != null ? Number(st.T) : null,
+        tempHigh: st.TH != null ? Number(st.TH) : null,
+        tempLow: st.TL != null ? Number(st.TL) : null,
 
-        heat: st.HI ?? null,
-        heatHigh: st.HIH ?? null, // corretto
-        heatLow: st.HIL ?? null,  // se esiste nel JSON
+        dewp: st.D != null ? Number(st.D) : null,
+        dewpHigh: st.DH != null ? Number(st.DH) : null,
+        dewpLow: st.DL != null ? Number(st.DL) : null,
 
-        hum: st.H ?? null,
-        humHigh: st.HH ?? null,
-        humLow: st.HL ?? null,
+        heat: st.HI != null ? Number(st.HI) : null,
+        heatHigh: st.HIH != null ? Number(st.HIH) : null,
+        heatLow: st.HIL != null ? Number(st.HIL) : null,
 
-        wind: st.W ?? null,
-        windGust: st.WH ?? null,
+        hum: st.H != null ? Number(st.H) : null,
+        humHigh: st.HH != null ? Number(st.HH) : null,
+        humLow: st.HL != null ? Number(st.HL) : null,
+
+        wind: st.W != null ? Number(st.W) : null,
+        windGust: st.WH != null ? Number(st.WH) : null,
         windDir: st.WD ?? null,
 
-        rainDaily: st.R ?? null,
-        rainRate: st.RR ?? null,
+        rainDaily: st.R != null ? Number(st.R) : null,
+        rainRate: st.RR != null ? Number(st.RR) : null,
 
         lat,
         lon
       };
     });
 
-    console.log(
-      `Stazioni CML caricate: ${Object.keys(allStations).length}`
-    );
-
-    // Aggiorna la mappa UNA SOLA VOLTA
     updateLayer();
 
   } catch (err) {
     console.error("Errore fetch CML:", err);
   }
-};
-  // Le altre fetch (adattate)
+}; // Le altre fetch (adattate)
 const fetchDMA = async () => {
   try {
 
