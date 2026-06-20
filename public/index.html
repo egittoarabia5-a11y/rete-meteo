@@ -547,7 +547,6 @@ function clearAllIntervals(){
 const allStations = {};           // ← Nuovo: dati centralizzati
 const geojson = { type: "FeatureCollection", features: [] };
 let activePopup = null;
-
 // ================= COLORI =================
 function getColor(variable, value) {
   if (value === null) return "#808080";
@@ -776,8 +775,8 @@ map.addLayer({
         'interpolate', ['linear'], ['zoom'],
         // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
  4,  isMobile ? 2 : 5,
-        7,  isMobile ? 7 : 7,
-        10, isMobile ? 13 : 11,
+        7,  isMobile ? 7 : 9,
+        10, isMobile ? 13 : 13,
         14, isMobile ? 15 : 15
       ],
       'circle-color': ['get', 'color'],
@@ -805,11 +804,11 @@ map.addLayer({
         'interpolate', ['linear'], ['zoom'],
         4,  isMobile ? 5 : 5,
         6,  isMobile ? 6 : 6,
-        7,  isMobile ? 8 : 7,
-        8,  isMobile ? 9 : 8,
-        10, isMobile ? 11 : 9,
-        14, isMobile ? 13 : 12,
-        16, isMobile ? 15 : 14
+        7,  isMobile ? 8 : 8,
+        8,  isMobile ? 9 : 9,
+        10, isMobile ? 11 : 11,
+        14, isMobile ? 13 : 13,
+        16, isMobile ? 15 : 15
       ],
       'text-anchor': 'center',
       'text-allow-overlap': false,
@@ -1026,25 +1025,31 @@ const fetch3R = async () => {
 
         // ===== TEMPERATURE =====
         temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== HUMIDITY =====
+        hum: st.H ?? null,
+        humHigh: null,
+        humLow: null,
 
         // ===== WIND =====
         wind: st.V ?? null,
-        windGust: st.G ?? null,
-        windDir: st.WD ?? null,
+        windGust: st.VR ?? null,
+        windDir: st.VD ?? null,
 
-        // ===== PRECIP =====
-        rainDaily: st.P_24H ?? null,
-        rainRate: st.P_3H ?? null,
+        // ===== RAIN =====
+        rainDaily: st.R ?? null,
+        rainRate: st.RR ?? null,
 
-        // ===== SNOW =====
-        snowHeight: st.HS ?? null,
+        // ===== DEWPOINT =====
+        dewp: st.D ?? null,
+        dewpHigh: null,
+        dewpLow: null,
 
-        // ===== FLAGS =====
-        termo: st.TERMO ?? null,
-        pluvio: st.PLUVIO ?? null,
-        anemo: st.ANEMO ?? null,
-        nivo: st.NIVO ?? null,
-        idro: st.IDRO ?? null,
+        heat: null,
+        heatHigh: null,
+        heatLow: st.TL ?? null,
 
         lat,
         lon
@@ -1069,7 +1074,8 @@ const excludedStations = new Set([
   "Gussago",
   "Piani di Bobbio - Orscellera",
   "Albairate",
-  "Frontignano di Barbariga"
+  "Frontignano di Barbariga",
+  "Valvarrone loc. Vestreno",
 ]);
 const fetchCML = async () => {
   try {
@@ -1180,17 +1186,31 @@ const fetchDMA = async () => {
         source: "DMA",
 
         temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== HUMIDITY =====
         hum: st.H ?? null,
-        dewp: st.D ?? null,
+        humHigh: null,
+        humLow: null,
 
+        // ===== WIND =====
         wind: st.V ?? null,
-        windGust: st.G ?? null,
-        windDir: st.WD ?? null,
+        windGust: st.VR ?? null,
+        windDir: st.VD ?? null,
 
+        // ===== RAIN =====
         rainDaily: st.R ?? null,
         rainRate: st.RR ?? null,
 
-        pressure: st.P ?? null,
+        // ===== DEWPOINT =====
+        dewp: st.D ?? null,
+        dewpHigh: null,
+        dewpLow: null,
+
+        heat: null,
+        heatHigh: null,
+        heatLow: st.TL ?? null,
 
         lat,
         lon
@@ -1715,6 +1735,7 @@ function setRegion(region){
   currentRegion = region;
 
   clearAllIntervals();
+  clearPreviousRegionStations();
 
   if(region === "liguria") startLiguria();
   if(region === "piemonte") startPiemonte();
