@@ -1356,7 +1356,115 @@ const fetchCML = async () => {
   } catch (err) {
     console.error("Errore fetch CML:", err);
   }
-}; // Le altre fetch (adattate)
+};
+const fetchTorinoMeteo = async () => {
+  try {
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/TorinoMeteo.json"
+    );
+
+    const data = await res.json();
+
+    if (!data?.stations || !Array.isArray(data.stations)) return;
+
+    data.stations.forEach((st) => {
+      if (!st.id) return;
+
+      // 🚫 filtro esclusione
+      if (excludedStations.has(st.id)) return;
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      allStations[id] = {
+        source: "TORINOMETEO",
+
+        id,
+        N: st.name ?? st.id,
+
+        temp: st.T != null ? Number(st.T) : null,
+        tempHigh: st.TH != null ? Number(st.TH) : null,
+        tempLow: st.TL != null ? Number(st.TL) : null,
+
+        hum: st.H != null ? Number(st.H) : null,
+        humHigh: st.HH != null ? Number(st.HH) : null,
+        humLow: st.HL != null ? Number(st.HL) : null,
+
+        wind: st.V != null ? Number(st.V) : null,
+        windGust: st.G != null ? Number(st.G) : null,
+
+        rainDaily: st.R != null ? Number(st.R) : null,
+        rainRate: st.RR != null ? Number(st.RR) : null,
+
+        lat,
+        lon
+      };
+    });
+
+    updateLayer();
+
+  } catch (err) {
+    console.error("Errore fetch TorinoMeteo:", err);
+  }
+}; 
+const fetchWeatherLink = async () => {
+  try {
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/weatherlink.json"
+    );
+
+    const data = await res.json();
+
+    if (!data?.stations || !Array.isArray(data.stations)) return;
+
+    data.stations.forEach((st) => {
+      if (!st.id) return;
+
+      // 🚫 filtro esclusione
+      if (excludedStations.has(st.id)) return;
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      allStations[id] = {
+        source: "WeatherLink",
+
+        id,
+        N: st.name ?? st.id,
+
+        temp: st.T != null ? Number(st.T) : null,
+        tempHigh: st.TH != null ? Number(st.TH) : null,
+        tempLow: st.TL != null ? Number(st.TL) : null,
+
+        hum: st.H != null ? Number(st.H) : null,
+        humHigh: st.HH != null ? Number(st.HH) : null,
+        humLow: st.HL != null ? Number(st.HL) : null,
+
+        wind: st.V != null ? Number(st.V) : null,
+        windGust: st.G != null ? Number(st.G) : null,
+
+        rainDaily: st.R != null ? Number(st.R) : null,
+        rainRate: st.RR != null ? Number(st.RR) : null,
+
+        lat,
+        lon
+      };
+    });
+
+    updateLayer();
+
+  } catch (err) {
+    console.error("Errore fetch WeatherLink:", err);
+  }
+};// Le altre fetch (adattate)
 const fetchDMA = async () => {
   try {
 
@@ -2070,6 +2178,8 @@ function startPiemonte(){
 
   fetchDMA();
   fetch3R();
+  fetchTorinoMeteo();
+  fetchWeatherLink();
 
   // ===== INTERVALS =====
   intervals.push(setInterval(() => {
@@ -2080,6 +2190,7 @@ function startPiemonte(){
 
   intervals.push(setInterval(fetchDMA, 300000));
   intervals.push(setInterval(fetch3R, 300000));
+  intervals.push(setInterval(fetchTorinoMeteo, 300000));
 }
 function startLombardia(){
 
