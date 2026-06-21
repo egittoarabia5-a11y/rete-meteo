@@ -232,7 +232,7 @@
 
   <div style="display:flex;gap:8px;align-items:center;justify-content:center;">
 
-    <button id="regionButton">Liguria</button>
+    <button id="regionButton">Regione</button>
 
     <button id="refreshRegionButton" title="Aggiorna">
       🔄
@@ -244,7 +244,7 @@
     <button data-region="liguria">Liguria</button>
     <button data-region="piemonte">Piemonte</button>
     <button data-region="lombardia">Lombardia</button>
-    <button data-region="globale">Globale</button>
+    <button data-region="toscana">Toscana</button>
   </div>
 
 </div>
@@ -1133,6 +1133,88 @@ const fetchOMIRL = async () => {
     console.error("Errore fetch OMIRL:", err);
   }
 };
+const fetchToscana = async () => {
+
+  try {
+
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/sir.json"
+    );
+
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+
+    if (!stations.length) return;
+
+    stations.forEach((st) => {
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      allStations[id] = {
+
+        source: "SIR",
+
+        id,
+        N: st.name ?? id,
+
+        // ===== TEMPERATURA =====
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ===== HEAT INDEX =====
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ===== VENTO =====
+        wind: st.V ?? null,
+        windHigh: null,
+        windLow: null,
+
+        windGust: st.G ?? null,
+        windDir: st.WD ?? null,
+
+        // ===== PIOGGIA =====
+        rainDaily: st.R ?? null,
+        rainDailyHigh: null,
+        rainDailyLow: null,
+
+        rainRate: st.RR ?? null,
+        rainRateHigh: null,
+        rainRateLow: null,
+
+        lat,
+        lon
+      };
+
+    });
+
+    updateLayer();
+
+  } catch (err) {
+
+    console.error("Errore fetch Toscana:", err);
+
+  }
+
+};
 const fetch3R = async () => {
   try {
 
@@ -1873,7 +1955,7 @@ function setRegion(region){
   if(region === "liguria") startLiguria();
   if(region === "piemonte") startPiemonte();
   if(region === "lombardia") startLombardia();
-  if(region === "globale") startWorld();
+  if(region === "toscana") startToscana();
 
   document.getElementById("regionButton").innerText =
     region.charAt(0).toUpperCase() + region.slice(1);
@@ -1915,8 +1997,8 @@ document
         startLombardia();
         break;
 
-      case "globale":
-        startWorld();
+      case "toscana":
+        startToscana();
         break;
     }
 
@@ -1961,15 +2043,15 @@ function startLiguria(){
   intervals.push(setInterval(fetchPWSGenova, 300000));
   intervals.push(setInterval(fetchWF, 300000));
 }
-function startWorld(){
+function startToscana(){
 
   clearAllIntervals();
   clearPreviousRegionStations();
 
 
-  fetchPWSWorld();
+  fetchToscana();
   // ===== INTERVALS =====
-  intervals.push(setInterval(fetchPWSWorld, 600000));
+  intervals.push(setInterval(fetchToscana, 600000));
 }
 
 function startPiemonte(){
