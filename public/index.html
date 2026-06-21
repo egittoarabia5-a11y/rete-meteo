@@ -652,40 +652,166 @@ function updateLayer() {
 }
 
 // ================= POPUP =================
+function normalizeVariable(v) {
+  if (v === "humidity" || v === "hum" || v === "UR") return "hum";
+  if (v === "temp" || v === "temperature") return "temp";
+  if (v === "dewp") return "dewp";
+  if (v === "heat") return "heat";
+  if (v === "rainDaily") return "rainDaily";
+  if (v === "rainRate") return "rainRate";
+  return v;
+}
+
 function showPopup(feature) {
 
   if (!feature?.properties) return;
 
   const props = feature.properties;
 
+  const id = props.id;
   const name = props.name;
   const source = props.source;
 
   if (activePopup) activePopup.remove();
 
-  const fmt = v => v == null ? "—" : Number(v).toFixed(1);
+  const station = allStations[id] || {};
 
-  const isRain = currentVariable === "rainDaily" || currentVariable === "rainRate";
+  const variable = normalizeVariable(currentVariable);
 
-  const value = props.valueStr ?? "—";
+  const value = Number(props.value);
+  const valueStr = props.valueStr ?? "—";
+
+  const isRain = variable === "rainDaily" || variable === "rainRate";
+
+  const getColor = (v, variable) => {
+
+    if (v == null || isNaN(v)) return "#808080";
+
+    if (variable === "hum") {
+      if (v < 20) return "#b44141";
+      else if (v < 30) return "#ff6262";
+      else if (v < 40) return "#ff9d56";
+      else if (v < 50) return "#f1d800";
+      else if (v < 60) return "#65d050";
+      else if (v < 70) return "#6ca561";
+      else if (v < 80) return "#4dc8ff";
+      else if (v < 90) return "#4da9ff";
+      return "#4d54ff";
+    }
+
+    if (variable === "rainDaily" || variable === "rainRate") {
+      if (v === 0) return "#808080";
+      else if (v < 2) return "#f9ae6c";
+      else if (v < 5) return "#f9966c";
+      else if (v < 10) return "#6ca561";
+      else if (v < 20) return "#65d050";
+      else if (v < 30) return "#4dc8ff";
+      else if (v < 50) return "#4da9ff";
+      return "#2c278e";
+    }
+
+    if (v < -20) return "#9d8cac";
+    if (v < -15) return "#f54dff";
+    if (v < -10) return "#c65bff";
+    if (v < -5) return "#4d54ff";
+    if (v <= 0) return "#4da9ff";
+    if (v < 5) return "#4dc8ff";
+    if (v < 11) return "#5e8b56";
+    if (v < 15) return "#65d050";
+    if (v < 20) return "#f2c72f";
+    if (v < 25) return "#ff9d56";
+    if (v < 30) return "#ff6262";
+    if (v < 35) return "#b44141";
+    if (v < 38) return "#d963c3";
+    if (v >= 38) return "#9d8cac";
+
+    return "#222222";
+  };
+
+  const hexToRgba = (hex, a = 0.3) => {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
+  let max = null;
+  let min = null;
+
+  if (variable === "temp") {
+    max = station.tempHigh;
+    min = station.tempLow;
+  }
+
+  if (variable === "dewp") {
+    max = station.dewpHigh;
+    min = station.dewpLow;
+  }
+
+  if (variable === "heat") {
+    max = station.heatHigh;
+    min = station.heatLow;
+  }
+
+  if (variable === "hum") {
+    max = station.humHigh;
+    min = station.humLow;
+  }
+
+  if (variable === "rainDaily") {
+    max = station.rainDaily;
+  }
+
+  if (variable === "rainRate") {
+    max = station.rainRate;
+  }
+
+  const fmt = v =>
+    v == null || isNaN(v) ? "—" : Number(v).toFixed(1);
+
+  const baseColor = getColor(value, variable);
+  const overlay = hexToRgba(baseColor, 0.3);
 
   const html = `
-    <div style="font-family:Inter,sans-serif;text-align:center;">
-      <div style="font-weight:700;font-size:15px;margin-bottom:6px;">
-        ${name}<br>Fonte: ${source}
+    <div style="
+      font-family:Inter,sans-serif;
+      text-align:center;
+      color:black;
+    ">
+
+      <div style="font-weight:700;font-size:15px;line-height:1.1;">
+        ${name}
       </div>
 
-      <div style="font-size:13px;opacity:0.75;margin-bottom:6px;">
-        ${currentVariable === "temp" ? "Temperatura" :
-          currentVariable === "dewp" ? "Dew Point" :
-          currentVariable === "heat" ? "Heat Index" :
-          currentVariable === "hum" ? "Umidità" :
+      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;">
+        Fonte: ${source}
+      </div>
+
+      <div style="font-size:13px;opacity:0.75;margin-bottom:4px;">
+        ${variable === "temp" ? "Temperatura" :
+          variable === "dewp" ? "Dew Point" :
+          variable === "heat" ? "Heat Index" :
+          variable === "hum" ? "Umidità" :
           isRain ? "Pioggia" : ""}
       </div>
 
-      <div style="font-size:32px;font-weight:800;">
-        ${value}${isRain ? " mm" : "°"}
+      <div style="font-size:32px;font-weight:800;margin-bottom:6px;">
+        ${valueStr}${isRain ? " mm" : "°"}
       </div>
+
+      ${
+        (max != null || min != null)
+          ? `
+          <div style="font-size:12px;line-height:1.2;">
+            <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span>
+            <span style="margin:0 2px;">-</span>
+            <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span>
+          </div>
+          `
+          : ""
+      }
+
     </div>
   `;
 
@@ -698,6 +824,13 @@ function showPopup(feature) {
     .setLngLat(feature.geometry.coordinates)
     .setHTML(html)
     .addTo(map);
+
+  // 🎨 GRIGIO + OVERLAY COLORATO 30%
+  const el = activePopup._content;
+  if (el) {
+    el.style.backgroundColor = "#e6e6e6";
+    el.style.backgroundImage = `linear-gradient(${overlay}, ${overlay})`;
+  }
 }
 // ================= UI BUTTONS =================
 function toggleMenu(id) {
