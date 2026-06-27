@@ -244,7 +244,7 @@
     <button data-region="liguria">Liguria</button>
     <button data-region="piemonte">Piemonte</button>
     <button data-region="lombardia">Lombardia</button>
-    <button data-region="toscana">Toscana</button>
+    <button data-region="trentino">Trentino-Alto Adige</button>
   </div>
 
 </div>
@@ -441,10 +441,8 @@ const stationsPiemonte = {
   IPEROS1: { api: "IPEROS1", nome: "Perosa Argentina", sovrastima: "no" },
   ISAUZE2: { api: "ISAUZE2", nome: "Sauze d'Oulx", sovrastima: "no" },
   IOULX7: { api: "IOULX7", nome: "Oulx", sovrastima: "no" },
-  ISALBE1: { api: "ISALBE1", nome: "Salbertrand", sovrastima: "no" },
   ICHIOM4: { api: "ICHIOM4", nome: "Frais", sovrastima: "no" },
   IMOMPA3: { api: "IMOMPA3", nome: "Mompantera", sovrastima: "no" },
-  IMONCENI2: { api: "IMONCENI2", nome: "Moncenisio", sovrastima: "no" },
   INOLE9: { api: "INOLE9", nome: "Nole", sovrastima: "no" },
   INOLE4: { api: "INOLE4", nome: "Nole FS", sovrastima: "no" },
   INOLE6: { api: "INOLE6", nome: "Grange di Nole", sovrastima: "no" },
@@ -453,7 +451,6 @@ const stationsPiemonte = {
   IALADI3: { api: "IALADI3", nome: "Ala di Stura - Via Masone", sovrastima: "no" },
   ICERES14: { api: "ICERES14", nome: "Chiampernotto", sovrastima: "no" },
   ICHIAL6: { api: "ICHIAL6", nome: "Gabbi", sovrastima: "no" },
-  ICANTO12: { api: "ICANTO12", nome: "Cantoira", sovrastima: "no" },
   IUSSEG4: { api: "IUSSEG4", nome: "Perinera", sovrastima: "no" },
   ILEMIE2: { api: "ILEMIE2", nome: "Lemie", sovrastima: "no" },
   IVI3: { api: "IVI3", nome: "Col San Giovanni", sovrastima: "no" },
@@ -479,7 +476,6 @@ const stationsPiemonte = {
   IRIVOL16: { api: "IRIVOL16", nome: "Rivoli", sovrastima: "no" },
   ITURIN3193: { api: "ITURIN3193", nome: "Torino Pellerina", sovrastima: "no" },
   ILIMON17: { api: "ILIMON17", nome: "Limone Piemonte", sovrastima: "no" },
-  ILIMON19: { api: "ILIMON19", nome: "Limone Maneggio", sovrastima: "no" },
   ILIMON9: { api: "ILIMON9", nome: "Limonetto", sovrastima: "no" },
   IVERNA8: { api: "IVERNA8", nome: "Vernante", sovrastima: "no" },
 };
@@ -596,12 +592,16 @@ function getColor(variable, value) {
 
 // ================= GET VALUE =================
 function getValueAndColor(st) {
+
   const mode = modes[currentVariable];
   let value = null;
 
-  const get = (base) => mode === "current" ? st[base] : 
-                        mode === "max" ? st[base + "High"] : 
-                        st[base + "Low"];
+  const get = (base) =>
+    mode === "current"
+      ? st[base]
+      : mode === "max"
+      ? st[base + "High"]
+      : st[base + "Low"];
 
   if (currentVariable === "temp") value = get("temp");
   else if (currentVariable === "dewp") value = get("dewp");
@@ -610,13 +610,17 @@ function getValueAndColor(st) {
   else if (currentVariable === "rainDaily") value = st.rainDaily;
   else if (currentVariable === "rainRate") value = st.rainRate;
 
+  if (value !== null) {
+    value = Number(value);
+    if (isNaN(value)) value = null;
+  }
+
   return {
     value,
     color: getColor(currentVariable, value),
     valueStr: value !== null ? value.toFixed(1) : ""
   };
 }
-
 // ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
@@ -1046,6 +1050,7 @@ const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
     allStations[id] = {
       
       source: "Wunderground",
+      id,
       N: stationName,
       temp,
       tempHigh,
@@ -1095,6 +1100,7 @@ const fetchOMIRL = async () => {
       if (isNaN(lat) || isNaN(lon)) return;
 
       allStations[id] = {
+      id,
 
         source: "OMIRL",
 
@@ -1122,6 +1128,10 @@ const fetchOMIRL = async () => {
         dewpHigh: st.dewpHigh ?? null,
         dewpLow: st.dewpLow ?? null,
 
+        heat: null,
+        heatHigh: null,
+        heatLow: null,
+
         lat,
         lon
       };
@@ -1133,37 +1143,115 @@ const fetchOMIRL = async () => {
     console.error("Errore fetch OMIRL:", err);
   }
 };
-const fetchToscana = async () => {
+const fetchMeteoTrentino = async () => {
 
   try {
 
     const res = await fetch(
-      "https://api-stazioni-meteo.eggittof.workers.dev/sir.json"
+      "https://api-stazioni-meteo.eggittof.workers.dev/meteotrentino.json"
     );
 
     const data = await res.json();
 
-    const stations = data?.stations || [];
+    if (!Array.isArray(data) || data.length === 0) return;
 
-    if (!stations.length) return;
+    // reset o merge sicuro
+    data.forEach((st, index) => {
 
-    stations.forEach((st) => {
+      // salta timestamp object
+      if (!st.id) return;
 
       const id = st.id;
 
-      const lat = Number(st.lat);
-      const lon = Number(st.lon);
+      const lat = Number(st.LAT);
+      const lon = Number(st.LON);
 
       if (isNaN(lat) || isNaN(lon)) return;
 
       allStations[id] = {
 
-        source: "SIR",
+        source: "METEO_TRENTINO",
 
         id,
-        N: st.name ?? id,
+        N: st.N ?? id,
 
         // ===== TEMPERATURA =====
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ===== PRESSIONE =====
+        press: st.P ?? null,
+        pressHigh: st.PH ?? null,
+        pressLow: st.PL ?? null,
+
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+
+        // ===== WIND =====
+        wind: st.V ?? null,
+        windGust: st.VR ?? null,
+        windDir: st.VD ?? null,
+
+        // ===== PRECIPITAZIONI =====
+        rainDaily: st.R ?? null,
+        rainMonthly: st.RM ?? null,
+        rainAnnual: st.RA ?? null,
+        rainRate: st.RR ?? null,
+
+        // ===== RADIAZIONE =====
+        rad: st.RAD ?? null,
+        uv: st.UV ?? null,
+
+        lat,
+        lon,
+
+        active: st.active ?? true,
+
+        timestamp: st.timestamp ?? null
+
+      };
+
+    });
+
+    updateLayer();
+
+  } catch (err) {
+
+    console.error("Errore fetch Meteo Trentino:", err);
+
+  }
+
+};
+const fetch3R = async () => {
+  try {
+
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/meteo3rpiemonte.json"
+    );
+
+    const data = await res.json();
+    if (!data?.stations) return;
+
+    data.stations.forEach((st) => {
+
+      const id = st.id;
+      if (!id) return;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (!lat || !lon) return;
+
+      allStations[id] = {
+        source: "3R",
+
+        // ===== TEMPERATURE =====
         temp: st.T ?? null,
         tempHigh: st.TH ?? null,
         tempLow: st.TL ?? null,
@@ -1201,73 +1289,8 @@ const fetchToscana = async () => {
         rainRateLow: null,
 
         lat,
-        lon
-      };
-
-    });
-
-    updateLayer();
-
-  } catch (err) {
-
-    console.error("Errore fetch Toscana:", err);
-
-  }
-
-};
-const fetch3R = async () => {
-  try {
-
-    const res = await fetch(
-      "https://api-stazioni-meteo.eggittof.workers.dev/meteo3rpiemonte.json"
-    );
-
-    const data = await res.json();
-    if (!data?.stations) return;
-
-    data.stations.forEach((st) => {
-
-      const id = st.id;
-      if (!id) return;
-
-      const lat = Number(st.lat);
-      const lon = Number(st.lon);
-
-      if (!lat || !lon) return;
-
-      allStations[id] = {
-        source: "3R",
-
-        // ===== TEMPERATURE =====
-        temp: st.T ?? null,
-        tempHigh: st.TH ?? null,
-        tempLow: st.TL ?? null,
-
-        // ===== HUMIDITY =====
-        hum: st.H ?? null,
-        humHigh: null,
-        humLow: null,
-
-        // ===== WIND =====
-        wind: st.V ?? null,
-        windGust: st.VR ?? null,
-        windDir: st.VD ?? null,
-
-        // ===== RAIN =====
-        rainDaily: st.R ?? null,
-        rainRate: st.RR ?? null,
-
-        // ===== DEWPOINT =====
-        dewp: st.D ?? null,
-        dewpHigh: null,
-        dewpLow: null,
-
-        heat: null,
-        heatHigh: null,
-        heatLow: st.TL ?? null,
-
-        lat,
-        lon
+        lon,
+        id
       };
 
       updateLayer(id);
@@ -1386,19 +1409,41 @@ const fetchTorinoMeteo = async () => {
         id,
         N: st.name ?? st.id,
 
-        temp: st.T != null ? Number(st.T) : null,
-        tempHigh: st.TH != null ? Number(st.TH) : null,
-        tempLow: st.TL != null ? Number(st.TL) : null,
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
 
-        hum: st.H != null ? Number(st.H) : null,
-        humHigh: st.HH != null ? Number(st.HH) : null,
-        humLow: st.HL != null ? Number(st.HL) : null,
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
 
-        wind: st.V != null ? Number(st.V) : null,
-        windGust: st.G != null ? Number(st.G) : null,
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
 
-        rainDaily: st.R != null ? Number(st.R) : null,
-        rainRate: st.RR != null ? Number(st.RR) : null,
+        // ===== HEAT INDEX =====
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ===== VENTO =====
+        wind: st.V ?? null,
+        windHigh: null,
+        windLow: null,
+
+        windGust: st.G ?? null,
+        windDir: st.WD ?? null,
+
+        // ===== PIOGGIA =====
+        rainDaily: st.R ?? null,
+        rainDailyHigh: null,
+        rainDailyLow: null,
+
+        rainRate: st.RR ?? null,
+        rainRateHigh: null,
+        rainRateLow: null,
 
         lat,
         lon
@@ -1440,19 +1485,193 @@ const fetchWeatherLink = async () => {
         id,
         N: st.name ?? st.id,
 
-        temp: st.T != null ? Number(st.T) : null,
-        tempHigh: st.TH != null ? Number(st.TH) : null,
-        tempLow: st.TL != null ? Number(st.TL) : null,
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
 
-        hum: st.H != null ? Number(st.H) : null,
-        humHigh: st.HH != null ? Number(st.HH) : null,
-        humLow: st.HL != null ? Number(st.HL) : null,
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
 
-        wind: st.V != null ? Number(st.V) : null,
-        windGust: st.G != null ? Number(st.G) : null,
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
 
-        rainDaily: st.R != null ? Number(st.R) : null,
-        rainRate: st.RR != null ? Number(st.RR) : null,
+        // ===== HEAT INDEX =====
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ===== VENTO =====
+        wind: st.V ?? null,
+        windHigh: null,
+        windLow: null,
+
+        windGust: st.G ?? null,
+        windDir: st.WD ?? null,
+
+        // ===== PIOGGIA =====
+        rainDaily: st.R ?? null,
+        rainDailyHigh: null,
+        rainDailyLow: null,
+
+        rainRate: st.RR ?? null,
+        rainRateHigh: null,
+        rainRateLow: null,
+
+        lat,
+        lon
+      };
+    });
+
+    updateLayer();
+
+  } catch (err) {
+    console.error("Errore fetch WeatherLink:", err);
+  }
+};
+const fetchWeatherLinkLIG = async () => {
+  try {
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/weatherlinklig.json"
+    );
+
+    const data = await res.json();
+
+    if (!data?.stations || !Array.isArray(data.stations)) return;
+
+    data.stations.forEach((st) => {
+      if (!st.id) return;
+
+      // 🚫 filtro esclusione
+      if (excludedStations.has(st.id)) return;
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      allStations[id] = {
+        source: "WeatherLink",
+
+        id,
+        N: st.name ?? st.id,
+
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ===== HEAT INDEX =====
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ===== VENTO =====
+        wind: st.V ?? null,
+        windHigh: null,
+        windLow: null,
+
+        windGust: st.G ?? null,
+        windDir: st.WD ?? null,
+
+        // ===== PIOGGIA =====
+        rainDaily: st.R ?? null,
+        rainDailyHigh: null,
+        rainDailyLow: null,
+
+        rainRate: st.RR ?? null,
+        rainRateHigh: null,
+        rainRateLow: null,
+
+        lat,
+        lon
+      };
+    });
+
+    updateLayer();
+
+  } catch (err) {
+    console.error("Errore fetch WeatherLink:", err);
+  }
+};
+const fetchWeatherLinkLOM = async () => {
+  try {
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/weatherlinklom.json"
+    );
+
+    const data = await res.json();
+
+    if (!data?.stations || !Array.isArray(data.stations)) return;
+
+    data.stations.forEach((st) => {
+      if (!st.id) return;
+
+      // 🚫 filtro esclusione
+      if (excludedStations.has(st.id)) return;
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      allStations[id] = {
+        source: "WeatherLink",
+
+        id,
+        N: st.name ?? st.id,
+
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ===== HEAT INDEX =====
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ===== VENTO =====
+        wind: st.V ?? null,
+        windHigh: null,
+        windLow: null,
+
+        windGust: st.G ?? null,
+        windDir: st.WD ?? null,
+
+        // ===== PIOGGIA =====
+        rainDaily: st.R ?? null,
+        rainDailyHigh: null,
+        rainDailyLow: null,
+
+        rainRate: st.RR ?? null,
+        rainRateHigh: null,
+        rainRateLow: null,
 
         lat,
         lon
@@ -1570,6 +1789,7 @@ const fetchDMA = async () => {
       if (!lat || !lon) return;
 
       allStations[id] = {
+        id,
 
         source: "IGNORETE",
         N: st.id ?? null,
@@ -1683,6 +1903,7 @@ const fetchComuneGenova = async () => {
       if (!lat || !lon) return;
 
       allStations[id] = {
+        id,
 
         source: "Comune di Genova",
         
@@ -1754,6 +1975,7 @@ const fetchLimet = async () => {
       if (!lat || !lon) return;
 
       allStations[id] = {
+        id,
 
         source: "LIMET",
 
@@ -1826,6 +2048,7 @@ async function fetchPWSWorld() {
       if (!lat || !lon) return;
 
       allStations[id] = {
+        id,
         source: "AERIS_WORLD",
 
         // ================= TEMPERATURE =================
@@ -1909,6 +2132,7 @@ async function fetchPWSGenova() {
       if (!lat || !lon) return;
 
       allStations[id] = {
+        id,
         source: "AERIS",
 
         // ================= TEMPERATURE =================
@@ -2053,6 +2277,7 @@ async function fetchNetatmoGenova() {
 
   }
 }
+let isRefreshing = false;
 function setRegion(region){
 
   currentRegion = region;
@@ -2063,7 +2288,7 @@ function setRegion(region){
   if(region === "liguria") startLiguria();
   if(region === "piemonte") startPiemonte();
   if(region === "lombardia") startLombardia();
-  if(region === "toscana") startToscana();
+  if(region === "trentino") startTrentino();
 
   document.getElementById("regionButton").innerText =
     region.charAt(0).toUpperCase() + region.slice(1);
@@ -2091,6 +2316,8 @@ document
       btn.style.transform = "";
     }, 500);
 
+    isRefreshing = true;
+
     switch(currentRegion){
 
       case "liguria":
@@ -2105,10 +2332,15 @@ document
         startLombardia();
         break;
 
-      case "toscana":
-        startToscana();
+      case "trentino":
+        startTrentino();
         break;
     }
+
+    // 🔥 reset flag dopo un po'
+    setTimeout(() => {
+      isRefreshing = false;
+    }, 1500);
 
   });
 setRegion("lombardia");
@@ -2126,6 +2358,7 @@ setRegion("lombardia");
   fetchLimet();
   fetchPWSGenova();
   fetchWF();
+  fetchWeatherLinkLIG();
 }
 function startLiguria(){
 
@@ -2151,15 +2384,15 @@ function startLiguria(){
   intervals.push(setInterval(fetchPWSGenova, 300000));
   intervals.push(setInterval(fetchWF, 300000));
 }
-function startToscana(){
+function startTrentino(){
 
   clearAllIntervals();
   clearPreviousRegionStations();
 
 
-  fetchToscana();
+  fetchMeteoTrentino();
   // ===== INTERVALS =====
-  intervals.push(setInterval(fetchToscana, 600000));
+  intervals.push(setInterval(fetchMeteoTrentino, 600000));
 }
 
 function startPiemonte(){
@@ -2216,8 +2449,10 @@ function startLombardia(){
   }
 
   fetchCML();
+  fetchWeatherLinkLOM();
 
   intervals.push(setInterval(fetchCML, 300000));
+  intervals.push(setInterval(fetchWeatherLinkLOM, 300000));
 }
 
 });
