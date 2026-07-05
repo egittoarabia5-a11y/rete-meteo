@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mappa Meteo Genova</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.3.0/raphael.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/justgage/1.6.1/justgage.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ 
+
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+    }
+    #menu {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    .circle-label {
+  color: white;
+  border-radius: 50%;
+  font-weight: 500;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Inter", sans-serif;
+  width: 28px;
+  height: 28px;
+  line-height: 1;           /* assicurati che non ci siano spazi extra */
+  text-align: center;
+}
+
+    .circle-label2 {
+      color: white;
+      border-radius: 50%;
+      font-weight: 0;
+      font-size: 0px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Inter", sans-serif;
+      width: 0px;
+      height: 0px;
+    }
+  </style>
+</head>
+<body>
+  <div id="sourceMenu" style="position:absolute; top:10px; right:10px; z-index:1000; background:white; padding:8px 12px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.2); font-size:12px;">
+    <b>Fonti:</b><br>
+    <label><input type="checkbox" class="sourceFilter" value="LIMET" > LIMET</label>
+    <label><input type="checkbox" class="sourceFilter" value="OMIRL"> OMIRL</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="TorinoMeteo" > TorinoMeteo</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="Ignorete" > Ignorete</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="3R" > Meteo3R</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="Wunderground"> Wunderground</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="CentroMeteoLombardo"> CML</label>
+    <label><input type="checkbox" class="sourceFilter" value="DatiMeteoAsti"> DMA</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="WeatherLink"> WeatherLink </label><br>
+    <label><input type="checkbox" class="sourceFilter" value="ComuneGenova"> Comune di Genova</label><br>
+  </div>
+  <div id="reloadBtn" style="
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+">
+  🔄 Reload
+</div>
+  
+  <div id="menu">
+    <label for="tempSelect"><b>Dati:</b></label>
+    <select id="tempSelect">
+      <option value="current">Temperatura</option>
+      <option value="max">T Max</option>
+      <option value="min">T Min</option>
+      <option value="dewpt">Dewpoint</option>
+      <option value="dewpMax">Dp Max</option>
+      <option value="dewpMin">Dp Min</option>
+      <option value="Heat">Heat Index</option>
+      <option value="HeatMax">Ht Max</option>
+      <option value="HeatMin">Ht Min</option>
+      <option value="hum">Umidità</option>
+      <option value="humMax">UR Max</option>
+      <option value="humMin">UR Min</option>
+      <option value="rainDay">Pioggia 24h</option>
+      <option value="rainRate">Rain Rate</option>
+      <option value="wind">Vento</option>
+      <option value="winddirection">Direzione</option>
+      <option value="windGust">Raffica</option>
+      <option value="windGustMax">Raffica Max</option>
+
+    </select>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // ----- Configurazione Mappa -----
+    const map = L.map('map').setView([44.423, 8.972], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ----- API Key -----
+    const apiKey = 'e1f10a1e78da46f5b10a1e78da96f525';
+
+    // ----- Lista Stazioni -----
+    
+
+     const stations = {
+  IGENOA2897: { api: "IGENOA2897", nome: "Genova S.Martino", sovrastima: "yes" },
+  IGENOA3170: { api: "IGENOA3170", nome: "Genova Via Posalunga", sovrastima: "yes" },
+  IGENOA3135: { api: "IGENOA3135", nome: "Genova S.Desiderio", sovrastima: "yes" },
+  IGENOA3138: { api: "IGENOA3138", nome: "Genova Pino", sovrastima: "no" },
+  IGENOA2783: { api: "IGENOA2783", nome: "Genova Terpi", sovrastima: "no" },
+  IGENOA3085: { api: "IGENOA3085", nome: "Genova Sturla", sovrastima: "no" },
+  IGENOVAG3: { api: "IGENOVAG3", nome: "Genova San Fruttuoso", sovrastima: "no" },
+  IVARAZ2: { api: "IVARAZ2", nome: "Monte Beigua", sovrastima: "no" },
+  IURBE3: { api: "URBE3", nome: "Passo del Faiallo", sovrastima: "no" },
+  ILIGURIA181: { api: "ILIGURIA181", nome: "Veirera", sovrastima: "yes" },
+  IVALBR3: { api: "IVALBR3", nome: "Senarega", sovrastima: "no" },
+  ITORRI20: { api: "ITORRI20", nome: "Pentema", sovrastima: "no" },
+  ITORRI88: { api: "ITORRI88", nome: "Donetta", sovrastima: "no" },
+  ITORRI54: { api: "ITORRI54", nome: "Casabianca", sovrastima: "no" },
+  ITORRI4: { api: "ITORRI4", nome: "Laccio", sovrastima: "no" },
+  INEIRO1: { api: "INEIRO1", nome: "Brugagli", sovrastima: "no" },
+  IMOCON1: { api: "IMOCON1", nome: "Gattorna", sovrastima: "no" },
+  IROVEG2: { api: "IROVEG2", nome: "Foppiano", sovrastima: "no" },
+  ISORI13: { api: "ISORI13", nome: "Sori La Contra", sovrastima: "no" },
+  IRECCO16: { api: "IRECCO16", nome: "Recco", sovrastima: "no" },
+  IAVEGN2: { api: "IAVEGN2", nome: "Avegno Testana", sovrastima: "no" },
+  IMELE16: { api: "IMELE16", nome: "Genova Acquasanta", sovrastima: "no" },
+  IMELE15: { api: "IMELE15", nome: "Mele", sovrastima: "no" },
+  IGENOA2839: { api: "IGENOA2839", nome: "Genova Lavatrici", sovrastima: "no" },
+  ICOGOL39: { api: "ICOGOL39", nome: "Sciarborasca Molino", sovrastima: "no" },
+  ICOGOL7: { api: "ICOGOL7", nome: "Cogoleto Madonnina", sovrastima: "no" },
+  ICOGOL10: { api: "ICOGOL10", nome: "Cogoleto Beuca", sovrastima: "no" },
+  ICAMPO219: { api: "ICAMPO219", nome: "Campo Ligure", sovrastima: "no" },
+  IMASON4: { api: "IMASON4", nome: "Masone", sovrastima: "no" },
+  ISERRA22: { api: "ISERRA22", nome: "Mignanego", sovrastima: "no" },
+  ICAMPO445: { api: "ICAMPO445", nome: "Pietralavezzara", sovrastima: "no" },
+  ICAMPO312: { api: "ICAMPO312", nome: "Campomorone", sovrastima: "no" },
+  ICOGOL39: { api: "IMIGNA23", nome: "Passo dei Giovi", sovrastima: "no" },
+  IBUSAL3: { api: "IBUSAL3", nome: "Busalla", sovrastima: "no" },
+  IBUSAL1: { api: "IBUSAL1", nome: "Busalla Giò Alto", sovrastima: "no" },
+  ICROCE7: { api: "ICROCE7", nome: "Crocefieschi", sovrastima: "no" },
+  ISAVIG97: { api: "ISAVIG97", nome: "Ponte di Savignone", sovrastima: "no" },
+  ICASEL6: { api: "ICASEL6", nome: "Casella", sovrastima: "no" },
+  IVALBR4: { api: "IVALBR4", nome: "Valbrevenna", sovrastima: "no" },
+  IMONTO93: { api: "IMONTO93", nome: "Casà", sovrastima: "no" },
+  IRONCO16: { api: "IRONCO16", nome: "Banchetta", sovrastima: "no" },
+  IRONCO23: { api: "IRONCO23", nome: "Ronco Scrivia", sovrastima: "no" },
+  ISANTO411: { api: "ISANTO411", nome: "Busalletta", sovrastima: "no" },
+  IRAPAL35: { api: "IRAPAL35", nome: "Sant'Andrea di Foggia", sovrastima: "no" },
+  IRAPAL28: { api: "IRAPAL28", nome: "Rapallo Golf", sovrastima: "no" },
+  ISANTA1774: { api: "ISANTA1774", nome: "Santa Margherita Ligure", sovrastima: "no" },
+  ICHIAV22: { api: "ICHIAV22", nome: "Sant'Andrea di Rovereto", sovrastima: "no" },
+  ILIGURIA123: { api: "ILIGURIA123", nome: "Villa Oneto", sovrastima: "no" },
+  ICOGOR3: { api: "ICOGOR3", nome: "Cogorno", sovrastima: "no" },
+  ISESTR36: { api: "ISESTR36", nome: "Sestri Levante", sovrastima: "no" },
+  ISESTR23: { api: "ISESTR23", nome: "Riva Trigoso", sovrastima: "no" },
+  IMONEG33: { api: "IMONEG33", nome: "Moneglia", sovrastima: "no" },
+  ILIGURIA20: { api: "ILIGURIA20", nome: "Moneglia Casale", sovrastima: "no" },
+  ILIGURIA175: { api: "ILIGURIA175", nome: "Lavagna", sovrastima: "no" },
+  INE1805: { api: "INE1805", nome: "Trei", sovrastima: "no" },
+  IBONAS9: { api: "IBONAS9", nome: "Bonassola", sovrastima: "no" },
+  IRICCD2: { api: "IRICCD2", nome: "San Benedetto", sovrastima: "no" },
+  ILASPE54: { api: "ILASPE54", nome: "Vignale", sovrastima: "no" },
+  ILASPE76: { api: "ILASPE76", nome: "Coregna", sovrastima: "no" },
+  ILASPE12: { api: "ILASPE12", nome: "La Spezia", sovrastima: "no" },
+  ISPLASER2: { api: "ISPLASER2", nome: "Lerici", sovrastima: "no" },
+  IVEZZA26: { api: "IVEZZA26", nome: "Fornola", sovrastima: "no" },
+  IVEZZA19: { api: "IVEZZA19", nome: "San Venario", sovrastima: "no" },
+  ILIGURIA131: { api: "ILIGURIA131", nome: "Ponzano Magra", sovrastima: "no" },
+  ISARZA7: { api: "ISARZA7", nome: "Sarzana Turi", sovrastima: "no" },
+  ISANTO374: { api: "ISANTO374", nome: "Santo Stefano di Magra", sovrastima: "no" },
+  IBOLAN1: { api: "IBOLAN1", nome: "Bolano", sovrastima: "no" },
+  ICALIC12: { api: "ICALIC12", nome: "Posticcio", sovrastima: "no" },
+  IORTON8: { api: "IORTON8", nome: "Casano", sovrastima: "no" },
+  ILUNI5: { api: "ILUNI5", nome: "Luni", sovrastima: "no" },
+  IBARGAGL5: { api: "IBARGAGL5", nome: "Traso" },
+  IBOGLI8: { api: "IBOGLI8", nome: "Bogliasco Poggio" },
+  IDAVAG2: { api: "IDAVAG2", nome: "Davagna" },
+  IMONTO47: { api: "IMONTO47", nome: "Montoggio-Bromia" },
+  IGENOA3078: { api: "IGENOA2728", nome: "Genova Via Amarena" },
+  IGENOA2775: { api: "IGENOA2775", nome: "Lido di Pegli" },
+  IGENOA2819: { api: "IGENOA2819", nome: "Genova Via dei Platani" },
+  IGENOA2865: { api: "IGENOA2865", nome: "Genova Granarolo" },
+  IGENOA2881: { api: "IGENOA2881", nome: "Genova Bolzaneto" },
+  IGENOA2887: { api: "IGENOA2887", nome: "Colle degli Ometti" },
+  IGENOA2933: { api: "IGENOA2933", nome: "Genova Serino" },
+  IGENOA2959: { api: "IGENOA2959", nome: "Genova Pontedecimo" },
+  IGENOA2962: { api: "IGENOA2962", nome: "Costa di Sestri Ponente" },
+  IGENOA2983: { api: "IGENOA2983" },
+  IGENOA2997: { api: "IGENOA2997", nome: "Genova Quinto" },
+  IGENOA3021: { api: "IGENOA3021", nome: "Genova Begato" },
+  IGENOA3032: { api: "IGENOA3032", nome: "Genova Fontanegli" },
+  IGENOA3035: { api: "IGENOA3079" },
+  IGENOA3052: { api: "IGENOA3080", nome: "Genova Boccadasse" },
+  IGENOA3058: { api: "IGENOA3058", nome: "Genova Via Chiodo" },
+  ILIGURIA67: { api: "ILIGURIA67", nome: "Genova Villa Scassi" },
+  IGENOVAA2: { api: "IGENOVAA2" },
+  IBOGLI12: { api: "IBOGLI12", nome: "Bogliasco Via F.li Ferrari" },
+  IPIEVE46: { api: "IPIEVE46", nome: "Pieve Alta" },
+  IGENOA3082: { api: "IGENOA3082", nome: "Geirato" },
+  IURBE3: { api: "IURBE3", nome: "Passo del Faiallo", sovrastima: "no" },
+  IVARAZ9: { api: "IVARAZ9", nome: "Piani D'Invrea", sovrastima: "no" },
+  IVARAZ6: { api: "IVARAZ6", nome: "Varazze", sovrastima: "no" },
+  IALBIS6: { api: "IALBIS6", nome: "Albisola", sovrastima: "no" },
+  IQUILI21: { api: "IQUILI21", nome: "Valleggia", sovrastima: "no" },
+  IFINAL23: { api: "IFINAL23", nome: "Finale Ligure", sovrastima: "no" },
+  IFINAL12: { api: "IFINAL12", nome: "Finalborgo", sovrastima: "no" },
+  IPIETR18: { api: "IPIETR18", nome: "Pietra Ligure", sovrastima: "no" },
+  ILOANO19: { api: "ILOANO19", nome: "Loano", sovrastima: "no" },
+  ILOANO18: { api: "ILOANO18", nome: "Borghetto Santo Spirito", sovrastima: "no" },
+  ITOIRA11: { api: "ITOIRA11", nome: "Toirano", sovrastima: "no" },
+  ICERIALE2: { api: "ICERIALE2", nome: "Ceriale", sovrastima: "no" },
+  IVILLA764: { api: "IVILLA764", nome: "Villanova d'Albenga", sovrastima: "no" },
+  ILAIGU24: { api: "ILAIGU24", nome: "Laigueglia", sovrastima: "no" },
+  IANDOR45: { api: "IANDOR45", nome: "Marina di Andora", sovrastima: "no" },
+  IMIOGL2: { api: "IMIOGL2", nome: "Mioglia", sovrastima: "no" },
+  ICUORG4: { api: "ICUORG4", nome: "Cuorgnè", sovrastima: "no" },
+};
+const stationsNetAtmo = {};
+const stations3R = {};
+const stationsIgnorete = {};
+const stationsLimet = {};
+
+const stations1 = {
+  Favale: {
+    link: "https://retelimet.centrometeoligure.it/stazioni/meteo-favale/data/wd/file/customclientraw.txt",
+    lat: 44.453,
+    lon: 9.260
+  },
+  
+  // aggiungi qui altre stazioni Cumulus MX, ognuna con link/lat/lon
+};
+const stations3 = {
+  Cogoleto: {
+    link: "https://meteocogoleto.altervista.org/cumulus/websitedata.json?_=1755609287452",
+    lat: 44.390,
+    lon: 8.646
+  },
+  
+  // aggiungi qui altre stazioni Cumulus MX, ognuna con link/lat/lon
+};
+const stations2 = {
+  PoggioRovegno: {
+    link: "https://www.turbolic.altervista.org/meteopoggio/cumulus/index.htm",
+    lat: 44.570,
+    lon: 9.279
+  },
+  // aggiungi qui altre stazioni Cumulus MX, ognuna con link/lat/lon
+};
+const stationsDMA =  {
+};
+const stationsComuneGenova =  {
+};
+const stationsWL =  {
+};
+const stationsCML = {};
+const stationsMeteoTortona =  {
+  Tortona: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=tortona",
+    lat: 44.897,            // latitudine
+    lon: 8.863              // longitudine
+  }, 
+  Casale: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=casale",
+    lat: 45.137,            // latitudine
+    lon: 8.449              // longitudine
+  },
+  Pozzolo: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=pozzolo",
+    lat: 44.791,            // latitudine
+    lon: 8.784              // longitudine
+  },
+  CasaCabano: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=casacabano",
+    lat: 44.840,            // latitudine
+    lon: 9.250              // longitudine
+  },
+  AlberaLigure: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=albera",
+    lat: 44.7,            // latitudine
+    lon: 9.065              // longitudine
+  },
+  Daglio: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=daglio",
+    lat: 44.645,            // latitudine
+    lon: 9.149              // longitudine
+  },
+  Cosola: {
+    link: "https://meteotortona.it/link/dettaglio_stazioni.php?stazione=cosola",
+    lat: 44.669,            // latitudine
+    lon: 9.178              // longitudine
+  },
+}
+
+const markers = {};
+let latestData = {};
+
+
+// ----- Colori Umidità -----
+function getColorHum(hum) {
+  if (hum >= 90.0) return "#0114F0"; 
+  if (hum >= 80.0) return "#0060F0"; 
+  if (hum >= 70.0) return "#00BDEF"; 
+  if (hum >= 60.0) return "#21C2C5"; 
+  if (hum >= 50.0) return "#21C573"; 
+  if (hum >= 40.0) return "#3AA300"; 
+  if (hum >= 30.0) return "#F0B800"; 
+  if (hum >= 20.0) return "#F0CB00";
+  if (hum >= 10.0) return "#F07D00";
+  return "#F01E00"; 
+}
+
+// ----- Colori Pioggia -----
+function getColorRain(rain) {
+  if (rain >= 150.0) return "#9d8cac"; 
+  if (rain >= 100.0) return "#d963c3";
+  if (rain >= 50.0) return "#4d54ff";
+  if (rain >= 30.0) return "#4da9ff"; 
+  if (rain >= 20.0) return "#4dc8ff";
+  if (rain >= 10.0) return "#65d050";
+  if (rain >= 5.0) return "#6ca561";
+  if (rain > 2.0) return "#f9966c";
+  if (rain >= 0.2) return "#f9ae6c";
+  return "#808080"; 
+}
+
+// ----- Colori Temperatura -----
+function getColorTemp(temp) {
+  if (temp < -20) return "#9d8cac";
+  if (temp < -15) return "#f54dff";
+  if (temp < -10) return "#c65bff";
+  if (temp < -5) return "#4d54ff";
+  if (temp <= 0) return "#4b96dd";
+  if (temp < 5) return "#4dc8ff";
+  if (temp < 11) return "#5e8b56";
+  if (temp < 15) return "#3AA300";
+  if (temp < 20) return "#F0B800";
+  if (temp < 25) return "#ff9d56";
+  if (temp < 30) return "#ff6262";
+  if (temp < 35) return "#b44141";
+  if (temp < 38) return "#d963c3";
+  if (temp >= 38) return "#9d8cac";
+  if (temp >= 40) return "#453e4b";
+  if (temp >= 45) return "#222222";
+  return "#ff5c5c";
+}
+function getColorWindDir(deg) {
+  if (deg >= 0 && deg <= 360) return "#4682B4";
+  return "#191970";
+}
+
+// ----- Cerca meta della stazione -----
+function getStationMeta(id) {
+  const maps = {
+    stations, stationsLimet, stations3R, stationsTorinoMeteo, stationsNetAtmo,
+    stationsOMIRL, stationsCML, stationsDMA, stationsMeteoTortona,
+    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL
+  };
+  const defaultSource = {
+    stations: 'Wunderground',
+    stationsComuneGenova: 'ComuneGenova',
+    stationsLimet: 'LIMET',
+    stations3R: '3R',
+    stationsIgnorete: 'Ignorete',
+    stationsNetAtmo: 'NetAtmo',
+    stationsTorinoMeteo: 'TorinoMeteo',
+    stationsOMIRL: 'OMIRL',
+    stationsCML: 'CentroMeteoLombardo',
+    stationsDMA: 'DatiMeteoAsti',
+    stationsMeteoTortona: 'MeteoTortona',
+    stations1: 'LIMET1',
+    stations2: 'LIMET2',
+    stations3: 'LIMET3',
+    stationsWL: 'WeatherLink'
+  };
+
+  for (const key of Object.keys(maps)) {
+    const map = maps[key];
+    if (!map) continue;
+    const meta = map[id];
+    if (meta) {
+      const source = meta.source || defaultSource[key] || 'unknown';
+      const name = meta.name || meta.NOME || meta.denominazione || meta.DENOMINAZIONE || meta.slug || id;
+      return { source, name, meta };
+    }
+  }
+
+  // fallback
+  return { source: 'unknown', name: id, meta: null };
+}
+
+// ----- Creazione Marker Responsivo -----
+function createMarker(id, lat = 44.423, lon = 8.972) {
+  const scale = Math.min(window.innerWidth / 1200, 1);
+  const size = 20 * scale;
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="circle-label2"
+                 style="
+                   width:${size}px;
+                   height:${size}px;
+                   border-radius:50%;
+                   background-color:#808080;
+                   border:1px solid #fff;
+                 ">
+           </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
+  });
+
+  const marker = L.marker([lat, lon], { icon }).addTo(map); // 🔥 QUI FIX
+
+  marker.bindPopup(`<b>Stazione:</b> ${id}<br>⚠️ Offline`);
+
+  markers[id] = marker;
+}
+
+// Aggiorna dimensione marker su resize
+window.addEventListener("resize", () => {
+  Object.keys(markers).forEach(id => {
+    const m = markers[id];
+    const latlng = m.getLatLng();
+    map.removeLayer(m);
+    createMarker(id, latlng.lat, latlng.lng);
+  });
+});
+
+// ----- Converti gradi in direzione cardinale -----
+function degToDir(deg) {
+  if (deg == null) return "N/D";
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  return dirs[Math.floor(((deg + 22.5) % 360) / 45)];
+}
+
+// ----- Aggiorna Marker -----
+function updateMarker(id) {
+  const type = document.getElementById("tempSelect").value;
+  const data = latestData[id];
+  if (!data) return;
+
+  let value = null;
+  let color = null;
+
+  // Valore e colore in base al tipo
+  if (type === "winddirection") {
+    value = data.windDir;
+    color = data.windGust != null ? getColorRain(data.windGust) : "#808080";
+  } else {
+    switch(type) {
+      case "current": value = data.temp; color = getColorTemp(value); break;
+      case "max": value = data.tempHigh; color = getColorTemp(value); break;
+      case "min": value = data.tempLow; color = getColorTemp(value); break;
+      case "dewpt": value = data.dewp; color = getColorTemp(value); break;
+      case "dewpMax": value = data.dewpHigh; color = getColorTemp(value); break;
+      case "dewpMin": value = data.dewpLow; color = getColorTemp(value); break;
+      case "Heat": value = data.heat; color = getColorTemp(value); break;
+      case "HeatMax": value = data.heatHigh; color = getColorTemp(value); break;
+      case "HeatMin": value = data.heatLow; color = getColorTemp(value); break;
+      case "hum": value = data.hum; color = getColorHum(value); break;
+      case "humMax": value = data.humHigh; color = getColorHum(value); break;
+      case "humMin": value = data.humLow; color = getColorHum(value); break;
+      case "rainDay": value = data.rainDaily; color = getColorRain(value); break;
+      case "rainRate": value = data.rainRate; color = getColorRain(value); break;
+      case "wind": value = data.wind; color = getColorRain(value); break;
+      case "windGust": value = data.windGust; color = getColorRain(value); break;
+      case "windGustMax": value = data.windGustHigh; color = getColorRain(value); break;
+      default: value = null; color = null;
+    }
+  }
+
+  // Crea o aggiorna marker
+  const icon = value != null
+    ? L.divIcon({
+        className: '',
+        html: `<div class="circle-label" style="background-color:${color}; border:2px solid white;">${value.toFixed(1)}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      })
+    : L.divIcon({
+        className: '',
+        html: `<div class="circle-label" style="background-color:#808080; width: 12px; height: 12px; border-radius: 50%;"></div>`,
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+
+  if (!markers[id]) {
+    markers[id] = L.marker([data.lat, data.lon], { icon }).addTo(map);
+  } else {
+    markers[id].setIcon(icon);
+  }
+
+  // Popup aggiornato
+  const meta = getStationMeta(id);
+  const stationSource = meta.source;
+  const stationName = meta.name;
+
+// costruiamo il popup
+let popupContent = `<b>Stazione:</b> ${stationName}<br>`;
+popupContent += `<b>Fonte:</b> ${stationSource}<br>`;
+if (type.startsWith("current") || type.startsWith("max") || type.startsWith("min")) {
+  popupContent += `🌡️ Attuale: ${data.temp != null ? data.temp.toFixed(1) : "N/D"}°C<br>`;
+  popupContent += `🔺 Max: ${data.tempHigh != null ? data.tempHigh.toFixed(1) : "N/D"}°C<br>`;
+  popupContent += `🔻 Min: ${data.tempLow != null ? data.tempLow.toFixed(1) : "N/D"}°C<br>`;
+} else if (type.startsWith("dew")) {
+  popupContent += `🌡️ Attuale: ${data.dewp != null ? data.dewp.toFixed(1) : "N/D"}°C<br>`;
+} else if (type.startsWith("hum")) {
+  popupContent += `💧 Attuale: ${data.hum != null ? data.hum.toFixed(1) : "N/D"}%<br>`;
+} else if (type.startsWith("rain")) {
+  popupContent += `🌧️ Pioggia giorno: ${data.rainDaily != null ? data.rainDaily.toFixed(1) : "N/D"} mm<br>`;
+  popupContent += `💦 Rain rate: ${data.rainRate != null ? data.rainRate.toFixed(1) : "N/D"} mm/h<br>`;
+} else if (type.startsWith("wind")) {
+  popupContent += `💨 Velocità attuale: ${data.wind != null ? data.wind.toFixed(1) : "N/D"} km/h<br>`;
+}
+
+if (value == null) popupContent += "⚠️ Offline<br>";
+
+// conversione del timestamp in ora di Roma
+
+
+
+
+const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(stationSource)}&name=${encodeURIComponent(stationName)}`;
+popupContent += `<button type="button" onclick="window.open('${gaugesUrl}', 'gaugesWindow')">📊 Gauges</button>`;
+
+markers[id].setPopupContent(popupContent);
+
+
+  // Aggiorna posizione
+  if (data.lat && data.lon) markers[id].setLatLng([data.lat, data.lon]);
+}
+
+// ----- Gauges -----
+function openGauges(stationId) {
+  window.open(`gauges.html?station=${stationId}`, "_blank", "width=420,height=600");
+}
+
+// ----- Filtro Marker -----
+function filterMarkersBySource() {
+  const checked = Array.from(document.querySelectorAll('.sourceFilter:checked')).map(cb => cb.value);
+  Object.keys(markers).forEach(id => {
+    const meta = getStationMeta(id);
+    if (!meta) return;
+    const source = meta.source;
+    if (checked.includes(source)) {
+      markers[id].addTo(map);
+    } else {
+      map.removeLayer(markers[id]);
+    }
+  });
+}
+
+document.querySelectorAll('.sourceFilter').forEach(cb => {
+  cb.addEventListener('change', filterMarkersBySource);
+});
+
+const loadedSources = {
+  LIMET: false,
+  ComuneGenova: false,
+  TorinoMeteo: false,
+  Ignorete: false,
+  "3R": false,
+  Wunderground: false,
+  CentroMeteoLombardo: false,
+  DMA: false,
+  OMIRL: false
+};
+document.querySelectorAll('.sourceFilter').forEach(cb => {
+  cb.addEventListener('change', (e) => {
+    const source = e.target.value;
+
+    if (e.target.checked) {
+      loadSource(source);   // 👈 FETCH SOLO ORA
+    } else {
+      hideSource(source);   // 👈 solo nascondi marker
+    }
+  });
+});
+function loadSource(source) {
+  if (loadedSources[source]) return;
+  loadedSources[source] = true;
+
+
+  
+}
+
+async function fetchIgnorete() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/ignorete.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+    if (!stations.length) return;
+
+    stations.forEach((stationData) => {
+      const id = stationData.id;
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+
+      const windDir = stationData.VD != null ? parseFloat(stationData.VD) : null;
+      const windRun = stationData.VR != null ? parseFloat(stationData.VR) : null;
+
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+
+      latestData[id] = {
+        source: "Ignorete",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh: null,
+        humLow: null,
+        dewp,
+        wind,
+        windGust: null, // non presente in IGNORETE
+        windDir,
+        windRun,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+        time: null // non presente nel dataset IGNORETE
+      };
+
+      stationsIgnorete[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch IGNORETE:", err);
+  }
+}
+async function fetchComuneGenova() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/comuneGenova.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+    if (!stations.length) return;
+
+    const fetches = stations.map(async (stationData) => {
+      const id = stationData.id.replace(/\s+/g, "_");
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+
+      const wind = stationData.W != null ? parseFloat(stationData.W) : null;
+      const windHigh = stationData.WH != null ? parseFloat(stationData.WH) : null;
+      const windLow = stationData.WL != null ? parseFloat(stationData.WL) : null;
+
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+
+      latestData[id] = {
+        source: "COMUNE_GENOVA",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp,
+        wind,
+        windGust: windHigh,
+        rainDaily,
+        rainRate: null,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null
+      };
+
+      stationsComuneGenova[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+    await Promise.all(fetches);
+
+  } catch (err) {
+    console.error("Errore fetch COMUNE GENOVA:", err);
+  }
+}
+async function fetchLimet() {
+  try {
+    const urls = [
+      "https://api-stazioni-meteo.eggittof.workers.dev/limet.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/limet2.json"
+    ];
+
+    const responses = await Promise.all(urls.map(u => fetch(u)));
+    const datas = await Promise.all(responses.map(r => r.json()));
+
+    const allStations = datas.flatMap(d => d?.stations || []);
+    if (!allStations.length) return;
+
+    const fetches = allStations.map(async (stationData) => {
+      const id = stationData.N.replace(/\s+/g, "_");
+
+      const lat = parseFloat(
+        stationData.LAT ?? stationsLIMET[stationData.N]?.lat ?? 0
+      );
+      const lon = parseFloat(
+        stationData.LON ?? stationsLIMET[stationData.N]?.lon ?? 0
+      );
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      latestData[id] = {
+        source: "LIMET",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp,
+        wind,
+        windGust,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+      };
+
+      stationsLimet[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+    await Promise.all(fetches);
+
+  } catch (err) {
+    console.error("Errore fetch LIMET:", err);
+  }
+}
+async function fetchWL() {
+  try {
+    const urls = [
+      "https://api-stazioni-meteo.eggittof.workers.dev/weatherlinklig.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/weatherlinklom.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/weatherlink.json",
+    ];
+
+    const responses = await Promise.all(urls.map(u => fetch(u)));
+    const datas = await Promise.all(responses.map(r => r.json()));
+
+    const allStations = datas.flatMap(d => d?.stations || []);
+    if (!allStations.length) return;
+
+    const fetches = allStations.map(async (stationData) => {
+      const id = stationData.id.replace(/\s+/g, "_");
+
+      const lat = parseFloat(
+        stationData.lat
+      );
+      const lon = parseFloat(
+        stationData.lon
+      );
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      latestData[id] = {
+        source: "WeatherLink",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp,
+        wind,
+        windGust,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+      };
+
+      stationsWL[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+    await Promise.all(fetches);
+
+  } catch (err) {
+    console.error("Errore fetch LIMET:", err);
+  }
+}
+
+
+async function fetch3R() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/meteo3rpiemonte.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+    if (!stations.length) return;
+
+    stations.forEach((stationData) => {
+      const id = stationData.id;
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+
+      const windHigh = stationData.VH != null ? parseFloat(stationData.VH) : null;
+      const windLow = stationData.VL != null ? parseFloat(stationData.VL) : null;
+
+      const rain3h = stationData.P_3H != null ? parseFloat(stationData.P_3H) : null;
+      const rain24h = stationData.P_24H != null ? parseFloat(stationData.P_24H) : null;
+
+      latestData[id] = {
+        source: "3R",
+        temp,
+        tempHigh,
+        tempLow,
+        hum: null,
+        humHigh: null,
+        humLow: null,
+        dewp: null,
+        wind,
+        windGust,
+        rainDaily: rain24h,
+        rainRate: rain3h,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          wind == null &&
+          rain24h == null,
+        time: null
+      };
+
+      stations3R[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch 3R Piemonte:", err);
+  }
+}
+
+async function fetchNetAtmo() {
+  try {
+    const url = "https://api-stazioni-meteo.vercel.app/netatmoLiguria.json";
+    const res = await fetch(url);
+    const text = await res.text(); // leggere tutto come testo
+
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) return;
+
+    // prima riga: timestamp originale ISO
+    const timestampObj = JSON.parse(lines[0]);
+    const originalTimestamp = timestampObj.timestamp;
+
+    // parse JSON di ciascuna riga (ignora la prima)
+    const dataLines = lines.slice(1).map(line => JSON.parse(line));
+
+    dataLines.forEach(stationData => {
+      const id = stationData.N.replace(/\s+/g, "_"); // id basato sul nome
+      const lat = parseFloat(stationData.LAT);
+      const lon = parseFloat(stationData.LON);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      latestData[id] = {
+        temp, tempHigh, tempLow,
+        hum, humHigh, humLow,
+        dewp,
+        wind, windGust,
+        rainDaily, rainRate,
+        lat, lon,
+        isInactive: temp == null && hum == null && wind == null && rainDaily == null,
+        time: originalTimestamp // <-- salvo il timestamp originale ISO
+      };
+
+      // salva la stazione
+      stationsNetAtmo[id] = { lat, lon };
+
+      // crea marker se non esiste
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      // aggiorna marker
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch NetAtmo:", err);
+  }
+}
+
+
+
+
+
+
+    // ----- Fetch dati temperatura -----
+    async function fetchPws(id) {
+      try {
+        const urlCurrent = `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${stations[id].api}&numericPrecision=decimal&format=json&units=m`;
+        const resCurrent = await fetch(urlCurrent);
+        const dataCurrent = await resCurrent.json();
+
+        const temp = dataCurrent.observations[0].metric.temp;
+        const dewp = dataCurrent.observations [0].metric.dewpt;
+        const heat = dataCurrent.observations [0].metric.heatIndex;
+        const hum = dataCurrent.observations [0].humidity;
+        const rainDaily = dataCurrent.observations [0].metric.precipTotal;
+        const rainRate = dataCurrent.observations [0].metric.precipRate;
+        const lat = dataCurrent.observations[0].lat;
+        const lon = dataCurrent.observations[0].lon;
+        const wind = dataCurrent.observations[0].metric.windSpeed;
+        const windGust = dataCurrent.observations[0].metric.windGust;
+        const altitude = dataCurrent.observations[0].metric.elev;
+        const windDir = dataCurrent.observations[0].winddir;
+
+
+        const urlDaily = `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${stations[id].api}&numericPrecision=decimal&format=json&units=m`;
+        const resDaily = await fetch(urlDaily);
+        const dataDaily = await resDaily.json();
+
+        const summary = dataDaily.summaries && dataDaily.summaries.length > 0 ? dataDaily.summaries[0].metric : null;
+        const tempHigh = summary ? summary.tempHigh : null;
+        const tempLow = summary ? summary.tempLow : null;
+        const dewpHigh = summary ? summary.dewptHigh : null;
+        const dewpLow = summary ? summary.dewptLow : null;
+        const heatHigh = summary ? summary.heatindexHigh : null;
+        const heatLow = summary ? summary.heatindexLow : null;
+        const humHigh = summary ? dataDaily.summaries[0].humidityHigh : null;
+        const humLow = summary ? dataDaily.summaries[0].humidityLow : null;
+        const windGustHigh = summary ? summary.windgustHigh : null;
+        const source = "Wunderground"
+
+        latestData[id] = { source, temp, tempHigh, tempLow, dewp, dewpHigh, dewpLow, heat, heatHigh, heatLow, hum, humHigh, humLow, rainDaily, rainRate, wind, windGust, windGustHigh, windDir, lat, lon, altitude };
+        updateMarker(id);
+
+      } catch(err) {
+        console.error(`Errore fetch dati ${id}:`, err);
+      }
+    }
+    const stationsOMIRL = {}; // qui salviamo tutte le stazioni OMIRL
+
+async function fetchOMIRL() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/omirl.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+    if (!stations.length) return;
+
+    stations.forEach((stationData) => {
+      const id = stationData.id;
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.temp != null ? parseFloat(stationData.temp) : null;
+      const tempHigh = stationData.tempHigh != null ? parseFloat(stationData.tempHigh) : null;
+      const tempLow = stationData.tempLow != null ? parseFloat(stationData.tempLow) : null;
+
+      const hum = stationData.hum != null ? parseFloat(stationData.hum) : null;
+      const humHigh = stationData.humHigh != null ? parseFloat(stationData.humHigh) : null;
+      const humLow = stationData.humLow != null ? parseFloat(stationData.humLow) : null;
+
+      const wind = stationData.wind != null ? parseFloat(stationData.wind) : null;
+      const windGust = stationData.windGust != null ? parseFloat(stationData.windGust) : null;
+
+      const rainRate = stationData.rainRate != null ? parseFloat(stationData.rainRate) : null;
+      const rainDaily = stationData.rainDaily != null ? parseFloat(stationData.rainDaily) : null;
+
+      latestData[id] = {
+        source: "OMIRL",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp: null, // non presente nell’API
+        wind,
+        windGust,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+      };
+
+      stationsOMIRL[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch OMIRL:", err);
+  }
+}
+
+
+async function fetchCML() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/cml.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length < 2) return;
+
+    const originalTimestamp = data?.[0]?.timestamp || null;
+    const stations = data.slice(1);
+
+    stations.forEach((stationData) => {
+      const id = stationData.N?.replace(/\s+/g, "_");
+
+      const lat = parseFloat(stationData.LAT);
+      const lon = parseFloat(stationData.LON);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      latestData[id] = {
+        source: "CML",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp,
+        wind,
+        windGust,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+        time: originalTimestamp
+      };
+
+      stationsCML[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch CML:", err);
+  }
+}
+async function fetchDMA() {
+  try {
+    const urls = [
+      "https://api-stazioni-meteo.eggittof.workers.dev/dma2.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/dma3.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/dma4.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/asti-test.json"
+    ];
+
+    const responses = await Promise.all(urls.map(u => fetch(u)));
+    const datas = await Promise.all(responses.map(r => r.json()));
+
+    const allStations = datas.flatMap(d => d?.stations || []);
+    if (!allStations.length) return;
+
+    allStations.forEach((stationData) => {
+      const id = stationData.id;
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+
+      latestData[id] = {
+        source: "DMA",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp,
+        wind,
+        windGust,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+        time: stationData.timestamp || null
+      };
+
+      stationsDMA[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch DMA:", err);
+  }
+}
+
+
+const stationsTorinoMeteo = {};
+
+async function fetchTorinoMeteo() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/TorinoMeteo.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+    if (!stations.length) return;
+
+    stations.forEach((stationData) => {
+      const id = stationData.id;
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const wind = stationData.V != null ? parseFloat(stationData.V) : null;
+      const windGust = stationData.G != null ? parseFloat(stationData.G) : null;
+
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+      const rainRate = stationData.RR != null ? parseFloat(stationData.RR) : null;
+
+      latestData[id] = {
+        source: "TorinoMeteo",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp: null,
+        wind,
+        windGust,
+        rainDaily,
+        rainRate,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null,
+        time: null
+      };
+
+      stationsTorinoMeteo[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+  } catch (err) {
+    console.error("Errore fetch TorinoMeteo:", err);
+  }
+}
+
+
+
+    async function fetchStations1(id) {
+}
+async function fetchStations2(id) {
+}
+async function fetchStations3(id) {
+}
+
+async function fetchMeteoTortona(id) {
+  const st = stationsMeteoTortona[id];
+  try {
+    const url = "https://corsproxy.io/?" + encodeURIComponent(st.link);
+    const res = await fetch(url);
+    const text = await res.text();
+
+    // Temperatura
+    const tempMatch = text.match(/<div class='card-header text-center font-weight-bold'>Temperatura<\/div>[\s\S]*?<h1>([\d.]+) &deg;C<\/h1>/);
+    const temp = tempMatch ? parseFloat(tempMatch[1]) : null;
+
+    const tempHighMatch = text.match(/<img src='\/immagini\/stazioni_online\/rossa.png'[\s\S]*?>Max:[\s\S]*?<div class='col-5 text-center'>([\d.]+) &deg;C<\/div>/);
+    const tempHigh = tempHighMatch ? parseFloat(tempHighMatch[1]) : null;
+
+    const tempLowMatch = text.match(/<img src='\/immagini\/stazioni_online\/blu.png'[\s\S]*?>Min:[\s\S]*?<div class='col-5 text-center'>([\d.]+) &deg;C<\/div>/);
+    const tempLow = tempLowMatch ? parseFloat(tempLowMatch[1]) : null;
+
+    // Dew point
+    const dewpMatch = text.match(/<div class='card-header text-center font-weight-bold'>Dew Point<\/div>[\s\S]*?<h1>([\d.]+) &deg;C<\/h1>/);
+    const dewp = dewpMatch ? parseFloat(dewpMatch[1]) : null;
+
+    const dewpHighMatch = text.match(/<div class='col-5 text-center'>([\d.]+) &deg;C<\/div>\s*<div class='col-4 text-center'>Ore: [\d:]+<\/div>/g);
+    const dewpHigh = dewpHighMatch && dewpHighMatch[0] ? parseFloat(dewpHighMatch[0].match(/([\d.]+)/)[1]) : null;
+    const dewpLow = dewpHighMatch && dewpHighMatch[1] ? parseFloat(dewpHighMatch[1].match(/([\d.]+)/)[1]) : null;
+
+    // Umidità
+    const humMatch = text.match(/<div class='card-header text-center font-weight-bold'>Umidit &agrave;<\/div>[\s\S]*?<h1>([\d.]+) &#37;<\/h1>/);
+    const hum = humMatch ? parseFloat(humMatch[1]) : null;
+
+    const humMaxMatch = text.match(/<img src='\/immagini\/stazioni_online\/rossa.png'[\s\S]*?>Max:[\s\S]*?<div class='col-5 text-center'>([\d.]+) &#37;<\/div>/);
+    const humHigh = humMaxMatch ? parseFloat(humMaxMatch[1]) : null;
+
+    const humMinMatch = text.match(/<img src='\/immagini\/stazioni_online\/blu.png'[\s\S]*?>Min:[\s\S]*?<div class='col-5 text-center'>([\d.]+) &#37;<\/div>/);
+    const humLow = humMinMatch ? parseFloat(humMinMatch[1]) : null;
+
+    // Vento
+    const windMatch = text.match(/<div class='card-header text-center font-weight-bold'>Vento<\/div>[\s\S]*?<h1>([\d.]+) Km\/h ([NSEW]+)<\/h1>/);
+    const wind = windMatch ? parseFloat(windMatch[1]) : null;
+    const windDirRaw = windMatch ? windMatch[2] : null;
+
+    // Mappa direzione in gradi
+    const dirMap = { N:0, NE:45, E:90, SE:135, S:180, SW:225, W:270, NW:315 };
+    const windDir = windDirRaw && dirMap[windDirRaw.toUpperCase()] !== undefined ? dirMap[windDirRaw.toUpperCase()] : null;
+
+    const windGustMatch = text.match(/<img src='\/immagini\/stazioni_online\/rossa.png'[\s\S]*?>Max:[\s\S]*?<div class='col-5 text-center'>([\d.]+) Km\/h<\/div>/);
+    const windGustHigh = windGustMatch ? parseFloat(windGustMatch[1]) : null;
+
+    const windGust = windGustHigh; // Se non c'è altro dato disponibile
+
+    // Pioggia giornaliera
+    const rainMatch = text.match(/<div class='card-header text-center font-weight-bold'>Precipitazioni<\/div>[\s\S]*?<h1>([\d.]+) mm<\/h1>/);
+    const rainDaily = rainMatch ? parseFloat(rainMatch[1]) : null;
+
+    latestData[id] = {
+      temp,
+      tempHigh,
+      tempLow,
+      dewp,
+      dewpHigh,
+      dewpLow,
+      hum,
+      humHigh,
+      humLow,
+      rainDaily,
+      wind,
+      windGust,
+      windGustHigh,
+      windDir,
+      lat: st.lat,
+      lon: st.lon,
+      inactive: temp == null
+    };
+
+    updateMarker(id);
+
+  } catch (err) {
+    console.error(`Errore fetch stazione ${id}:`, err);
+    latestData[id] = { 
+      temp: null,
+      tempHigh: null,
+      tempLow: null,
+      dewp: null,
+      dewpHigh: null,
+      dewpLow: null,
+      hum: null,
+      humHigh: null,
+      humLow: null,
+      rainDaily: null,
+      wind: null,
+      windGust: null,
+      windGustHigh: null,
+      windDir: null,
+      lat: st.lat,
+      lon: st.lon,
+      inactive: true
+    };
+    updateMarker(id);
+  }
+}
+
+
+
+const updateIntervals = {};
+function startSourceUpdates(source, fetchFn, interval = 300000) {
+  if (updateIntervals[source]) return; // già attivo
+
+  // primo fetch immediato
+  fetchFn();
+
+  // poi refresh ogni 5 minuti
+  updateIntervals[source] = setInterval(() => {
+    fetchFn();
+  }, interval);
+}
+function fetchPwsAll() {
+  Object.keys(stations).forEach(id => fetchPws(id));
+}
+function stopSourceUpdates(source) {
+  if (updateIntervals[source]) {
+    clearInterval(updateIntervals[source]);
+    delete updateIntervals[source];
+  }
+}
+document.querySelectorAll('.sourceFilter').forEach(cb => {
+  cb.addEventListener('change', (e) => {
+    const source = e.target.value;
+
+    if (e.target.checked) {
+      loadSource(source);
+
+      // 🔥 attiva aggiornamento 5 min
+startSourceUpdates(source, () => {
+  switch (source) {
+    case "LIMET": return fetchLimet();
+    case "TorinoMeteo": return fetchTorinoMeteo();
+    case "Ignorete": return fetchIgnorete();
+    case "3R": return fetch3R();
+    case "DatiMeteoAsti": return fetchDMA();
+    case "ComuneGenova": return fetchComuneGenova();
+    case "OMIRL": return fetchOMIRL();
+    case "CentroMeteoLombardo": return fetchCML();
+    case "WeatherLink": return fetchWL();
+    case "Wunderground": return fetchPwsAll(); // 🔥 QUI
+  }
+});
+
+    } else {
+      hideSource(source);
+      stopSourceUpdates(source);
+    }
+  });
+});
+function getActiveSources() {
+  return Array.from(document.querySelectorAll('.sourceFilter:checked'))
+    .map(cb => cb.value);
+}
+function fetchBySource(source) {
+  switch (source) {
+    case "LIMET": return fetchLimet();
+    case "TorinoMeteo": return fetchTorinoMeteo();
+    case "Ignorete": return fetchIgnorete();
+    case "3R": return fetch3R();
+    case "DatiMeteoAsti": return fetchDMA();
+    case "ComuneGenova": return fetchComuneGenova();
+    case "OMIRL": return fetchOMIRL();
+    case "CentroMeteoLombardo": return fetchCML();
+    case "Wunderground": return fetchPwsAll();
+    case "WeatherLink": return fetchWL();
+  }
+}
+document.getElementById("reloadBtn").addEventListener("click", () => {
+  const active = getActiveSources();
+
+  active.forEach(source => {
+    fetchBySource(source);
+  });
+});
+document.getElementById("tempSelect").addEventListener("change", () => 
+{ Object.keys(stations).forEach(id => updateMarker(id)); 
+  Object.keys(stationsNetAtmo).forEach(id => updateMarker(id)); 
+  Object.keys(stationsTorinoMeteo).forEach(id => updateMarker(id)); 
+  Object.keys(stationsCML).forEach(id => updateMarker(id)); 
+  Object.keys(stationsOMIRL).forEach(id => updateMarker(id)); 
+  Object.keys(stations3R).forEach(id => updateMarker(id)); 
+  Object.keys(stationsMeteoTortona).forEach(id => updateMarker(id)); 
+  Object.keys(stationsDMA).forEach(id => updateMarker(id)); 
+  Object.keys(stationsLimet).forEach(id => updateMarker(id)); 
+  Object.keys(stations1).forEach(id => updateMarker(id)); 
+  Object.keys(stations2).forEach(id => updateMarker(id)); 
+  Object.keys(stations3).forEach(id => updateMarker(id)); 
+  Object.keys(stationsIgnorete).forEach(id => updateMarker(id));
+  Object.keys(stationsWL).forEach(id => updateMarker(id));
+  Object.keys(stationsComuneGenova).forEach(id => updateMarker(id));
+ });
+
+    // Dopo createMarker / updateMarker di tutte le stazioni
+filterMarkersBySource();
+
+  </script>
+</body>
+</html>
