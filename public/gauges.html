@@ -268,58 +268,6 @@
     }
   };
 
-  const updateLimetData = async () => {
-    try {
-      const res = await fetch(`https://api-stazioni-meteo.vercel.app/limet/${station}.json`);
-      if (!res.ok) throw new Error("Errore nel caricamento dati LIMET");
-
-      const data = await res.json();
-      if (!data || Object.keys(data).length === 0) {
-        titleEl.textContent = `ERRORE: Dati LIMET non trovati (${station})`;
-        return;
-      }
-
-      titleEl.textContent = station;
-
-      // TEMPERATURA PRINCIPALE (stile originale)
-      const temperatura = data.T;
-      const tMin = data.TL;
-      const tMax = data.TH;
-      const tempEl = document.getElementById("temp-value");
-      tempEl.textContent = formatValue(temperatura) + "°";
-      tempEl.className = "main-value-lg";
-
-      const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
-      tempMinMaxEl.innerHTML = `
-        <span style="font-weight: normal; color: black;">Max: </span>
-        <span class="max-value" style="font-weight: bold; color: red;">${formatValue(tMax)}°</span>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <span style="font-weight: normal; color: black;">Min: </span>
-        <span class="min-value" style="font-weight: bold; color: blue;">${formatValue(tMin)}°</span>
-      `;
-
-      // ALTRI VALORI SMALL CON MIN/MAX
-      setMainSmWithMinMax("dewpoint-value", "dewpoint-minmax", data.D, data.DL ?? data.D, data.DH ?? data.D, "°");
-      setMainSmWithMinMax("umidity-value", "umidity-minmax", data.H, data.HL ?? data.H, data.HH ?? data.H, "%");
-      setMainSmWithMinMax("wind-value", "wind-minmax", data.V, data.V, data.V, " km/h");
-      setMainSmWithMinMax("rainrate-value", "rainrate-minmax", data.RR, data.RR, data.RR, " mm/h");
-      setMainSmWithMinMax("raintotal-value", "raintotal-minmax", data.R, data.R, data.R, " mm");
-      setMainSmWithMinMax("heatindex-value", "heatindex-minmax", data.HI || 0, data.HI || 0, data.HI || 0, "°");
-      setMainSmWithMinMax("radsol-value", "radsol-minmax", data.SR || 0, data.SR || 0, data.SR || 0, " W/m²");
-      setMainSmWithMinMax("uv-value", "uv-minmax", data.UV || 0, data.UV || 0, data.UV || 0, " UV");
-      setMainSmWithMinMax("850hpa-value", "850hpa-minmax", data.T850 || 0, data.T850 || 0, data.T850 || 0, "°");
-      setMainSmWithMinMax("pressione-value", "pressione-minmax", data.P, data.PL ?? data.P, data.PH ?? data.P, " hPa");
-
-      document.getElementById("metadata-status").textContent = "Online";
-      document.getElementById("metadata-timestamp").textContent =
-        new Date(data.timestamp).toLocaleString("it-IT");
-
-    } catch (err) {
-      console.error("Errore caricamento dati LIMET:", err);
-      titleEl.textContent = `ERRORE: Dati LIMET non caricati (${station})`;
-    }
-  };
-
   const updateWUData = async () => {
     try {
       // Dati correnti WU
