@@ -59,6 +59,15 @@
       width: 0px;
       height: 0px;
     }
+    .leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.leaflet-popup-content {
+    margin: 0 !important;
+}
   </style>
 </head>
 <body>
@@ -526,40 +535,185 @@ function updateMarker(id) {
   }
 
   // Popup aggiornato
-  const meta = getStationMeta(id);
-  const stationSource = meta.source;
-  const stationName = meta.name;
+const meta = getStationMeta(id);
+const stationSource = meta.source;
+const stationName = meta.name;
 
-  // costruiamo il popup
-  let popupContent = `<b>Stazione:</b> ${stationName}<br>`;
-  popupContent += `<b>Fonte:</b> ${stationSource}<br>`;
+const backgroundColor = color || "#808080";
+const transparentColor = backgroundColor + "4D"; // 30% opacità
+
+let popupContent = `
+<div style="
+    background:#eeeeee;
+    border-radius:10px;
+    padding:3px;
+    font-family:'Inter',sans-serif;
+    text-align:center;
+    min-width:180px;
+    line-height:1.15;
+">
+
+<div style="
+    background:${transparentColor};
+    border-radius:8px;
+    padding:8px;
+">
+
+    <div style="
+        font-size:16px;
+        font-weight:700;
+    ">
+        ${stationName}
+    </div>
+
+    <div style="
+        font-size:11px;
+        color:#444;
+        margin-bottom:5px;
+    ">
+        ${stationSource}
+    </div>
+`;
+
+
+// DATO PRINCIPALE
+
 if (type.startsWith("current") || type.startsWith("max") || type.startsWith("min")) {
-  popupContent += `🌡️ Attuale: ${data.temp != null ? data.temp.toFixed(1) : "N/D"}°C<br>`;
-  popupContent += `🔺 Max: ${data.tempHigh != null ? data.tempHigh.toFixed(1) : "N/D"}°C<br>`;
-  popupContent += `🔻 Min: ${data.tempLow != null ? data.tempLow.toFixed(1) : "N/D"}°C<br>`;
+
+    popupContent += `
+    <div style="
+        font-size:30px;
+        font-weight:700;
+        margin:3px 0;
+    ">
+        ${data.temp != null ? data.temp.toFixed(1) : "N/D"}°C
+    </div>
+
+    <div style="
+        display:flex;
+        justify-content:center;
+        gap:14px;
+        font-size:13px;
+        font-weight:700;
+    ">
+        <span style="color:#d32f2f;">
+            ▲ ${data.tempHigh != null ? data.tempHigh.toFixed(1) : "N/D"}°
+        </span>
+
+        <span style="color:#1565c0;">
+            ▼ ${data.tempLow != null ? data.tempLow.toFixed(1) : "N/D"}°
+        </span>
+    </div>
+    `;
+
+
 } else if (type.startsWith("dew")) {
-  popupContent += `🌡️ Attuale: ${data.dewp != null ? data.dewp.toFixed(1) : "N/D"}°C<br>`;
+
+    popupContent += `
+    <div style="
+        font-size:30px;
+        font-weight:700;
+        margin:3px 0;
+    ">
+        ${data.dewp != null ? data.dewp.toFixed(1) : "N/D"}°C
+    </div>
+    `;
+
+
 } else if (type.startsWith("hum")) {
-  popupContent += `💧 Attuale: ${data.hum != null ? data.hum.toFixed(1) : "N/D"}%<br>`;
+
+    popupContent += `
+    <div style="
+        font-size:30px;
+        font-weight:700;
+        margin:3px 0;
+    ">
+        ${data.hum != null ? data.hum.toFixed(1) : "N/D"}%
+    </div>
+    `;
+
+
 } else if (type.startsWith("rain")) {
-  popupContent += `🌧️ Pioggia giorno: ${data.rainDaily != null ? data.rainDaily.toFixed(1) : "N/D"} mm<br>`;
-  popupContent += `💦 Rain rate: ${data.rainRate != null ? data.rainRate.toFixed(1) : "N/D"} mm/h<br>`;
+
+    popupContent += `
+    <div style="
+        font-size:30px;
+        font-weight:700;
+        margin:3px 0;
+    ">
+        ${data.rainDaily != null ? data.rainDaily.toFixed(1) : "N/D"} mm
+    </div>
+
+    <div style="
+        font-size:12px;
+        color:#444;
+    ">
+        ${data.rainRate != null ? data.rainRate.toFixed(1) : "N/D"} mm/h
+    </div>
+    `;
+
+
 } else if (type.startsWith("wind")) {
-  popupContent += `💨 Velocità attuale: ${data.wind != null ? data.wind.toFixed(1) : "N/D"} km/h<br>`;
+
+    popupContent += `
+    <div style="
+        font-size:30px;
+        font-weight:700;
+        margin:3px 0;
+    ">
+        ${data.wind != null ? data.wind.toFixed(1) : "N/D"} km/h
+    </div>
+    `;
 }
 
-if (value == null) popupContent += "⚠️ Offline<br>";
 
-// conversione del timestamp in ora di Roma
+// OFFLINE
+
+if (value == null) {
+
+    popupContent += `
+    <div style="
+        color:#222;
+        font-size:12px;
+        font-weight:700;
+        margin-top:4px;
+    ">
+        ⚠️ Offline
+    </div>
+    `;
+
+}
 
 
-
+// GAUGES
 
 const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(stationSource)}&name=${encodeURIComponent(stationName)}`;
-popupContent += `<button type="button" onclick="window.open('${gaugesUrl}', 'gaugesWindow')">📊 Gauges</button>`;
+
+popupContent += `
+    <div style="margin-top:6px;">
+        <button
+            type="button"
+            style="
+                font-family:'Inter',sans-serif;
+                padding:4px 14px;
+                border:none;
+                border-radius:6px;
+                background:#bebebe;
+                color:white;
+                font-size:13px;
+                font-weight:600;
+                cursor:pointer;
+            "
+            onclick="window.open('${gaugesUrl}','gaugesWindow')">
+            📊 Gauges
+        </button>
+    </div>
+
+</div>
+</div>
+`;
 
 markers[id].setPopupContent(popupContent);
-
 
   // Aggiorna posizione
   if (data.lat && data.lon) markers[id].setLatLng([data.lat, data.lon]);
