@@ -470,7 +470,337 @@
     titleEl.textContent = `ERRORE: Dati OMIRL non caricati (${station.replace(/_/g, " ")})`;
   }
 };
-
+const stationsLimet = [
+  {
+    name: "Genova Oregina",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-oregina/data/cu/realtimegauges.txt?_=1779483850918",
+    lat: 44.423,
+    lon: 8.926
+  },  {
+    name: "Genova Corso De Stefanis",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-marassi-destefanis/data/cu/realtimegauges.txt?_=1779484598147",
+    lat: 44.421,
+    lon: 8.948
+  },  {
+    name: "Genova WTC",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-wtc/data/cu/realtimegauges.txt?_=1779484737483",
+    lat: 44.407,
+    lon: 8.900
+  },  {
+    name: "Genova S.Eusebio",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-eusebio/data/cu/realtimegauges.txt?_=1779484856070",
+    lat: 44.441,
+    lon: 8.986
+  },  {
+    name: "Sant'Olcese",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-solcese/data/cu/realtimegauges.txt?_=1779484954811",
+    lat: 44.483,
+    lon: 8.968
+  },  {
+    name: "Montoggio",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-montoggio/data/cu/realtimegauges.txt?_=1779485029801",
+    lat: 44.516,
+    lon: 9.049
+  },  {
+    name: "Sant'Alberto",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-salberto/data/cu/realtimegauges.txt?_=1779485097509",
+    lat: 44.437,
+    lon: 9.105
+  },  {
+    name: "Ronco Scrivia",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-ronco-scrivia/data/cu/realtimegauges.txt?_=1779485165511",
+    lat: 44.612,
+    lon: 8.956
+  },  {
+    name: "Campo Ligure",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-campo-ligure/data/cu/realtimegauges.txt?_=1779485479109",
+    lat: 44.540,
+    lon: 8.697
+  },  {
+    name: "Rossiglione",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rossiglione/data/cu/realtimegauges.txt?_=1779486467930",
+    lat: 44.562,
+    lon: 8.669
+  },  {
+    name: "Urbe S.Pietro",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-urbe/data/cu/realtimegauges.txt?_=1779486270373",
+    lat: 44.486,
+    lon: 8.587
+  },  {
+    name: "Giusvalla",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-giusvalla/data/cu/realtimegauges.txt?_=1779486531787",
+    lat: 44.448,
+    lon: 8.394
+  },  {
+    name: "Genova Fabbriche",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-fabbriche-brusinetti/web/js/menu.js?_=1779486589430",
+    lat: 44.446,
+    lon: 8.714
+  },  {
+    name: "Genova Voltri Tramontana Surf",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-voltri/data/cu/realtimegauges.txt?_=1779486646519",
+    lat: 44.427,
+    lon: 8.757
+  },  {
+    name: "Varazze Casanova",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-casanova/data/cu/realtimegauges.txt?_=1779486705730",
+    lat: 44.375,
+    lon: 8.574
+  },  {
+    name: "Celle Ligure",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-celle/data/cu/realtimegauges.txt?_=1779486858793",
+    lat: 44.343,
+    lon: 8.545
+  },  {
+    name: "Albisola Marina",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-albisola/data/cu/realtimegauges.txt?_=1779486911560",
+    lat: 44.326,
+    lon: 8.501
+  },  {
+    name: "Savona Nautico",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-savona/data/cu/realtimegauges.txt?_=1779486953241",
+    lat: 44.308,
+    lon: 8.487
+  },  {
+    name: "Savona Zinola",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-savona-zinola/data/cu/realtimegauges.txt?_=1779487149182",
+    lat: 44.282,
+    lon: 8.443
+  },  {
+    name: "Vado Ligure",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-vado/web/js/menu.js?_=1779487205459",
+    lat: 44.266,
+    lon: 8.416
+  },  {
+    name: "Millesimo",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-millesimo/data/cu/realtimegauges.txt?_=1779487260641",
+    lat: 44.369,
+    lon: 8.196
+  },  {
+    name: "Ameglia",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-ameglia-marrana/data/cu/realtimegauges.txt?_=1779487425542",
+    lat: 44.044,
+    lon: 9.968
+  },  {
+    name: "Moneglia",
+    url: "https://meteomoneglia.altervista.org/realtimegauges.txt?_=1779487566556",
+    lat: 44.240,
+    lon: 9.485
+  },  {
+    name: "Moneglia S. Lorenzo",
+    url: "https://meteomonegliacasale.altervista.org/realtimegauges.txt?_=1779487843767",
+    lat: 44.244,
+    lon: 9.488
+  },  {
+    name: "Rifugio Treggin",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-sorgenti-gromolo/data/cu/realtimegauges.txt?_=1779487900995",
+    lat: 44.316,
+    lon: 9.479
+  },  {
+    name: "Sestri Levante San Bernardino",
+    url: "https://ik1wno.altervista.org/realtimegauges.txt?_=1779487969986",
+    lat: 44.286,
+    lon: 9.418
+  },  {
+    name: "Pontori",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-pontori/data/cu/realtimegauges.txt?_=1779488028696",
+    lat: 44.367,
+    lon: 9.433
+  },  {
+    name: "San Colombano Certenoli",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-fregarie-scolombano/data/cu/realtimegauges.txt?_=1779488125489",
+    lat: 44.380,
+    lon: 9.306
+  },  {
+    name: "Cicagna",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-cicagna/data/cu/realtimegauges.txt?_=1779488189697",
+    lat: 44.408,
+    lon: 9.236
+  },
+  {
+    name: "Santa Maria di Rapallo",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-smaria/data/cu/realtimegauges.txt?_=1779488252162",
+    lat: 44.358,
+    lon: 9.186
+  },
+  {
+    name: "Ruta di Camogli",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-ruta/data/cu/realtimegauges.txt?_=1779488333448",
+    lat: 44.345,
+    lon: 9.169
+  },  {
+    name: "San Rocco di Camogli",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-sanrocco/data/cu/realtimegauges.txt?_=1779488661794",
+    lat: 44.345,
+    lon: 9.169
+  },  {
+    name: "Costasecca - SML",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-costa-secca/data/cu/realtimegauges.txt?_=1779488769846",
+    lat: 44.330,
+    lon: 9.200
+  },  {
+    name: "Batterie Punta Chiappa Camogli",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-batterie-pchiappa/data/cu/realtimegauges.txt?_=1779488715785",
+    lat: 44.322,
+    lon: 9.152
+  },  {
+    name: "Casa del Mare - SML",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-sml/data/cu/realtimegauges.txt?_=1779488819099",
+    lat: 44.329,
+    lon: 9.215
+  },  {
+    name: "Rapallo Boate",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-boate/data/cu/realtimegauges.txt?_=1779488877202",
+    lat: 44.347,
+    lon: 9.226
+  },  {
+    name: "Rapallo Lungomare",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rapallo-lungomare/data/cu/realtimegauges.txt?_=1779489122679",
+    lat: 44.348,
+    lon: 9.230
+  },  {
+    name: "Rifugio Monte Caucaso",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-caucaso/data/cu/realtimegauges.txt?_=1779489154454",
+    lat: 44.456,
+    lon: 9.225
+  },  {
+    name: "Parazzuolo di Rezzoaglio",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-parazzuolo/data/cu/realtimegauges.txt?_=1779489196744",
+    lat: 44.478,
+    lon: 9.323
+  },  {
+    name: "Cabanne di Rezzoaglio",
+    url: "https://meteocabanne.altervista.org/ssg/realtimegauges.txt?_=1779489242219",
+    lat: 44.490,
+    lon: 9.339
+  },  {
+    name: "Rezzoaglio Cerisola",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rezzoaglio-cerisola/data/cu/realtimegauges.txt?_=1779489302030",
+    lat: 44.516,
+    lon: 9.408
+  },  {
+    name: "Lago delle Lame",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-lame/data/cu/realtimegauges.txt?_=1779489375365",
+    lat: 44.502,
+    lon: 9.408
+  },  {
+    name: "Monte Bue",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-bue/data/cu/realtimegauges.txt?_=1779489570827",
+    lat: 44.556,
+    lon: 9.492
+  },  {
+    name: "Prato della Cipolla",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-cipolla/data/cu/realtimegauges.txt?_=1779489617800",
+    lat: 44.558,
+    lon: 9.486
+  },  {
+    name: "Rocca d'Aveto",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rocca/data/cu/realtimegauges.txt?_=1779489659597",
+    lat: 44.552,
+    lon: 9.471
+  },  {
+    name: "Rifugio Antola",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rifugio-parco-antola/data/cu/realtimegauges.txt?_=1779489850142",
+    lat: 44.568,
+    lon: 9.105
+  },  {
+    name: "Briga Alta",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-piaggia/data/cu/realtimegauges.txt?_=1779489913088",
+    lat: 44.081,
+    lon: 7.748
+  },  {
+    name: "Masone Vallechiara",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-masone-vallechiara/data/cu/realtimegauges.txt?_=1782641269112",
+    lat: 44.503,
+    lon: 8.720
+  },   {
+    name: "Genova Borzoli",
+    url: "https://edu.retemet.com/ws/davis/borzoli/realtimegauges.txt?_=1779490025510",
+    lat: 44.429,
+    lon: 8.856
+  },  {
+    name: "Ceranesi - Lencisa",
+    url: "https://meteolencisa.altervista.org/cu/realtimegauges.txt?_=1779490106360",
+    lat: 44.493,
+    lon: 8.849
+  },  {
+    name: "Ceranesi - Gaiazza",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-gaiazza-ceranesi/data/cu/realtimegauges.txt?_=1779490201325",
+    lat: 44.502,
+    lon: 8.881
+  },  {
+    name: "Masone San Pietro",
+    url: "https://meteomasone.altervista.org/cu/realtimegauges.txt?_=1779490252937",
+    lat: 44.491,
+    lon: 8.735
+  },  {
+    name: "Genova Multedo",
+    url: "https://multedometeo.altervista.org/home/realtimegauges.txt?_=1779490303976",
+    lat: 44.429,
+    lon: 8.826
+  },  {
+    name: "Genova Erzelli",
+    url: "https://meteoerzelli.altervista.org/cu/realtimegauges.txt?_=1779490350703",
+    lat: 44.417,
+    lon: 8.863
+  },  {
+    name: "Genova Pra Sapello",
+    url: "https://meteoprabranega.altervista.org/cu/realtimegauges.txt?_=1779490395923",
+    lat: 44.427,
+    lon: 8.781
+  },  {
+    name: "Genova Nervi",
+    url: "http://meteonervi.altervista.org/ssg/realtimegauges.txt?_=1779491474800",
+    lat: 44.382,
+    lon: 9.026
+  },  {
+    name: "Pian dei Preti",
+    url: "https://meteopiandeipreti.altervista.org/cu/realtimegauges.txt?_=1779491550845",
+    lat: 44.426,
+    lon: 9.174
+  },  {
+    name: "Cogoleto",
+    url: "https://meteocogoleto.altervista.org/cumulus/realtimegauges.txt?_=1779491625864",
+    lat: 44.389,
+    lon: 8.643
+  },  {
+    name: "Albisola Superiore",
+    url: "https://stellameteo.altervista.org/cumulus/realtimegauges.txt?_=1779491689368",
+    lat: 44.336,
+    lon: 8.517
+  },  {
+    name: "Sarzana",
+    url: "https://meteosarzana.altervista.org/realtimegauges.txt?_=1779491876536",
+    lat: 44.100,
+    lon: 9.985
+  },  {
+    name: "La Spezia Porto Lotti",
+    url: "https://www.navimeteoharbour.com/ws/porto_lotti/customclientraw.txt?_=1779491940193",
+    lat: 44.097,
+    lon: 9.859
+  },  {
+    name: "Brugnato",
+    url: "https://brugnatovvf.altervista.org/FILE/customclientraw.txt?_=1779492254982",
+    lat: 44.236,
+    lon: 9.722
+  },  {
+    name: "Mattarana",
+    url: "https://stazioni.soluzionimeteo.it/mattarana/MBrealtimegauges.txt?_=1779492326272",
+    lat: 44.247,
+    lon: 9.623
+  },  {
+    name: "Favale di Malvaro",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-favale/data/wd/file/customclientraw.txt?_=1779492528756",
+    lat: 44.452,
+    lon: 9.260
+  },  {
+    name: "Zoagli Loc. Oliveto",
+    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-zoagli-oliveto/data/cu/realtimegauges.txt?_=1779492698284",
+    lat: 44.344,
+    lon: 9.276
+  },
+  // altre stazioni...
+];
 
 
 if (stationSource.toLowerCase() === "limet") {
@@ -485,7 +815,184 @@ if (stationSource.toLowerCase() === "limet") {
 }
 
 });
+const updateLimetData = async () => {
+  try {
 
+    // Cerca la stazione
+    const stationObj = stationsLimet.find(
+      s => s.name.toLowerCase() === station.replace(/_/g, " ").toLowerCase()
+    );
+
+    if (!stationObj) {
+      titleEl.textContent = `ERRORE: Stazione LIMET non trovata (${station.replace(/_/g, " ")})`;
+      return;
+    }
+
+    const res = await fetch(stationObj.url);
+
+    if (!res.ok)
+      throw new Error("Errore nel caricamento dati LIMET");
+
+    const data = await res.json();
+
+    const toNumber = value =>
+      value == null ? null : parseFloat(String(value).replace(",", "."));
+
+    titleEl.textContent = stationObj.name;
+
+    const T = toNumber(data.temp);
+    const H = toNumber(data.hum);
+
+    const tMin = toNumber(data.tempTL);
+    const tMax = toNumber(data.tempTH);
+
+    const dew = toNumber(data.dew);
+    const dewMin = toNumber(data.dewpointTL);
+    const dewMax = toNumber(data.dewpointTH);
+
+    const heat = toNumber(data.heatindex);
+    const heatMax = toNumber(data.heatindexTH);
+
+    const wind = toNumber(data.wspeed);
+    const gust = toNumber(data.wgustTM);
+
+    const rainRate = toNumber(data.rrate);
+    const rainRateMax = toNumber(data.rrateTM);
+
+    const rain = toNumber(data.rfall);
+
+    const pressure = toNumber(data.press);
+    const pressureMin = toNumber(data.pressTL);
+    const pressureMax = toNumber(data.pressTH);
+
+    const uv = toNumber(data.UV);
+    const uvMax = toNumber(data.UVTH);
+
+    const solar = toNumber(data.SolarRad);
+    const solarMax = toNumber(data.SolarTM);
+
+    // Temperatura principale
+    const tempEl = document.getElementById("temp-value");
+    tempEl.textContent = formatValue(T) + "°";
+    tempEl.className = "main-value-lg";
+
+    const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
+    tempMinMaxEl.innerHTML = `
+      <span style="font-weight: normal; color: black;">Max: </span>
+      <span class="max-value" style="font-weight: bold; color: red;">
+        ${formatValue(tMax)}°
+      </span>
+
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+      <span style="font-weight: normal; color: black;">Min: </span>
+      <span class="min-value" style="font-weight: bold; color: blue;">
+        ${formatValue(tMin)}°
+      </span>
+    `;
+
+    setMainSmWithMinMax(
+      "dewpoint-value",
+      "dewpoint-minmax",
+      dew,
+      dewMin,
+      dewMax,
+      "°"
+    );
+
+    setMainSmWithMinMax(
+      "umidity-value",
+      "umidity-minmax",
+      H,
+      toNumber(data.humTL),
+      toNumber(data.humTH),
+      "%"
+    );
+
+    setMainSmWithMinMax(
+      "wind-value",
+      "wind-minmax",
+      wind,
+      wind,
+      gust,
+      " km/h"
+    );
+
+    setMainSmWithMinMax(
+      "rainrate-value",
+      "rainrate-minmax",
+      rainRate,
+      rainRate,
+      rainRateMax,
+      " mm/h"
+    );
+
+    setMainSmWithMinMax(
+      "raintotal-value",
+      "raintotal-minmax",
+      rain,
+      rain,
+      rain,
+      " mm"
+    );
+
+    setMainSmWithMinMax(
+      "heatindex-value",
+      "heatindex-minmax",
+      heat,
+      heat,
+      heatMax,
+      "°"
+    );
+
+    setMainSmWithMinMax(
+      "radsol-value",
+      "radsol-minmax",
+      solar,
+      solar,
+      solarMax,
+      " W/m²"
+    );
+
+    setMainSmWithMinMax(
+      "uv-value",
+      "uv-minmax",
+      uv,
+      uv,
+      uvMax,
+      " UV"
+    );
+
+    setMainSmWithMinMax(
+      "850hpa-value",
+      "850hpa-minmax",
+      0,
+      0,
+      0,
+      "°"
+    );
+
+    setMainSmWithMinMax(
+      "pressione-value",
+      "pressione-minmax",
+      pressure,
+      pressureMin,
+      pressureMax,
+      " hPa"
+    );
+
+    document.getElementById("metadata-status").textContent = "Online";
+
+    document.getElementById("metadata-timestamp").textContent =
+      `${new Date().toLocaleDateString("it-IT")} ${data.date}`;
+
+  } catch (err) {
+    console.error(err);
+
+    titleEl.textContent =
+      `ERRORE: Dati LIMET non caricati (${station.replace(/_/g, " ")})`;
+  }
+};
 
         
         // ************************************************************
