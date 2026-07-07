@@ -750,20 +750,7 @@ const stationsLimet = [
   // altre stazioni...
 ];
 
-
-if (stationSource.toLowerCase() === "limet") {
-  updateLimetData();
-  setInterval(updateLimetData, 10000);
-} else if (stationSource.toLowerCase() === "wunderground") {
-  updateWUData();
-  setInterval(updateWUData, 10000);
-} else if (stationSource.toLowerCase() === "omirl") {
-  updateOmirlData();
-  setInterval(updateOmirlData, 10000);
-}
-
-});
-const updateLimetData = async () => {
+  const updateLimetData = async () => {
   try {
 
     // Cerca la stazione
@@ -941,6 +928,19 @@ const updateLimetData = async () => {
       `ERRORE: Dati LIMET non caricati (${station.replace(/_/g, " ")})`;
   }
 };
+
+  if (stationSource.toLowerCase() === "limet") {
+    updateLimetData();
+    setInterval(updateLimetData, 10000);
+  } else if (stationSource.toLowerCase() === "wunderground") {
+    updateWUData();
+    setInterval(updateWUData, 10000);
+  } else if (stationSource.toLowerCase() === "omirl") {
+    updateOmirlData();
+    setInterval(updateOmirlData, 10000);
+  }
+
+});
 
         
         // ************************************************************
