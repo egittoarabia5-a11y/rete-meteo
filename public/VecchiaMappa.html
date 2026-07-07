@@ -137,6 +137,9 @@
   IGENOA2897: { api: "IGENOA2897", nome: "Genova S.Martino", sovrastima: "yes" },
   IGENOA3170: { api: "IGENOA3170", nome: "Genova Via Posalunga", sovrastima: "yes" },
   IGENOA3135: { api: "IGENOA3135", nome: "Genova S.Desiderio", sovrastima: "yes" },
+  IGENOA2929: { api: "IGENOA2929", nome: "Genova Stallo", sovrastima: "yes" },
+  IGENOA3078: { api: "IGENOA3078", nome: "Genova Fiumara", sovrastima: "yes" },
+  IGENOA3120: { api: "IGENOA3120", nome: "Genova Molassana", sovrastima: "yes" },
   IGENOA3138: { api: "IGENOA3138", nome: "Genova Pino", sovrastima: "no" },
   IGENOA2783: { api: "IGENOA2783", nome: "Genova Terpi", sovrastima: "no" },
   IGENOA3085: { api: "IGENOA3085", nome: "Genova Sturla", sovrastima: "no" },
@@ -166,7 +169,7 @@
   ISERRA22: { api: "ISERRA22", nome: "Mignanego", sovrastima: "no" },
   ICAMPO445: { api: "ICAMPO445", nome: "Pietralavezzara", sovrastima: "no" },
   ICAMPO312: { api: "ICAMPO312", nome: "Campomorone", sovrastima: "no" },
-  ICOGOL39: { api: "IMIGNA23", nome: "Passo dei Giovi", sovrastima: "no" },
+  IMIGNA23: { api: "IMIGNA23", nome: "Passo dei Giovi", sovrastima: "no" },
   IBUSAL3: { api: "IBUSAL3", nome: "Busalla", sovrastima: "no" },
   IBUSAL1: { api: "IBUSAL1", nome: "Busalla Giò Alto", sovrastima: "no" },
   ICROCE7: { api: "ICROCE7", nome: "Crocefieschi", sovrastima: "no" },
@@ -208,16 +211,16 @@
   IBOGLI8: { api: "IBOGLI8", nome: "Bogliasco Poggio" },
   IDAVAG2: { api: "IDAVAG2", nome: "Davagna" },
   IMONTO47: { api: "IMONTO47", nome: "Montoggio-Bromia" },
-  IGENOA3078: { api: "IGENOA2728", nome: "Genova Via Amarena" },
+  IGENOA2728: { api: "IGENOA2728", nome: "Genova Via Amarena" },
   IGENOA2775: { api: "IGENOA2775", nome: "Lido di Pegli" },
   IGENOA2819: { api: "IGENOA2819", nome: "Genova Via dei Platani" },
   IGENOA2865: { api: "IGENOA2865", nome: "Genova Granarolo" },
   IGENOA2881: { api: "IGENOA2881", nome: "Genova Bolzaneto" },
   IGENOA2887: { api: "IGENOA2887", nome: "Colle degli Ometti" },
-  IGENOA2933: { api: "IGENOA2933", nome: "Genova Serino" },
+  IGENOA2933: { api: "IGENOA2933", nome: "Genova Serino", sovrastima: "no" },
   IGENOA2959: { api: "IGENOA2959", nome: "Genova Pontedecimo" },
   IGENOA2962: { api: "IGENOA2962", nome: "Costa di Sestri Ponente" },
-  IGENOA2983: { api: "IGENOA2983" },
+  IGENOA2983: { api: "IGENOA2983", nome: "Genova Castello", sovrastima: "no" },
   IGENOA2997: { api: "IGENOA2997", nome: "Genova Quinto" },
   IGENOA3021: { api: "IGENOA3021", nome: "Genova Begato" },
   IGENOA3032: { api: "IGENOA3032", nome: "Genova Fontanegli" },
@@ -228,7 +231,7 @@
   IGENOVAA2: { api: "IGENOVAA2" },
   IBOGLI12: { api: "IBOGLI12", nome: "Bogliasco Via F.li Ferrari" },
   IPIEVE46: { api: "IPIEVE46", nome: "Pieve Alta" },
-  IGENOA3082: { api: "IGENOA3082", nome: "Geirato" },
+  IGENOA3082: { api: "IGENOA3082", nome: "Geirato", sovrastima: "yes" },
   IURBE3: { api: "IURBE3", nome: "Passo del Faiallo", sovrastima: "no" },
   IVARAZ9: { api: "IVARAZ9", nome: "Piani D'Invrea", sovrastima: "no" },
   IVARAZ6: { api: "IVARAZ6", nome: "Varazze", sovrastima: "no" },
@@ -517,6 +520,7 @@ function updateMarker(id) {
 
   if (!markers[id]) {
     markers[id] = L.marker([data.lat, data.lon], { icon }).addTo(map);
+    markers[id].bindPopup('');
   } else {
     markers[id].setIcon(icon);
   }
@@ -526,9 +530,9 @@ function updateMarker(id) {
   const stationSource = meta.source;
   const stationName = meta.name;
 
-// costruiamo il popup
-let popupContent = `<b>Stazione:</b> ${stationName}<br>`;
-popupContent += `<b>Fonte:</b> ${stationSource}<br>`;
+  // costruiamo il popup
+  let popupContent = `<b>Stazione:</b> ${stationName}<br>`;
+  popupContent += `<b>Fonte:</b> ${stationSource}<br>`;
 if (type.startsWith("current") || type.startsWith("max") || type.startsWith("min")) {
   popupContent += `🌡️ Attuale: ${data.temp != null ? data.temp.toFixed(1) : "N/D"}°C<br>`;
   popupContent += `🔺 Max: ${data.tempHigh != null ? data.tempHigh.toFixed(1) : "N/D"}°C<br>`;
