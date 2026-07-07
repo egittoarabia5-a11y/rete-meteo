@@ -1403,102 +1403,11 @@ const updateLimetData = async () => {
         // 4. FUNZIONE DI INIZIALIZZAZIONE GLOBALE AGGIORNATA
         // ************************************************************
 
-        async function fetchDataAndRender() {
-    const params = new URLSearchParams(window.location.search);
-    const stationId = params.get('station');
-    const stationSource = params.get('source');
 
-    if (!stationId || !stationSource) {
-        document.getElementById('main-title-location').textContent = "ERRORE: Parametri mancanti!";
-        return;
-    }
-
-    // Aggiorna il titolo in alto
-    document.getElementById('main-title-location').textContent = `${stationId} - ${stationSource}`;
-
-    // Costruisci l’URL JSON remoto
-    const jsonUrl = `https://api-stazioni-meteo.vercel.app/${stationSource}/${stationId}.json`;
-
-    try {
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error(`Errore HTTP ${response.status}`);
-        const data = await response.json();
-
-        console.log("Dati ricevuti:", data);
-
-        // Estrazione dati principali
-        const temp = data.T ?? null;
-        const tempLow = data.TL ?? null;
-        const tempHigh = data.TH ?? null;
-        const dewpoint = data.D ?? null;
-        const humidity = data.H ?? null;
-        const wind = data.V ?? null;
-        const gust = data.G ?? null;
-        const rainDaily = data.R ?? null;
-        const rainRate = data.RR ?? null;
-        const heatIndex = data.HI ?? null;
-        const uvIndex = data.UV ?? null;
-        const radSol = data.RAD ?? null; // se disponibile
-        const temp850 = data.T850 ?? null; // se disponibile
-
-        // Aggiorna gauges
-        updateGauge("temp", temp);
-        updateGauge("dewpoint", dewpoint);
-        updateGauge("humidity", humidity);
-        updateGauge("wind", wind);
-        updateGauge("rain_rate", rainRate);
-        updateGauge("rain_total", rainDaily);
-        updateGauge("heatindex", heatIndex);
-        updateGauge("uv", uvIndex);
-        updateGauge("radsol", radSol);
-        updateGauge("850hpa", temp850);
-
-        // Aggiorna record dettagliati
-        const records = [
-            { name: "Temperatura", value: temp, unit: "°", min: tempLow, max: tempHigh },
-            { name: "Dew Point", value: dewpoint, unit: "°" },
-            { name: "Umidità", value: humidity, unit: "%" },
-            { name: "Vento", value: wind, unit: "km/h" },
-            { name: "Raffica", value: gust, unit: "km/h" },
-            { name: "Pioggia Giornaliera", value: rainDaily, unit: "mm" },
-            { name: "Tasso di Pioggia", value: rainRate, unit: "mm/h" },
-            { name: "Heat Index", value: heatIndex, unit: "°" },
-            { name: "Indice UV", value: uvIndex },
-            { name: "Radiazione Solare", value: radSol, unit: "W/m²" },
-            { name: "Temperatura 850hPa", value: temp850, unit: "°" }
-        ];
-        populateRecords(records);
-
-        // Disegna grafici (supponendo 24 punti dati passati in data.charts)
-        if (data.charts) {
-            createChart('tempChart', 'Temperatura', data.charts.temp_data, data.charts.temp_labels, 'var(--max-color)', '°C');
-            createChart('pressureChart', 'Pressione', data.charts.pressure_data, data.charts.pressure_labels, 'var(--min-color)', 'hPa');
-        }
-
-        // Timestamp aggiornamento
-        const utcTime = new Date(data.timestamp);
-        const localTime = utcTime.toLocaleString("it-IT", { timeZone: "Europe/Rome" });
-        document.getElementById("last-update").textContent = `Ultimo aggiornamento: ${localTime}`;
-
-    } catch (err) {
-        console.error("Errore nel caricamento dati:", err);
-        document.getElementById('main-title-location').textContent = `${stationId} - ${stationSource}`;
-    }
-}
-
-// Ridisegna i grafici al resize
-window.addEventListener('resize', () => {
-     if (tempChartInstance) tempChartInstance.resize();
-     if (pressureChartInstance) pressureChartInstance.resize();
-});
-
-
-
-        window.onload = fetchDataAndRender;
     </script>
 </head>
 
-<body onload="fetchDataAndRender()" class="p-4 sm:p-8">
+<body class="p-4 sm:p-8">
 
 
     <div class="grid-wrapper">
