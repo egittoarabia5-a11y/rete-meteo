@@ -81,7 +81,7 @@
     <label><input type="checkbox" class="sourceFilter" value="Wunderground"> Wunderground</label><br>
     <label><input type="checkbox" class="sourceFilter" value="CentroMeteoLombardo"> CML</label>
     <label><input type="checkbox" class="sourceFilter" value="DatiMeteoAsti"> DMA</label><br>
-    <label><input type="checkbox" class="sourceFilter" value="WeatherLink"> WeatherLink </label><br>
+    <label><input type="checkbox" class="sourceFilter" value="WeatherLink"> Reti Minori </label><br>
     <label><input type="checkbox" class="sourceFilter" value="ComuneGenova"> Comune di Genova</label><br>
   </div>
   <div id="reloadBtn" style="
@@ -296,6 +296,8 @@ const stationsComuneGenova =  {
 };
 const stationsWL =  {
 };
+const stationsSM =  {
+};
 const stationsCML = {};
 const stationsMeteoTortona =  {
   Tortona: {
@@ -397,7 +399,7 @@ function getStationMeta(id) {
   const maps = {
     stations, stationsLimet, stations3R, stationsTorinoMeteo, stationsNetAtmo,
     stationsOMIRL, stationsCML, stationsDMA, stationsMeteoTortona,
-    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL
+    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL, stationsSM
   };
   const defaultSource = {
     stations: 'Wunderground',
@@ -414,7 +416,8 @@ function getStationMeta(id) {
     stations1: 'LIMET1',
     stations2: 'LIMET2',
     stations3: 'LIMET3',
-    stationsWL: 'WeatherLink'
+    stationsWL: 'WeatherLink',
+    stationsSM: 'WeatherLink',
   };
 
   for (const key of Object.keys(maps)) {
@@ -535,10 +538,15 @@ function updateMarker(id) {
   }
 
   // Popup aggiornato
+// Popup aggiornato
 const meta = getStationMeta(id);
-const stationSource = meta.source;
-const stationName = meta.name;
 
+const stationSource = latestData[id]?.source || meta.source;
+
+const stationName =
+  latestData[id]?.name ||
+  meta.name ||
+  id;
 const backgroundColor = color || "#808080";
 const transparentColor = backgroundColor + "4D"; // 30% opacità
 
@@ -905,6 +913,168 @@ async function fetchComuneGenova() {
   } catch (err) {
     console.error("Errore fetch COMUNE GENOVA:", err);
   }
+}
+async function fetchSM() {
+
+  try {
+
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/SoluzioniMeteo.json"
+    );
+
+
+    const data = await res.json();
+
+
+    const stations = data?.stations || [];
+
+
+    stations.forEach((stationData) => {
+
+
+      const id = stationData.id;
+
+
+      const lat = Number(stationData.lat);
+      const lon = Number(stationData.lon);
+
+
+
+      latestData[id] = {
+
+        source: "Reti Minori",
+
+
+        temp:
+          stationData.T != null
+            ? Number(stationData.T)
+            : null,
+
+
+        tempHigh:
+          stationData.TH != null
+            ? Number(stationData.TH)
+            : null,
+
+
+        tempLow:
+          stationData.TL != null
+            ? Number(stationData.TL)
+            : null,
+
+
+
+        hum:
+          stationData.H != null
+            ? Number(stationData.H)
+            : null,
+
+
+        humHigh:
+          stationData.HH != null
+            ? Number(stationData.HH)
+            : null,
+
+
+        humLow:
+          stationData.HL != null
+            ? Number(stationData.HL)
+            : null,
+
+
+
+        dewp:
+          stationData.D != null
+            ? Number(stationData.D)
+            : null,
+
+
+
+        wind:
+          stationData.V != null
+            ? Number(stationData.V)
+            : null,
+
+
+        windGust:
+          stationData.G != null
+            ? Number(stationData.G)
+            : null,
+
+
+
+        rainDaily:
+          stationData.R != null
+            ? Number(stationData.R)
+            : null,
+
+
+        rainRate:
+          stationData.RR != null
+            ? Number(stationData.RR)
+            : null,
+
+
+
+        pressure:
+          stationData.P != null
+            ? Number(stationData.P)
+            : null,
+
+
+
+        lat,
+        lon,
+
+
+        isInactive:
+          stationData.online === false ||
+          (
+            stationData.T == null &&
+            stationData.H == null &&
+            stationData.V == null &&
+            stationData.R == null
+          ),
+
+
+        time:
+          stationData.timestamp || null
+
+      };
+
+
+
+      stationsSM[id] = {
+        lat,
+        lon,
+        name: stationData.name
+      };
+
+
+
+      if (!markers[id]) {
+
+        createMarker(id, lat, lon);
+
+      }
+
+
+      updateMarker(id);
+
+
+    });
+
+
+
+  } catch(err) {
+
+    console.error(
+      "Errore fetch SoluzioniMeteo:",
+      err
+    );
+
+  }
+
 }
 async function fetchLimet() {
   try {
@@ -1395,28 +1565,37 @@ async function fetchDMA() {
 
       const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
 
-      latestData[id] = {
-        source: "DMA",
-        temp,
-        tempHigh,
-        tempLow,
-        hum,
-        humHigh,
-        humLow,
-        dewp,
-        wind,
-        windGust,
-        rainDaily,
-        rainRate,
-        lat,
-        lon,
-        isInactive:
-          temp == null &&
-          hum == null &&
-          wind == null &&
-          rainDaily == null,
-        time: stationData.timestamp || null
-      };
+latestData[id] = {
+  source: "DMA",
+  name: stationData.name || id,
+
+  temp,
+  tempHigh,
+  tempLow,
+
+  hum,
+  humHigh,
+  humLow,
+
+  dewp,
+
+  wind,
+  windGust,
+
+  rainDaily,
+  rainRate,
+
+  lat,
+  lon,
+
+  isInactive:
+    temp == null &&
+    hum == null &&
+    wind == null &&
+    rainDaily == null,
+
+  time: stationData.timestamp || null
+};
 
       stationsDMA[id] = { lat, lon };
 
@@ -1647,7 +1826,9 @@ startSourceUpdates(source, () => {
     case "ComuneGenova": return fetchComuneGenova();
     case "OMIRL": return fetchOMIRL();
     case "CentroMeteoLombardo": return fetchCML();
-    case "WeatherLink": return fetchWL();
+    case "WeatherLink": 
+      fetchWL();
+      return fetchSM();
     case "Wunderground": return fetchPwsAll(); // 🔥 QUI
   }
 });
@@ -1673,7 +1854,9 @@ function fetchBySource(source) {
     case "OMIRL": return fetchOMIRL();
     case "CentroMeteoLombardo": return fetchCML();
     case "Wunderground": return fetchPwsAll();
-    case "WeatherLink": return fetchWL();
+    case "WeatherLink":
+  fetchWL();
+  return fetchSM();
   }
 }
 document.getElementById("reloadBtn").addEventListener("click", () => {
@@ -1699,6 +1882,7 @@ document.getElementById("tempSelect").addEventListener("change", () =>
   Object.keys(stationsIgnorete).forEach(id => updateMarker(id));
   Object.keys(stationsWL).forEach(id => updateMarker(id));
   Object.keys(stationsComuneGenova).forEach(id => updateMarker(id));
+  Object.keys(stationsSM).forEach(id => updateMarker(id));
  });
 
     // Dopo createMarker / updateMarker di tutte le stazioni
