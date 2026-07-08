@@ -1946,6 +1946,110 @@ const fetchComuneGenova = async () => {
     console.error("Errore fetch Comune di Genova:", err);
   }
 };
+const fetchSM = async () => {
+
+  try {
+
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/SoluzioniMeteo.json"
+    );
+
+
+    const data = await res.json();
+
+
+    const stations = data?.stations || [];
+
+
+    if (!stations.length) return;
+
+
+
+    stations.forEach((st) => {
+
+
+      const id = st.id;
+
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+
+      if (!lat || !lon) return;
+
+
+
+      allStations[id] = {
+
+        id,
+
+        // appartiene a Reti Minori / WeatherLink
+        source: "WeatherLink",
+
+
+        N: st.name ?? id,
+
+
+        // ===== TEMPERATURE =====
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+
+        // ===== HUMIDITY =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+
+        // ===== WIND =====
+        wind: st.V ?? null,
+        windGust: st.G ?? null,
+
+
+        // ===== RAIN =====
+        rainDaily: st.R ?? null,
+        rainRate: st.RR ?? null,
+
+
+        // ===== DEWPOINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+
+        // ===== PRESSURE =====
+        pressure: st.P ?? null,
+
+
+        // ===== EXTRA =====
+        heat: null,
+        heatHigh: null,
+        heatLow: null,
+
+
+        time: st.timestamp ?? null,
+
+
+        lat,
+        lon
+
+      };
+
+
+      updateLayer(id);
+
+
+    });
+
+
+  } catch (err) {
+
+    console.error("Errore fetch SoluzioniMeteo:", err);
+
+  }
+
+};
 const fetchLimet = async () => {
 
   try {
@@ -2408,7 +2512,7 @@ function startPiemonte(){
   Object.keys(stationsPiemonte).forEach(id =>
     fetchPws(id, stationsPiemonte)
   );
-
+  fetchSM();
   fetchDMA();
   fetch3R();
   fetchTorinoMeteo();
