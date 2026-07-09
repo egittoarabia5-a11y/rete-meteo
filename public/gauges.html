@@ -752,31 +752,32 @@ const stationsLimet = [
 
 const updateLimetData = async () => {
   try {
-
     const stationName = station.replace(/_/g, " ").toLowerCase();
 
-    // Cerca prima su limet.json
-    let res = await fetch("https://api-stazioni-meteo.eggittof.workers.dev/limet.json");
+    const loadStation = async (url) => {
+      const res = await fetch(url);
 
-    if (!res.ok) throw new Error("Errore nel caricamento limet.json");
+      if (!res.ok) {
+        throw new Error(`Errore nel caricamento di ${url}`);
+      }
 
-    let stations = await res.json();
+      const json = await res.json();
 
-    let data = stations.find(
-      s => s.name.toLowerCase() === stationName
-    );
+      if (!json.stations || !Array.isArray(json.stations)) {
+        throw new Error("Formato API non valido");
+      }
 
-    // Se non trovata, cerca su limet2.json
-    if (!data) {
-      res = await fetch("https://api-stazioni-meteo.eggittof.workers.dev/limet2.json");
-
-      if (!res.ok) throw new Error("Errore nel caricamento limet2.json");
-
-      stations = await res.json();
-
-      data = stations.find(
-        s => s.name.toLowerCase() === stationName
+      return json.stations.find(
+        s => s.N.toLowerCase() === stationName
       );
+    };
+
+    // Cerca prima su limet.json
+    let data = await loadStation("https://api-stazioni-meteo.eggittof.workers.dev/limet.json");
+
+    // Se non trovata cerca su limet2.json
+    if (!data) {
+      data = await loadStation("https://api-stazioni-meteo.eggittof.workers.dev/limet2.json");
     }
 
     if (!data) {
@@ -787,38 +788,38 @@ const updateLimetData = async () => {
     const toNumber = value =>
       value == null ? null : parseFloat(String(value).replace(",", "."));
 
-    titleEl.textContent = data.name;
+    titleEl.textContent = data.N;
 
-    const T = toNumber(data.temp);
-    const H = toNumber(data.hum);
+    const T = toNumber(data.T);
+    const H = toNumber(data.H);
 
-    const tMin = toNumber(data.tempTL);
-    const tMax = toNumber(data.tempTH);
+    const tMin = toNumber(data.TL);
+    const tMax = toNumber(data.TH);
 
-    const dew = toNumber(data.dew);
-    const dewMin = toNumber(data.dewpointTL);
-    const dewMax = toNumber(data.dewpointTH);
+    const dew = toNumber(data.D);
+    const dewMin = toNumber(data.DL);
+    const dewMax = toNumber(data.DH);
 
-    const heat = toNumber(data.heatindex);
-    const heatMax = toNumber(data.heatindexTH);
+    const heat = toNumber(data.HI);
+    const heatMax = toNumber(data.HIH ?? data.HI);
 
-    const wind = toNumber(data.wspeed);
-    const gust = toNumber(data.wgustTM);
+    const wind = toNumber(data.V);
+    const gust = toNumber(data.VR);
 
-    const rainRate = toNumber(data.rrate);
-    const rainRateMax = toNumber(data.rrateTM);
+    const rainRate = toNumber(data.RR);
+    const rainRateMax = toNumber(data.RRH ?? data.RR);
 
-    const rain = toNumber(data.rfall);
+    const rain = toNumber(data.R);
 
-    const pressure = toNumber(data.press);
-    const pressureMin = toNumber(data.pressTL);
-    const pressureMax = toNumber(data.pressTH);
+    const pressure = toNumber(data.P);
+    const pressureMin = toNumber(data.PL ?? data.P);
+    const pressureMax = toNumber(data.PH ?? data.P);
 
     const uv = toNumber(data.UV);
-    const uvMax = toNumber(data.UVTH);
+    const uvMax = toNumber(data.UVH ?? data.UV);
 
-    const solar = toNumber(data.SolarRad);
-    const solarMax = toNumber(data.SolarTM);
+    const solar = toNumber(data.SR);
+    const solarMax = toNumber(data.SRH ?? data.SR);
 
     // Temperatura principale
     const tempEl = document.getElementById("temp-value");
@@ -853,8 +854,8 @@ const updateLimetData = async () => {
       "umidity-value",
       "umidity-minmax",
       H,
-      toNumber(data.humTL),
-      toNumber(data.humTH),
+      toNumber(data.HL),
+      toNumber(data.HH),
       "%"
     );
 
@@ -933,7 +934,7 @@ const updateLimetData = async () => {
     document.getElementById("metadata-status").textContent = "Online";
 
     document.getElementById("metadata-timestamp").textContent =
-      `${new Date().toLocaleDateString("it-IT")} ${data.date}`;
+      `${new Date().toLocaleDateString("it-IT")} ${data.TIME}`;
 
   } catch (err) {
     console.error(err);
@@ -942,17 +943,6 @@ const updateLimetData = async () => {
       `ERRORE: Dati LIMET non caricati (${station.replace(/_/g, " ")})`;
   }
 };
-
-  if (stationSource.toLowerCase() === "limet") {
-    updateLimetData();
-    setInterval(updateLimetData, 10000);
-  } else if (stationSource.toLowerCase() === "wunderground") {
-    updateWUData();
-    setInterval(updateWUData, 10000);
-  } else if (stationSource.toLowerCase() === "omirl") {
-    updateOmirlData();
-    setInterval(updateOmirlData, 10000);
-  }
 
 });
 
