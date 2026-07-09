@@ -750,30 +750,44 @@ const stationsLimet = [
   // altre stazioni...
 ];
 
-  const updateLimetData = async () => {
+const updateLimetData = async () => {
   try {
 
-    // Cerca la stazione
-    const stationObj = stationsLimet.find(
-      s => s.name.toLowerCase() === station.replace(/_/g, " ").toLowerCase()
+    const stationName = station.replace(/_/g, " ").toLowerCase();
+
+    // Cerca prima su limet.json
+    let res = await fetch("https://api-stazioni-meteo.eggittof.workers.dev/limet.json");
+
+    if (!res.ok) throw new Error("Errore nel caricamento limet.json");
+
+    let stations = await res.json();
+
+    let data = stations.find(
+      s => s.name.toLowerCase() === stationName
     );
 
-    if (!stationObj) {
+    // Se non trovata, cerca su limet2.json
+    if (!data) {
+      res = await fetch("https://api-stazioni-meteo.eggittof.workers.dev/limet2.json");
+
+      if (!res.ok) throw new Error("Errore nel caricamento limet2.json");
+
+      stations = await res.json();
+
+      data = stations.find(
+        s => s.name.toLowerCase() === stationName
+      );
+    }
+
+    if (!data) {
       titleEl.textContent = `ERRORE: Stazione LIMET non trovata (${station.replace(/_/g, " ")})`;
       return;
     }
 
-    const res = await fetch(stationObj.url);
-
-    if (!res.ok)
-      throw new Error("Errore nel caricamento dati LIMET");
-
-    const data = await res.json();
-
     const toNumber = value =>
       value == null ? null : parseFloat(String(value).replace(",", "."));
 
-    titleEl.textContent = stationObj.name;
+    titleEl.textContent = data.name;
 
     const T = toNumber(data.temp);
     const H = toNumber(data.hum);

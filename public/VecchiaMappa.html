@@ -82,7 +82,6 @@
     <label><input type="checkbox" class="sourceFilter" value="CentroMeteoLombardo"> CML</label>
     <label><input type="checkbox" class="sourceFilter" value="DatiMeteoAsti"> DMA</label><br>
     <label><input type="checkbox" class="sourceFilter" value="WeatherLink"> Reti Minori </label><br>
-    <label><input type="checkbox" class="sourceFilter" value="ComuneGenova"> Comune di Genova</label><br>
   </div>
   <div id="reloadBtn" style="
   position: absolute;
@@ -403,7 +402,7 @@ function getStationMeta(id) {
   };
   const defaultSource = {
     stations: 'Wunderground',
-    stationsComuneGenova: 'ComuneGenova',
+    stationsComuneGenova: 'WeatherLink',
     stationsLimet: 'LIMET',
     stations3R: '3R',
     stationsIgnorete: 'Ignorete',
@@ -1823,12 +1822,12 @@ startSourceUpdates(source, () => {
     case "Ignorete": return fetchIgnorete();
     case "3R": return fetch3R();
     case "DatiMeteoAsti": return fetchDMA();
-    case "ComuneGenova": return fetchComuneGenova();
     case "OMIRL": return fetchOMIRL();
     case "CentroMeteoLombardo": return fetchCML();
     case "WeatherLink": 
       fetchWL();
-      return fetchSM();
+      fetchSM();
+      return fetchComuneGenova();
     case "Wunderground": return fetchPwsAll(); // 🔥 QUI
   }
 });
@@ -1850,13 +1849,13 @@ function fetchBySource(source) {
     case "Ignorete": return fetchIgnorete();
     case "3R": return fetch3R();
     case "DatiMeteoAsti": return fetchDMA();
-    case "ComuneGenova": return fetchComuneGenova();
     case "OMIRL": return fetchOMIRL();
     case "CentroMeteoLombardo": return fetchCML();
     case "Wunderground": return fetchPwsAll();
     case "WeatherLink":
   fetchWL();
-  return fetchSM();
+  fetchSM();
+  return fetchComuneGenova();
   }
 }
 document.getElementById("reloadBtn").addEventListener("click", () => {
