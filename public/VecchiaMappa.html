@@ -75,9 +75,8 @@
     <b>Fonti:</b><br>
     <label><input type="checkbox" class="sourceFilter" value="LIMET" > LIMET</label>
     <label><input type="checkbox" class="sourceFilter" value="OMIRL"> OMIRL</label><br>
-    <label><input type="checkbox" class="sourceFilter" value="TorinoMeteo" > TorinoMeteo</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="TorinoMeteo" > TorinoMeteo+3R</label><br>
     <label><input type="checkbox" class="sourceFilter" value="Ignorete" > Ignorete</label><br>
-    <label><input type="checkbox" class="sourceFilter" value="3R" > Meteo3R</label><br>
     <label><input type="checkbox" class="sourceFilter" value="Wunderground"> Wunderground</label><br>
     <label><input type="checkbox" class="sourceFilter" value="CentroMeteoLombardo"> CML</label>
     <label><input type="checkbox" class="sourceFilter" value="DatiMeteoAsti"> DMA</label><br>
@@ -297,6 +296,8 @@ const stationsWL =  {
 };
 const stationsSM =  {
 };
+const stationsAERIS =  {
+};
 const stationsCML = {};
 const stationsMeteoTortona =  {
   Tortona: {
@@ -398,13 +399,13 @@ function getStationMeta(id) {
   const maps = {
     stations, stationsLimet, stations3R, stationsTorinoMeteo, stationsNetAtmo,
     stationsOMIRL, stationsCML, stationsDMA, stationsMeteoTortona,
-    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL, stationsSM
+    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL, stationsSM, stationsAERIS,
   };
   const defaultSource = {
     stations: 'Wunderground',
     stationsComuneGenova: 'WeatherLink',
     stationsLimet: 'LIMET',
-    stations3R: '3R',
+    stations3R: 'TorinoMeteo',
     stationsIgnorete: 'Ignorete',
     stationsNetAtmo: 'NetAtmo',
     stationsTorinoMeteo: 'TorinoMeteo',
@@ -417,6 +418,7 @@ function getStationMeta(id) {
     stations3: 'LIMET3',
     stationsWL: 'WeatherLink',
     stationsSM: 'WeatherLink',
+    stationsAERIS: 'WeatherLink',
   };
 
   for (const key of Object.keys(maps)) {
@@ -901,6 +903,72 @@ async function fetchComuneGenova() {
       };
 
       stationsComuneGenova[id] = { lat, lon };
+
+      if (!markers[id]) createMarker(id, lat, lon);
+
+      updateMarker(id);
+    });
+
+    await Promise.all(fetches);
+
+  } catch (err) {
+    console.error("Errore fetch COMUNE GENOVA:", err);
+  }
+}
+async function fetchAeris() {
+  try {
+    const url = "https://api-stazioni-meteo.eggittof.workers.dev/aeris.json";
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const stations = data?.stations || [];
+    if (!stations.length) return;
+
+    const fetches = stations.map(async (stationData) => {
+      const id = stationData.id.replace(/\s+/g, "_");
+
+      const lat = parseFloat(stationData.lat);
+      const lon = parseFloat(stationData.lon);
+
+      const temp = stationData.T != null ? parseFloat(stationData.T) : null;
+      const tempHigh = stationData.TH != null ? parseFloat(stationData.TH) : null;
+      const tempLow = stationData.TL != null ? parseFloat(stationData.TL) : null;
+
+      const hum = stationData.H != null ? parseFloat(stationData.H) : null;
+      const humHigh = stationData.HH != null ? parseFloat(stationData.HH) : null;
+      const humLow = stationData.HL != null ? parseFloat(stationData.HL) : null;
+
+      const dewp = stationData.D != null ? parseFloat(stationData.D) : null;
+
+      const wind = stationData.W != null ? parseFloat(stationData.W) : null;
+      const windHigh = stationData.WH != null ? parseFloat(stationData.WH) : null;
+      const windLow = stationData.WL != null ? parseFloat(stationData.WL) : null;
+
+      const rainDaily = stationData.R != null ? parseFloat(stationData.R) : null;
+
+      latestData[id] = {
+        source: "AERIS",
+        temp,
+        tempHigh,
+        tempLow,
+        hum,
+        humHigh,
+        humLow,
+        dewp,
+        wind,
+        windGust: windHigh,
+        rainDaily,
+        rainRate: null,
+        lat,
+        lon,
+        isInactive:
+          temp == null &&
+          hum == null &&
+          wind == null &&
+          rainDaily == null
+      };
+
+      stationsAERIS[id] = { lat, lon };
 
       if (!markers[id]) createMarker(id, lat, lon);
 
@@ -1818,15 +1886,17 @@ document.querySelectorAll('.sourceFilter').forEach(cb => {
 startSourceUpdates(source, () => {
   switch (source) {
     case "LIMET": return fetchLimet();
-    case "TorinoMeteo": return fetchTorinoMeteo();
+    case "TorinoMeteo": 
+    fetch3R();
+    return fetchTorinoMeteo();
     case "Ignorete": return fetchIgnorete();
-    case "3R": return fetch3R();
     case "DatiMeteoAsti": return fetchDMA();
     case "OMIRL": return fetchOMIRL();
     case "CentroMeteoLombardo": return fetchCML();
     case "WeatherLink": 
       fetchWL();
       fetchSM();
+      fetchAeris();
       return fetchComuneGenova();
     case "Wunderground": return fetchPwsAll(); // 🔥 QUI
   }
@@ -1845,9 +1915,10 @@ function getActiveSources() {
 function fetchBySource(source) {
   switch (source) {
     case "LIMET": return fetchLimet();
-    case "TorinoMeteo": return fetchTorinoMeteo();
+    case "TorinoMeteo": 
+    fetch3R();
+    return fetchTorinoMeteo();
     case "Ignorete": return fetchIgnorete();
-    case "3R": return fetch3R();
     case "DatiMeteoAsti": return fetchDMA();
     case "OMIRL": return fetchOMIRL();
     case "CentroMeteoLombardo": return fetchCML();
@@ -1855,6 +1926,7 @@ function fetchBySource(source) {
     case "WeatherLink":
   fetchWL();
   fetchSM();
+  fetchAeris();
   return fetchComuneGenova();
   }
 }
@@ -1882,6 +1954,7 @@ document.getElementById("tempSelect").addEventListener("change", () =>
   Object.keys(stationsWL).forEach(id => updateMarker(id));
   Object.keys(stationsComuneGenova).forEach(id => updateMarker(id));
   Object.keys(stationsSM).forEach(id => updateMarker(id));
+  Object.keys(stationsAERIS).forEach(id => updateMarker(id));
  });
 
     // Dopo createMarker / updateMarker di tutte le stazioni
