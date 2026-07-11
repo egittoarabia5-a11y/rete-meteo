@@ -1483,6 +1483,9 @@ async function fetchOMIRL() {
       const tempHigh = stationData.tempHigh != null ? parseFloat(stationData.tempHigh) : null;
       const tempLow = stationData.tempLow != null ? parseFloat(stationData.tempLow) : null;
 
+      
+      const dewp = stationData.dewPoint != null ? parseFloat(stationData.dewPoint) : null;
+
       const hum = stationData.hum != null ? parseFloat(stationData.hum) : null;
       const humHigh = stationData.humHigh != null ? parseFloat(stationData.humHigh) : null;
       const humLow = stationData.humLow != null ? parseFloat(stationData.humLow) : null;
@@ -1501,7 +1504,7 @@ async function fetchOMIRL() {
         hum,
         humHigh,
         humLow,
-        dewp: null, // non presente nell’API
+        dewp,
         wind,
         windGust,
         rainDaily,
