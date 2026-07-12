@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<title>Val Di Susa</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+
+/* SFONDO FOTO */
+#pixel-info{
+
+    position:fixed;
+
+    transform:translate(10px,10px);
+
+    background:rgba(0,0,0,.75);
+
+    color:#fff;
+
+    padding:4px 6px;
+
+    border-radius:5px;
+
+    font:12px 'Open Sans',sans-serif;
+
+    pointer-events:none;
+
+    z-index:99999;
+}
+#map{
+    position:relative;
+    width:100%;
+    height:100vh;
+    background:url("bardonecchia.png") center center / cover no-repeat;
+}
+
+
+/* BARRA SUPERIORE */
+
+.topbar{
+
+    position:absolute;
+
+    top:20px;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    display:flex;
+
+    gap:15px;
+
+    z-index:1000;
+
+}
+
+
+
+.title-box{
+
+    background:rgba(220,220,220,0.9);
+
+    padding:12px 25px;
+
+    border-radius:10px;
+
+    font-size:26px;
+
+    font-weight:bold;
+
+    color:#333;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.3);
+
+}
+
+
+
+#menu{
+
+    background:rgba(220,220,220,0.9);
+
+    padding:12px 18px;
+
+    border-radius:10px;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.3);
+
+}
+
+.weather-popup {
+
+    position:absolute;
+
+    min-width:160px;
+
+    padding:12px 15px;
+
+    border-radius:10px;
+
+    color:white;
+
+    font-weight:bold;
+
+    text-align:center;
+
+    font-size:14px;
+
+    box-shadow:0 3px 10px rgba(0,0,0,0.4);
+
+    z-index:1000;
+
+    transform:translate(-50%, -120%);
+
+}
+
+select{
+
+    padding:6px;
+
+    border-radius:6px;
+
+}
+
+
+
+/* MARKER */
+
+.weather-marker {
+
+    position:absolute;
+    opacity: 0.92;
+    width:34px;
+    height:28px;
+
+    background:#F0B800;
+
+    border-radius:50%;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:12px;
+    font-family:'Open Sans', sans-serif;
+    font-weight: 600;
+
+    color:white;
+
+    border:2px solid white;
+
+    box-shadow:0 2px 8px rgba(0,0,0,0.45);
+
+    z-index:500;
+
+    transform:translate(-50%,-50%);
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="map"></div>
+
+
+
+
+<div class="topbar">
+
+
+<div class="title-box">
+Val Di Susa
+</div>
+
+<div id="pixel-info" style="display:none;"></div>
+
+<div id="menu">
+
+<label>
+<b>Dati:</b>
+</label>
+
+
+<select id="tempSelect">
+
+<option value="current">Temperatura</option>
+
+<option value="max">T Max</option>
+
+<option value="min">T Min</option>
+
+<option value="dewpt">Dewpoint</option>
+
+<option value="dewpMax">Dp Max</option>
+
+<option value="dewpMin">Dp Min</option>
+
+<option value="Heat">Heat Index</option>
+
+<option value="HeatMax">Ht Max</option>
+
+<option value="HeatMin">Ht Min</option>
+
+<option value="hum">Umidità</option>
+
+<option value="humMax">UR Max</option>
+
+<option value="humMin">UR Min</option>
+
+<option value="rainDay">Pioggia 24h</option>
+
+<option value="rainRate">Rain Rate</option>
+
+<option value="wind">Vento</option>
+
+<option value="winddirection">Direzione</option>
+
+<option value="windGust">Raffica</option>
+
+<option value="windGustMax">Raffica Max</option>
+
+</select>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+<script>
+const mapDiv = document.getElementById("map");
+const pixelInfo = document.getElementById("pixel-info");
+
+mapDiv.addEventListener("click", function(e){
+
+    const rect = mapDiv.getBoundingClientRect();
+
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+
+
+    console.log(`X: ${x}px, Y: ${y}px`);
+
+
+    pixelInfo.innerHTML = `
+        X: ${x}px<br>
+        Y: ${y}px
+    `;
+
+
+    pixelInfo.style.left = x + "px";
+    pixelInfo.style.top = y + "px";
+
+
+    pixelInfo.style.display="block";
+
+});
+function createMarker(id){
+
+    const marker = document.createElement("div");
+
+    marker.id = "marker-" + id;
+
+    marker.className = "weather-marker";
+
+
+    document.getElementById("map").appendChild(marker);
+
+
+    marker.onclick = () => openPopup(id);
+
+
+    return marker;
+
+}
+function createPopup(id){
+
+    const popup = document.createElement("div");
+
+    popup.id = "popup-" + id;
+
+    popup.className = "weather-popup";
+
+
+    document.getElementById("map").appendChild(popup);
+
+
+    return popup;
+
+}
+const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
+
+
+const markerPosition = {
+    bardonecchia:{x:240, y:410},
+    gange:{x:160, y:380},
+    melezet:{x:190, y:450},
+    sauze:{x:540, y:570},
+    savoulx:{x:409, y:516},
+    salbertrand:{x:621, y:447},
+    frais:{x:879, y:347},
+    cresto:{x:912, y:204},
+    venaus:{x:918, y:154},
+    seghino:{x:1074, y:202},
+    sestriere:{x:645, y:781},
+    cesana:{x:355, y:845},
+    argiassera:{x:1242, y:172},
+    combe:{x:1212, y:244},
+    pognant:{x:1299, y:270},
+    bruzolo:{x:1335, y:220},
+    avigliana:{x:1781, y:469},
+    condo:{x:1531, y:175},
+    fene:{x:1050, y:581}
+};
+const stations = {
+    bardonecchia: {name: "Bardonecchia Centro", api: "IBARDO3"},
+    gange: {name: "Gange della Rho", api: "IBARDO17"},
+    melezet: {name: "Melezet", api: "IBARDO16"},
+    sauze: {name: "Sauze d'Oulx", api: "ISAUZE8"},
+    savoulx: {name: "Savoulx", api: "IOULX4"},
+    salbertrand: {name: "Salbertrand", api: "ISALBE1"},
+    frais: {name: "Frais", api: "ICHIOM4"},
+    cresto: {name: "Cresto", api: "IGIAGL1"},
+    venaus: {name: "Venaus", api: "IVENAU1"},
+    seghino: {name: "Seghino Inf.", api: "IMOMPA5"},
+    sestriere: {name: "Sestriere", api: "ISESTR42"},
+    cesana: {name: "Cesana", api: "ICESAN13"},
+    argiassera: {name: "Argiassera", api: "IBUSSO5"},
+    combe: {name: "Combe", api: "IMATTI3"},
+    pognant: {name: "Pognant", api: "ISANGI141"},
+    bruzolo: {name: "Bruzolo", api: "IBRUZO5"},
+    avigliana: {name: "Laghi di Avigliana", api: "IAVIGL6"},
+    condo: {name: "Prati del Rio", api: "ICONDO30"},
+    fene: {name: "Chambons", api: "IFENES3"},
+
+
+};
+const stations3r = {
+    PIE_152: {name:"Bardonecchia Loc. Millaures", x:254, y:430},
+    PIE_012: {name:"Croce Chabriere", x:230, y:316},
+    PIE_S4117: {name:"Diga di Rochemolles", x:356, y:231},
+    PIE_401: {name:"Beaulard", x:350, y:504},
+    PIE_S2960: {name:"Rif. Guido Rey", x:335, y:572},
+    PIE_151: {name:"Oulx Est", x:540, y:515},
+    PIE_150: {name:"Salbertrand - Autogrill", x:643, y:432},
+    PIE_019: {name:"Loc. Le selle", x:690, y:472},
+    PIE_148: {name:"Chiomonte", x:812, y:303},
+    PIE_146: {name:"Susa - Borgo dei Capuccini", x:1027, y:214},
+    PIE_143: {name:"Borgone Susa", x:1437, y:288},
+    PIE_142: {name:"Avigliana Ovest A32", x:1792, y:361},
+    PIE_257: {name:"Colle Bercia", x:404, y:901},
+    PIE_S2619: {name:"Soleil Boeuf", x:525, y:774},
+    PIE_108: {name:"Fraiteve", x:581, y:734},
+    PIE_008: {name:"Capanna Molino", x:624, y:651},
+    PIE_262: {name:"Sestriere - Principi di Piemonte", x:618, y:798},
+    PIE_S2893: {name:"Garnel", x:645, y:812},
+    PIE_S3237: {name:"Banchetta", x:690, y:799},
+    PIE_261: {name:"Conca del Sole", x:781, y:720},
+    PIE_095: {name:"Pragelato", x:768, y:631},
+    PIE_352: {name:"Fraz. Porte", x:1056, y:788},
+    PIE_276: {name:"Fraz. Torre", x:1267, y:836},
+    PIE_020: {name:"Rif. Luigi Vaccarone", x:704, y:156},
+    PIE_149: {name:"Fraz. Buttigliera", x:829, y:208},
+    PIE_S4669: {name:"Bergeria Martina", x:835, y:162},
+    PIE_258: {name:"Bar Cenisio", x:858, y:93},
+    PIE_265: {name:"Pracatinat", x:1079, y:531},
+    PIE_260: {name:"Forno di Coazze", x:1451, y:551},
+    PIE_255: {name:"Prarotto", x:1448, y:181},
+};
+
+
+let latestData={};
+
+
+let markers={};
+
+// ----- Colori Umidità -----
+function getColorHum(hum) {
+
+  if (hum >= 90) return "#0114F0"; 
+  if (hum >= 80) return "#0060F0"; 
+  if (hum >= 70) return "#00BDEF"; 
+  if (hum >= 60) return "#21C2C5"; 
+  if (hum >= 50) return "#21C573"; 
+  if (hum >= 40) return "#3AA300"; 
+  if (hum >= 30) return "#F0B800"; 
+  if (hum >= 20) return "#F0CB00";
+  if (hum >= 10) return "#F07D00";
+
+  return "#F01E00"; 
+}
+
+
+
+// ----- Colori Pioggia -----
+function getColorRain(rain) {
+
+  if (rain >= 150) return "#9d8cac"; 
+  if (rain >= 100) return "#d963c3";
+  if (rain >= 50) return "#4d54ff";
+  if (rain >= 30) return "#4da9ff"; 
+  if (rain >= 20) return "#4dc8ff";
+  if (rain >= 10) return "#65d050";
+  if (rain >= 5) return "#6ca561";
+  if (rain > 2) return "#f9966c";
+  if (rain >= 0.2) return "#f9ae6c";
+
+  return "#808080"; 
+}
+
+
+
+// ----- Colori Temperatura -----
+function getColorTemp(temp) {
+
+  if (temp < -20) return "#9d8cac";
+  if (temp < -15) return "#f54dff";
+  if (temp < -10) return "#c65bff";
+  if (temp < -5) return "#4d54ff";
+  if (temp <= 0) return "#4b96dd";
+  if (temp < 5) return "#4dc8ff";
+  if (temp < 11) return "#5e8b56";
+  if (temp < 15) return "#3AA300";
+  if (temp < 20) return "#F0B800";
+  if (temp < 25) return "#ff9d56";
+  if (temp < 30) return "#ff6262";
+  if (temp < 35) return "#b44141";
+  if (temp < 38) return "#d963c3";
+  if (temp < 40) return "#9d8cac";
+  if (temp >= 40) return "#453e4b";
+
+  return "#ff5c5c";
+}
+
+function openPopup(id){
+
+
+    let popup = document.getElementById("popup-"+id);
+
+
+    if(!popup){
+
+        popup = createPopup(id);
+
+    }
+
+
+
+    const pos = markerPosition[id];
+
+    const d = latestData[id];
+
+
+    if(!d) return;
+
+
+
+    const marker = document.getElementById("marker-"+id);
+
+
+    const color = marker.style.background;
+
+
+
+    popup.style.left = pos.x + "px";
+
+    popup.style.top = pos.y + "px";
+
+
+    popup.style.background = color;
+
+
+
+    popup.innerHTML = `
+
+        <div style="font-size:16px;">
+            ${stations[id]?.name ?? stations3r[id]?.name ?? id}
+        </div>
+
+        <div style="font-size:22px;margin-top:5px;">
+            ${d.temp != null ? d.temp.toFixed(1) : "--"}
+        </div>
+
+    `;
+
+
+    popup.style.display="block";
+
+}
+async function fetch3R(){
+
+    try{
+
+
+        const res = await fetch(
+            "https://api-stazioni-meteo.eggittof.workers.dev/meteo3rpiemonte.json"
+        );
+
+
+        const data = await res.json();
+
+
+        const stations = data.stations;
+
+
+
+        Object.keys(stations3r).forEach(id=>{
+
+
+            const station = stations.find(
+                s => s.id === id
+            );
+
+
+            if(!station){
+
+                console.warn(
+                    "Stazione 3R non trovata:",
+                    id
+                );
+
+                return;
+
+            }
+
+
+
+            latestData[id]={
+
+
+                source:"3R_PIEMONTE",
+
+
+                name:stations3r[id].name,
+
+
+                temp:station.T,
+
+                tempHigh:station.TH,
+
+                tempLow:station.TL,
+
+
+
+                wind:station.V,
+
+                windGust:station.G,
+
+
+
+                rain3h:station.P_3H,
+
+                rainDaily:station.P_24H,
+
+
+                rain3hHigh:station.P3H_H,
+
+                rain3hLow:station.P3H_L,
+
+
+                rain24High:station.P24H_H,
+
+                rain24Low:station.P24H_L,
+
+
+
+            };
+
+
+
+            updateMarker(id);
+
+
+        });
+
+
+
+    }
+    catch(err){
+
+        console.error(
+            "Errore fetch 3R:",
+            err
+        );
+
+    }
+
+
+}
+Object.keys(stations3r).forEach(id=>{
+
+    markerPosition[id]={
+
+        x:stations3r[id].x,
+
+        y:stations3r[id].y
+
+    };
+
+
+});
+async function fetchPws(id) {
+
+    try {
+
+        const station = stations[id];
+
+
+        // DATI ATTUALI
+        const urlCurrent =
+        `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${station.api}&numericPrecision=decimal&format=json&units=m`;
+
+
+        const resCurrent = await fetch(urlCurrent);
+        const dataCurrent = await resCurrent.json();
+
+
+        const obs = dataCurrent.observations[0];
+
+
+        const temp = obs.metric.temp;
+        const dewp = obs.metric.dewpt;
+        const heat = obs.metric.heatIndex;
+
+        const hum = obs.humidity;
+
+
+        const rainDaily = obs.metric.precipTotal;
+        const rainRate = obs.metric.precipRate;
+
+
+        const wind = obs.metric.windSpeed;
+        const windGust = obs.metric.windGust;
+
+        const windDir = obs.winddir;
+
+
+        const altitude = obs.metric.elev;
+
+
+
+        // DATI GIORNALIERI
+        const urlDaily =
+        `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${station.api}&numericPrecision=decimal&format=json&units=m`;
+
+
+        const resDaily = await fetch(urlDaily);
+        const dataDaily = await resDaily.json();
+
+
+        const summary =
+        dataDaily.summaries?.[0] ?? null;
+
+
+        const metric =
+        summary?.metric ?? null;
+
+
+
+        const tempHigh = metric?.tempHigh ?? null;
+        const tempLow = metric?.tempLow ?? null;
+
+
+        const dewpHigh = metric?.dewptHigh ?? null;
+        const dewpLow = metric?.dewptLow ?? null;
+
+
+        const heatHigh = metric?.heatindexHigh ?? null;
+        const heatLow = metric?.heatindexLow ?? null;
+
+
+        const humHigh =
+        summary?.humidityHigh ?? null;
+
+        const humLow =
+        summary?.humidityLow ?? null;
+
+
+        const windGustHigh =
+        metric?.windgustHigh ?? null;
+
+
+
+        latestData[id] = {
+
+
+            source:"Wunderground",
+
+
+            // valori attuali
+            temp,
+            dewp,
+            heat,
+            hum,
+
+            rainDaily,
+            rainRate,
+
+            wind,
+            windGust,
+            windDir,
+
+
+            // estremi
+            tempHigh,
+            tempLow,
+
+            dewpHigh,
+            dewpLow,
+
+            heatHigh,
+            heatLow,
+
+            humHigh,
+            humLow,
+
+            windGustHigh,
+
+        };
+
+
+        updateMarker(id);
+
+
+
+    } catch(err){
+
+        console.error(
+            "Errore fetch PWS:",
+            id,
+            err
+        );
+
+    }
+
+}
+function markerValue(id){
+
+    const d = latestData[id];
+
+    if(!d)
+        return null;
+
+
+    let value;
+
+
+    switch(tempSelect.value){
+
+
+        case "current":
+            value = d.temp;
+            break;
+
+
+        case "max":
+            value = d.tempHigh;
+            break;
+
+
+        case "min":
+            value = d.tempLow;
+            break;
+
+
+        case "dewpt":
+            value = d.dewp;
+            break;
+
+
+        case "dewpMax":
+            value = d.dewpHigh;
+            break;
+
+
+        case "dewpMin":
+            value = d.dewpLow;
+            break;
+
+
+        case "Heat":
+            value = d.heat;
+            break;
+
+
+        case "HeatMax":
+            value = d.heatHigh;
+            break;
+
+
+        case "HeatMin":
+            value = d.heatLow;
+            break;
+
+
+        case "hum":
+            value = d.hum;
+            break;
+
+
+        case "humMax":
+            value = d.humHigh;
+            break;
+
+
+        case "humMin":
+            value = d.humLow;
+            break;
+
+
+        case "rainDay":
+            value = d.rainDaily;
+            break;
+
+
+        case "rainRate":
+            value = d.rainRate;
+            break;
+
+
+        case "wind":
+            value = d.wind;
+            break;
+
+
+        case "windGust":
+            value = d.windGust;
+            break;
+
+
+        case "windGustMax":
+            value = d.windGustHigh;
+            break;
+
+
+        default:
+            value = d.temp;
+
+    }
+
+
+    // se manca il dato
+    if(value === null || value === undefined || isNaN(value))
+        return null;
+
+
+    return Number(value).toFixed(1);
+
+}
+
+
+
+
+function updateMarker(id){
+
+let marker = document.getElementById("marker-"+id);
+
+
+if(!marker){
+
+    marker = createMarker(id);
+
+}
+    
+
+
+    // posizione fissa in pixel
+    const pos = markerPosition[id];
+
+    marker.style.left = pos.x + "px";
+    marker.style.top = pos.y + "px";
+
+
+
+    const value = markerValue(id);
+
+
+
+    // dato assente
+    if(value === null){
+
+        marker.innerHTML = "";
+
+        marker.style.background = "#808080";
+
+        return;
+
+    }
+
+
+
+    marker.innerHTML = value;
+
+
+
+    const d = latestData[id];
+
+    let colorValue;
+
+
+
+    switch(tempSelect.value){
+
+
+        case "current":
+            colorValue=d.temp;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+        case "max":
+            colorValue=d.tempHigh;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+        case "min":
+            colorValue=d.tempLow;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+
+        case "dewpt":
+            colorValue=d.dewp;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+        case "dewpMax":
+            colorValue=d.dewpHigh;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+        case "dewpMin":
+            colorValue=d.dewpLow;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+
+        case "Heat":
+            colorValue=d.heat;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+        case "HeatMax":
+            colorValue=d.heatHigh;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+        case "HeatMin":
+            colorValue=d.heatLow;
+            marker.style.background=getColorTemp(colorValue);
+            break;
+
+
+
+        case "hum":
+            marker.style.background=getColorHum(d.hum);
+            break;
+
+
+        case "humMax":
+            marker.style.background=getColorHum(d.humHigh);
+            break;
+
+
+        case "humMin":
+            marker.style.background=getColorHum(d.humLow);
+            break;
+
+
+
+        case "rainDay":
+            marker.style.background=getColorRain(d.rainDaily);
+            break;
+
+
+        case "rainRate":
+            marker.style.background=getColorRain(d.rainRate);
+            break;
+
+
+
+        default:
+
+            marker.style.background=getColorTemp(d.temp);
+
+    }
+marker.innerHTML = value;
+
+marker.onclick = () => openPopup(id);
+}
+
+
+
+tempSelect.addEventListener(
+
+"change",
+
+()=>{
+
+
+Object.keys(latestData)
+.forEach(id=>updateMarker(id));
+
+
+}
+
+);
+
+
+document.addEventListener("click",function(e){
+
+    if(!e.target.classList.contains("weather-marker")){
+
+        document.querySelectorAll(".weather-popup")
+        .forEach(p=>p.style.display="none");
+
+    }
+
+});
+
+fetch3R();
+
+
+setInterval(()=>{
+
+    fetch3R();
+
+},300000);
+Object.keys(stations).forEach(id=>{
+    fetchPws(id);
+});
+
+
+setInterval(()=>{
+
+    Object.keys(stations).forEach(id=>{
+        fetchPws(id);
+    });
+
+},300000);
+
+
+</script>
+
+
+</body>
+</html>
