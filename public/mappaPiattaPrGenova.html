@@ -147,7 +147,52 @@ select{
 }
 
 
+#station-info{
 
+    position:absolute;
+
+    top:20px;
+    left:-690px;
+
+    width:260px;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.35);
+
+    z-index:3000;
+
+    font-family:'Open Sans',sans-serif;
+
+}
+
+#station-info-color{
+
+    position:absolute;
+
+    inset:0;
+
+    opacity:.30;
+
+}
+
+#station-info-content{
+
+    position:relative;
+
+    background:#ececec;
+
+    margin:4px;
+
+    border-radius:8px;
+
+    padding:12px;
+
+    color:#222;
+
+}
 /* MARKER */
 
 .weather-marker {
@@ -195,7 +240,13 @@ select{
 
 <div class="topbar">
 
+<div id="station-info" style="display:none;">
 
+    <div id="station-info-color"></div>
+
+    <div id="station-info-content"></div>
+
+</div>
 <div class="title-box">
 Provincia di Genova
 </div>
@@ -322,19 +373,195 @@ function createPopup(id){
     return popup;
 
 }
+function showStationInfo(id){
+
+    const box=document.getElementById("station-info");
+
+    const d=latestData[id];
+
+    if(!d) return;
+
+    let value,max,min,unit="";
+
+    switch(tempSelect.value){
+
+        case "current":
+            value=d.temp;
+            max=d.tempHigh;
+            min=d.tempLow;
+            unit="°";
+            break;
+
+        case "max":
+            value=d.tempHigh;
+            max=d.tempHigh;
+            min=d.tempLow;
+            unit="°";
+            break;
+
+        case "min":
+            value=d.tempLow;
+            max=d.tempHigh;
+            min=d.tempLow;
+            unit="°";
+            break;
+
+        case "dewpt":
+            value=d.dewp;
+            max=d.dewpHigh;
+            min=d.dewpLow;
+            unit="°";
+            break;
+
+        case "dewpMax":
+            value=d.dewpHigh;
+            max=d.dewpHigh;
+            min=d.dewpLow;
+            unit="°";
+            break;
+
+        case "dewpMin":
+            value=d.dewpLow;
+            max=d.dewpHigh;
+            min=d.dewpLow;
+            unit="°";
+            break;
+
+        case "Heat":
+            value=d.heat;
+            max=d.heatHigh;
+            min=d.heatLow;
+            unit="°";
+            break;
+
+        case "hum":
+            value=d.hum;
+            max=d.humHigh;
+            min=d.humLow;
+            unit="%";
+            break;
+
+        case "humMax":
+            value=d.humHigh;
+            max=d.humHigh;
+            min=d.humLow;
+            unit="%";
+            break;
+
+        case "humMin":
+            value=d.humLow;
+            max=d.humHigh;
+            min=d.humLow;
+            unit="%";
+            break;
+
+        case "rainDay":
+            value=d.rainDaily;
+            max=d.rain24High ?? d.rainHigh;
+            min=d.rain24Low ?? d.rainLow;
+            unit=" mm";
+            break;
+
+        case "rainRate":
+            value=d.rainRate;
+            max=null;
+            min=null;
+            unit=" mm/h";
+            break;
+
+        case "wind":
+            value=d.wind;
+            max=d.windGustHigh;
+            min=0;
+            unit=" km/h";
+            break;
+
+        case "windGust":
+            value=d.windGust;
+            max=d.windGustHigh;
+            min=0;
+            unit=" km/h";
+            break;
+
+        default:
+            value=d.temp;
+            max=d.tempHigh;
+            min=d.tempLow;
+            unit="°";
+    }
+
+    const bg = document.getElementById("station-info-color");
+const content = document.getElementById("station-info-content");
+
+bg.style.background = document.getElementById("marker-"+id).style.backgroundColor;
+
+content.innerHTML = `
+
+    <div style="font-size:17px;font-weight:700;text-align:center;">
+        ${d.name}
+    </div>
+
+    <div style="
+        font-size:48px;
+        font-weight:700;
+        text-align:center;
+        line-height:1;
+        margin:10px 0;
+    ">
+        ${value ?? "--"}${unit}
+    </div>
+
+    <div style="text-align:center;font-size:15px;">
+
+        <span style="color:#d02020;font-weight:700;">
+            Max: ${max ?? "--"}${unit}
+        </span>
+
+        &nbsp;&nbsp;-&nbsp;&nbsp;
+
+        <span style="color:#1565ff;font-weight:700;">
+            Min: ${min ?? "--"}${unit}
+        </span>
+
+    </div>
+
+    <div style="
+        margin-top:10px;
+        text-align:center;
+        color:#555;
+        font-size:13px;
+    ">
+        Fonte: ${d.source}
+    </div>
+
+`;
+   const color = document.getElementById("marker-"+id).style.background;
+
+box.style.background = color.replace("rgb","rgba").replace(")",",0.90)");
+
+box.style.display="block";
+
+}
+function hideStationInfo(){
+
+    document.getElementById("station-info").style.display="none";
+
+}
 const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
 
 
 const markerPosition = {
-    gesmartino:{x:984, y:537},
+    gesmartino:{x:1000, y:548},
     gesdesiderio:{x:1035, y:506},
     geserino:{x:1020, y:471},
     gefontanegli:{x:1059, y:476},
-    gesturla:{x:979, y:557},
-    geboccadasse:{x:987, y:580},
+    gesturla:{x:990, y:571},
+    geboccadasse:{x:987, y:590},
     gemolassana:{x:993, y:451},
     psofaiallo:{x:504, y:434},
     beigua:{x:383, y:488},
+    granarolo:{x:897, y:477},
+    quezzi:{x:994, y:502}
 };
 const stations = {
     gesmartino: {name: "Genova San Martino", api: "IGENOA2897"},
@@ -346,6 +573,8 @@ const stations = {
     gemolassana: {name: "Genova Molassana", api: "IGENOA3120"},
     psofaiallo: {name: "Passo del Faiallo", api: "IURBE3"},
     beigua: {name: "Monte Beigua", api: "IVARAZ2"},
+    granarolo: {name: "Genova Granarolo", api: "ILIGURIA167"},
+    quezzi: {name: "Genova Quezzi", api: "ILIGURIA2"},
 
 
 
@@ -353,14 +582,12 @@ const stations = {
 const stationsOMIRL = {
     CRETO: {name: "Creto", x: 1029, y: 407},
     PREMA: {name: "Premanico", x: 1028, y: 529},
-    GEQUE: {name: "Genova Quezzi", x: 973, y: 502},
     CFUNZ: {name: "Genova Centro Funzionale", x: 936, y: 557},
     RIGHI: {name: "Genova Righi", x: 919, y: 500},
     VICOM: {name: "Vicomorasso", x: 983, y: 374},
     CRORE: {name: "Crocetta d'Orero", x: 995, y: 305},
     FFRES: {name: "Fontana Fresca", x: 1136, y: 542},
     VIGAN: {name: "Viganego", x: 1109, y: 498},
-    SALBE: {name: "Sant'Alberto di Bargagli", x: 1174, y: 467},
     DAVAG: {name: "Davagna", x: 1149, y: 410},
     TRRIG: {name: "Torriglia", x: 1254, y: 304},
     STILA: {name: "Sant'Ilario", x: 1096, y: 577},
@@ -376,16 +603,101 @@ const stationsOMIRL = {
     URVAS: {name: "Vara Superiore", x: 471, y: 405},
     PIAMP: {name: "Piampaludo", x: 397, y: 425},
     SASSL: {name: "Sassello", x: 263, y: 381},
-    GEPEG: {name: "Genova Pegli", x: 756, y: 488},
+    GEPEG: {name: "Genova Pegli", x: 756, y: 478},
     LERCA: {name: "Lerca", x: 500, y: 541},
     SCIAR: {name: "Sciarborasca", x: 452, y: 538},
     BOLSN: {name: "Varazze Teiro", x: 385, y: 608},
     DEGIR: {name: "Dego Girini", x: 59, y: 395},
     CAMOG: {name: "Camogli", x: 1252, y: 667},
     SMARG: {name: "Santa Margherita Ligure", x: 1320, y: 687},
+    MONTG: {name: "Montoggio", x: 1090, y: 307},
+    FALLA: {name: "Fallarosa", x: 1168, y: 312},
+    AVOBB: {name: "Passo dell'Incisa", x: 1123, y: 205},
+    CRCFI: {name: "Passo dell'Incisa", x: 1055, y: 176},
+    VREGI: {name: "Valleregia", x: 935, y: 306},
+    MIGNA: {name: "Mignanego", x: 914, y: 258},
+    MTECA: {name: "Monte Cappellino", x: 938, y: 233},
+    BUSAL: {name: "Busalla", x: 936, y: 195},
+    TANOR: {name: "Cipollina", x: 889, y: 100},
+    ISOVE: {name: "Isoverde", x: 811, y: 292},
+    MGAZZ: {name: "Monte Gazzo", x: 790, y: 468},
+    SSGIU: {name: "Santa Giustina", x: 256, y: 528},
+    STBUR: {name: "Bric Burdone", x: 294, y: 534},
+    ALPIC: {name: "Alpicella", x: 335, y: 540},
+    SANDA: {name: "Sanda", x: 319, y: 626},
+    ELLRA: {name: "Ellera", x: 227, y: 626},
+    LAVAG: {name: "Lavagnola", x: 247, y: 683},
+    INASV: {name: "Ist. Nautico", x: 264, y: 744},
+    SANTU: {name: "Santuario", x: 192, y: 663},
+    MNINF: {name: "Montenotte Inf.", x: 152, y: 529},
+    CCADB: {name: "Colle di Cadibona", x: 132, y: 686},
+    MONTA: {name: "Montagna", x: 103, y: 789},
+    CABAN: {name: "Cabanne", x: 1528, y: 345},
+    AMBOR: {name: "Amborzasca", x: 1690, y: 312},
+    SSTAV: {name: "Santo Stefano d'Aveto", x: 1669, y: 244},
+    MTMEZ: {name: "Monte di Mezzo", x: 1656, y: 214},
+    PRMLO: {name: "Pratomollo", x: 1709, y: 393},
+    GIACO: {name: "Giacopiane", x: 1573, y: 423},
+    LGIAC: {name: "Giacopiane Diga", x: 1600, y: 428},
 };
 
+const stationsLIMET = {
 
+    "Genova Oregina":{name:"Genova Oregina",x:885,y:502, cam: "https://www.iz1pki.it/meteooreginalive_file/anemos/webmara/balestrazzi.php"},
+    "Genova WTC":{name:"Genova WTC", x:872,y:539, cam: "https://smart.comune.genova.it/webcam2/matitone/current.jpg?t=1727795121861"},
+    "Genova Erzelli":{name:"Genova Erzelli", x:816,y:515, cam: "https://meteoerzelli.altervista.org/webcam/webcam.php"},
+    "Genova Borzoli":{name:"Genova Borzoli", x:799,y:496, cam: "https://service.retemet.com/cam/borzoli_wx/webcam.jpg"},
+    "Genova Multedo":{name:"Genova Multedo", x:759,y:500, cam: "https://multedometeo.altervista.org/webcam/RLC811B/snap/webcam.php"},
+    "Genova Pra Sapello":{name:"Genova Pra Sapello", x:701,y:495, cam: "https://meteogepra.altervista.org/FoscamCamera_E8ABFAAAA10A/snap/webcamlogo.php"},
+    "Genova Voltri Tramontana Surf":{name:"Genova Voltri Tramontana Surf", x:650,y:501, cam: "https://www.liguriawebcam.com/genova/imageMercury00001.jpg"},
+    "Genova S.Eusebio":{name:"Genova S.Eusebio", x:986,y:478},
+    "Sant'Olcese":{name:"Sant'Olcese", x:959,y:392, cam: "https://app.weathercloud.net/device/weathercam/9760723792/1?t=1784048527338"},
+    "Genova Nervi":{name:"Genova Nervi", x:1058,y:588, cam: "https://strumenti.comune.genova.it/webcams/turistiche/nervi/current.jpg?t=1784048554361"},
+    "Masone San Pietro":{name:"Masone San Pietro", x:611,y:351},
+    "Masone Vallechiara":{name:"Masone Vallechiara", x:602,y:332},
+    "Campo Ligure":{name:"Campo Ligure", x:569,y:265},
+    "Rossiglione":{name:"Rossiglione", x:527,y:229},
+    "Parazzuolo di Rezzoaglio":{name:"Parazzuolo di Rezzoaglio", x:1492,y:394},
+    "Rezzoaglio Cerisola":{name:"Rezzoaglio Cerisola", x:1627,y:305},
+    "Cabanne di Rezzoaglio":{name:"Cabanne di Rezzoaglio", x:1511,y:363},
+    "Urbe S.Pietro":{name:"Urbe S.Pietro", x:410,y:376},
+    "Montoggio":{name:"Montoggio", x:1063,y:325},
+    "Rocca d'Aveto":{name:"Rocca d'Aveto", x:1710,y:240},
+    "Prato della Cipolla":{name:"Prato della Cipolla", x:1737,y:221},
+    "Monte Bue":{name:"Monte Bue", x:1764,y:226},
+    "Favale di Malvaro":{name:"Favale di Malvaro", x:1393,y:445},
+    "Rifugio Monte Caucaso":{name:"Rifugio Monte Caucaso", x:1348,y:435},
+    "Sant'Alberto":{name:"Sant'Alberto", x: 1174, y: 467},
+    "Pian dei Preti":{name:"Pian dei Preti", x: 1270, y: 500},
+    "Cicagna":{name:"Cicagna", x: 1362, y: 569},
+    "Ronco Scrivia":{name:"Ronco Scrivia", x: 952, y: 117},
+
+};
+const stationsComuneGenova = {
+    "S. Martino":{name:"S. Martino",x:973,y:551},
+    "Quarto":{name:"Quarto",x:1017,y:567},
+    "Nervi":{name:"Nervi",x:1067,y:566},
+    "Bavari":{name:"Bavari",x:1042,y:488},
+    "Prato":{name:"Prato",x:1040,y:452},
+    "S. Cosimo di Struppa":{name:"S. Cosimo di Struppa",x:1051,y:436},
+    "Pino Sottano":{name:"Pino Sottano",x:954,y:455},
+    "Sampierdarena":{name:"Sampierdarena",x:847,y:525},
+    "Borzoli":{name:"Borzoli",x:833,y:475},
+    "Scarpino":{name:"Scarpino",x:810,y:414},
+    "S. Carlo di Cese":{name:"S. Carlo di Cese",x:774,y:388},
+    "Murta":{name:"Murta",x:842,y:428},
+    "Pontedecimo":{name:"Pontedecimo",x:874,y:352},
+    "Cesino":{name:"Cesino",x:867,y:321},
+    "Crevari":{name:"Crevari",x:609,y:500},
+};
+const stationsIgnorete = {
+    "Genova Staglieno":{name:"Genova Staglieno",x:946,y:493},
+    "Sori":{name:"Sori",x:1168,y:612},
+    "Torriglia - Loc Frevada":{name:"Torriglia - Loc Frevada",x:1166,y:338},
+    "Ronco Scrivia - Loc Borgo Fornari":{name:"Ronco Scrivia - Loc Borgo Fornari",x:924,y:157},
+    "Saviglione - Municipio":{name:"Saviglione - Municipio",x:992,y:213},
+    "Sant'Olcese - Loc Torrazza":{name:"Sant'Olcese - Loc Torrazza",x:945,y:421},
+};
 let latestData={};
 
 
@@ -504,6 +816,204 @@ function openPopup(id){
     popup.style.display="block";
 
 }
+async function fetchIgnorete() {
+
+    try {
+
+        const res = await fetch(
+            "https://api-stazioni-meteo.eggittof.workers.dev/ignorete.json"
+        );
+
+        const data = await res.json();
+
+        const ignoreteStations = data.stations;
+
+        Object.keys(stationsIgnorete).forEach(id => {
+
+            const station = ignoreteStations.find(
+                s => s.id === id
+            );
+
+            if (!station) {
+
+                console.warn(
+                    "Stazione Ignorete non trovata:",
+                    id
+                );
+
+                return;
+
+            }
+
+            latestData[id] = {
+
+                source: "IGNORETE",
+
+                name: stationsIgnorete[id].name,
+
+                // temperatura
+                temp: station.T,
+                tempHigh: station.TH,
+                tempLow: station.TL,
+
+                // dewpoint
+                dewp: station.D,
+                dewpHigh: station.DH,
+                dewpLow: station.DL,
+
+                // heat index
+                heat: station.HI,
+                heatHigh: station.HIH,
+                heatLow: station.HIL,
+
+                // umidità
+                hum: station.H,
+                humHigh: station.HH,
+                humLow: station.HL,
+
+                // vento
+                wind: station.V,
+                windGust: station.VR,
+                windGustHigh: station.VH,
+
+                // direzione vento
+                windDir: station.VD,
+
+                // pioggia
+                rainRate: station.RR,
+                rainDaily: station.R,
+                rainHigh: station.RH,
+                rainLow: station.RL
+
+            };
+
+            updateMarker(id);
+
+        });
+
+    }
+    catch (err) {
+
+        console.error(
+            "Errore fetch Ignorete:",
+            err
+        );
+
+    }
+
+}
+
+
+// Coordinate in pixel
+Object.keys(stationsIgnorete).forEach(id => {
+
+    markerPosition[id] = {
+
+        x: stationsIgnorete[id].x,
+        y: stationsIgnorete[id].y
+
+    };
+
+});
+async function fetchComuneGenova(){
+
+    try{
+
+        const res = await fetch(
+            "https://api-stazioni-meteo.eggittof.workers.dev/comuneGenova.json"
+        );
+
+        const data = await res.json();
+
+        const comuneStations = data.stations;
+
+        Object.keys(stationsComuneGenova).forEach(id=>{
+
+            const station = comuneStations.find(
+                s => s.id === id
+            );
+
+            if(!station){
+
+                console.warn(
+                    "Stazione Comune Genova non trovata:",
+                    id
+                );
+
+                return;
+
+            }
+
+            latestData[id]={
+
+                source:"COMUNE_GENOVA",
+
+                name:stationsComuneGenova[id].name,
+
+                // temperatura
+                temp:station.T,
+                tempHigh:station.TH,
+                tempLow:station.TL,
+
+                // dewpoint
+                dewp:station.D,
+                dewpHigh:station.DH,
+                dewpLow:station.DL,
+
+                // heat index (non disponibile)
+                heat:null,
+                heatHigh:null,
+                heatLow:null,
+
+                // umidità
+                hum:station.H,
+                humHigh:station.HH,
+                humLow:station.HL,
+
+                // vento
+                wind:station.W,
+                windGust:station.WH,
+                windGustHigh:null,
+
+                // direzione vento (non disponibile)
+                windDir:null,
+
+                // pioggia
+                rainRate:station.R,
+                rainDaily:station.R,
+                rainHigh:station.RH,
+                rainLow:station.RL
+
+            };
+
+            updateMarker(id);
+
+        });
+
+    }
+    catch(err){
+
+        console.error(
+            "Errore fetch Comune Genova:",
+            err
+        );
+
+    }
+
+}
+
+
+// Coordinate in pixel
+Object.keys(stationsIgnorete).forEach(id=>{
+
+    markerPosition[id]={
+
+        x:stationsIgnorete[id].x,
+        y:stationsIgnorete[id].y
+
+    };
+
+});
 async function fetchOMIRL(){
 
     try{
@@ -594,6 +1104,105 @@ Object.keys(stationsOMIRL).forEach(id=>{
 
         x:stationsOMIRL[id].x,
         y:stationsOMIRL[id].y
+
+    };
+
+});
+async function fetchLIMET(){
+
+    try{
+
+        const [res1, res2] = await Promise.all([
+            fetch("https://api-stazioni-meteo.eggittof.workers.dev/limet.json"),
+            fetch("https://api-stazioni-meteo.eggittof.workers.dev/limet2.json")
+        ]);
+
+        const data1 = await res1.json();
+        const data2 = await res2.json();
+
+        const limetStations = [
+            ...data1.stations,
+            ...data2.stations
+        ];
+
+        Object.keys(stationsLIMET).forEach(id=>{
+
+            const station = limetStations.find(
+                s => s.N === id
+            );
+
+            if(!station){
+
+                console.warn(
+                    "Stazione LIMET non trovata:",
+                    id
+                );
+
+                return;
+
+            }
+
+            latestData[id]={
+
+                source:"LIMET",
+
+                name:stationsLIMET[id].name,
+
+                // temperatura
+                temp:station.T,
+                tempHigh:station.TH,
+                tempLow:station.TL,
+
+                // dewpoint
+                dewp:station.D,
+                dewpHigh:station.DH,
+                dewpLow:station.DL,
+
+                // heat index
+                heat:station.HI,
+                heatHigh:null,
+                heatLow:null,
+
+                // umidità
+                hum:station.H,
+                humHigh:station.HH,
+                humLow:station.HL,
+
+                // pioggia
+                rainRate:station.RR,
+                rainDaily:station.R,
+
+                // vento
+                wind:station.V,
+                windGust:station.VR,
+                windGustHigh:null,
+
+                // direzione vento (LIMET non la fornisce)
+                windDir:null
+
+            };
+
+            updateMarker(id);
+
+        });
+
+    }
+    catch(err){
+
+        console.error("Errore fetch LIMET:", err);
+
+    }
+
+}
+
+
+// Coordinate in pixel
+Object.keys(stationsLIMET).forEach(id=>{
+
+    markerPosition[id]={
+
+        x:stationsLIMET[id].x,
+        y:stationsLIMET[id].y
 
     };
 
@@ -992,7 +1601,7 @@ if(!marker){
     }
 marker.innerHTML = value;
 
-marker.onclick = () => openPopup(id);
+marker.onmouseenter=()=>showStationInfo(id);
 }
 
 
@@ -1044,7 +1653,12 @@ setInterval(()=>{
     });
 
 },300000);
-
+fetchLIMET();
+setInterval(fetchLIMET,300000);
+fetchComuneGenova();
+setInterval(fetchComuneGenova, 300000);
+fetchIgnorete();
+setInterval(fetchIgnorete, 300000);
 
 </script>
 
