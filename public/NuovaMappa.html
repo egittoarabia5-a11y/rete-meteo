@@ -308,6 +308,7 @@
   <div class="dropdownMenu" id="rainMenu">
     <button data-var="rainDaily" data-mode="current">Giornaliera</button>
     <button data-var="rainRate" data-mode="current">Rate</button>
+    <button data-var="rainYearly" data-mode="current">Annuale</button>
   </div>
 </div>
 </div>
@@ -532,7 +533,7 @@ function clearPreviousRegionStations() {
 let currentVariable = "temp";
 let modes = {
   temp: "current", dewp: "current", heat: "current", 
-  hum: "current", rainDaily: "current", rainRate: "current"
+  hum: "current", rainDaily: "current", rainRate: "current", rainYearly: "current"
 };
 let currentRegion = "liguria";
 
@@ -610,6 +611,7 @@ function getValueAndColor(st) {
   else if (currentVariable === "hum") value = get("hum");
   else if (currentVariable === "rainDaily") value = st.rainDaily;
   else if (currentVariable === "rainRate") value = st.rainRate;
+  else if (currentVariable === "rainYearly") value = st.rainYearly;
 
   if (value !== null) {
     value = Number(value);
@@ -664,6 +666,7 @@ function normalizeVariable(v) {
   if (v === "heat") return "heat";
   if (v === "rainDaily") return "rainDaily";
   if (v === "rainRate") return "rainRate";
+  if (v === "rainYearly") return "rainYearly";
   return v;
 }
 
@@ -770,6 +773,10 @@ function showPopup(feature) {
 
   if (variable === "rainRate") {
     max = station.rainRate;
+  }
+
+  if (variable === "rainYearly") {
+    max = station.rainYearly;
   }
 
   const fmt = v =>
@@ -1690,9 +1697,6 @@ const fetchDMA = async () => {
 
     const urls = [
       "https://api-stazioni-meteo.eggittof.workers.dev/asti-test.json",
-      "https://api-stazioni-meteo.eggittof.workers.dev/dma2.json",
-      "https://api-stazioni-meteo.eggittof.workers.dev/dma3.json",
-      "https://api-stazioni-meteo.eggittof.workers.dev/dma4.json"
     ];
 
     const datas = await Promise.all(
