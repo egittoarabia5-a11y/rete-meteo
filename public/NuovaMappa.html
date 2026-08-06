@@ -572,23 +572,36 @@ function getColor(variable, value) {
     return "#2c278e";
   }
 
-  // Temperatura / Dewpoint / Heat
-  if (value < -20) return "#9d8cac";
+  // Temperatura / Dewpoint / Heat  if (value < -20) return "#9d8cac";
   if (value < -15) return "#f54dff";
   if (value < -10) return "#c65bff";
-  if (value < -5) return "#4d54ff";
-  if (value <= 0) return "#4da9ff";
-  if (value < 5) return "#4dc8ff";
-  if (value < 11) return "#496944";
-  if (value < 15) return "#65d050";
-  if (value < 20) return "#f2c72f";
-  if (value < 25) return "#ff9d56";
-  if (value < 30) return "#ff6262";
-  if (value < 35) return "#b44141";
-  if (value < 38) return "#d963c3";
-  if (value >= 38) return "#9d8cac";
-  if (value >= 40) return "#453e4b";
-  if (value >= 45) return "#222222";
+  if (value < -4) return "#4d54ff";
+  if (value < -2) return "#1f7eb9";
+  if (value <= 0) return "#539eb0";
+  if (value < 2) return "#67bac8";
+  if (value < 4) return "#5ac5ba";
+  if (value < 6) return "#42a37b";
+  if (value < 8) return "#538b53";
+  if (value < 10) return "#43af43";
+  if (value < 12) return "#7dd049";
+  if (value < 14) return "#abd84b";
+  if (value < 16) return "#ced854";
+  if (value < 18) return "#e8d541";
+  if (value < 20) return "#ffcc55";
+  if (value < 22) return "#ffaf54";
+  if (value < 24) return "#fa8f4b";
+  if (value < 26) return "#f26969";
+  if (value < 28) return "#de5a5a";
+  if (value < 30) return "#b05151";
+  if (value < 32) return "#994848";
+  if (value < 34) return "#743e3e";
+  if (value < 36) return "#b874ac";
+  if (value < 38) return "#ea7bea";
+  if (value < 40) return "#995a99";
+  if (value < 42) return "#747474";
+  if (value < 44) return "#5a433e";
+  if (value < 46) return "#785c55";
+  if (value > 46) return "#9b8987";
   return "#ff5c5c";
 }
 
@@ -636,7 +649,7 @@ function updateLayer() {
     // Scegliamo cosa mostrare in base allo zoom corrente della mappa
     let textDisplay = "";
     if (value !== null) {
-      textDisplay = currentZoom < 10 ? Math.round(value).toString() : valueStr;
+      textDisplay = currentZoom < 8 ? Math.round(value).toString() : valueStr;
     }
 
     return {
@@ -718,20 +731,35 @@ function showPopup(feature) {
       return "#2c278e";
     }
 
-    if (v < -20) return "#9d8cac";
-    if (v < -15) return "#f54dff";
-    if (v < -10) return "#c65bff";
-    if (v < -5) return "#4d54ff";
-    if (v <= 0) return "#4da9ff";
-    if (v < 5) return "#4dc8ff";
-    if (v < 11) return "#5e8b56";
-    if (v < 15) return "#65d050";
-    if (v < 20) return "#f2c72f";
-    if (v < 25) return "#ff9d56";
-    if (v < 30) return "#ff6262";
-    if (v < 35) return "#b44141";
-    if (v < 38) return "#d963c3";
-    if (v >= 38) return "#9d8cac";
+  if (v < -15) return "#f54dff";
+  if (v < -10) return "#c65bff";
+  if (v < -4) return "#4d54ff";
+  if (v < -2) return "#1f7eb9";
+  if (v <= 0) return "#539eb0";
+  if (v < 2) return "#67bac8";
+  if (v < 4) return "#5ac5ba";
+  if (v < 6) return "#42a37b";
+  if (v < 8) return "#538b53";
+  if (v < 10) return "#43af43";
+  if (v < 12) return "#7dd049";
+  if (v < 14) return "#abd84b";
+  if (v < 16) return "#ced854";
+  if (v < 18) return "#e8d541";
+  if (v < 20) return "#ffcc55";
+  if (v < 22) return "#ffaf54";
+  if (v < 24) return "#fa8f4b";
+  if (v < 26) return "#f26969";
+  if (v < 28) return "#de5a5a";
+  if (v < 30) return "#b05151";
+  if (v < 32) return "#994848";
+  if (v < 34) return "#743e3e";
+  if (v < 36) return "#b874b8";
+  if (v < 38) return "#ea7bea";
+  if (v >= 38) return "#995a99";
+  if (v >= 40) return "#747474";
+  if (v >= 42) return "#5a433e";
+  if (v >= 44) return "#785c55";
+  if (v >= 46) return "#9b8987";
 
     return "#222222";
   };
@@ -919,10 +947,10 @@ map.addLayer({
       'circle-radius': [
         'interpolate', ['linear'], ['zoom'],
         // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
- 4,  isMobile ? 2 : 5,
-        7,  isMobile ? 7 : 9,
-        10, isMobile ? 13 : 13,
-        14, isMobile ? 15 : 15
+ 4,  isMobile ? 4 : 7,
+        7,  isMobile ? 9 : 11,
+        10, isMobile ? 15 : 15,
+        14, isMobile ? 17 : 17
       ],
       'circle-color': ['get', 'color'],
       'circle-stroke-color': '#ffffff',
@@ -947,13 +975,13 @@ map.addLayer({
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
-        4,  isMobile ? 5 : 5,
-        6,  isMobile ? 6 : 6,
-        7,  isMobile ? 8 : 8,
-        8,  isMobile ? 9 : 9,
-        10, isMobile ? 11 : 11,
-        14, isMobile ? 13 : 13,
-        16, isMobile ? 15 : 15
+        4,  isMobile ? 7 : 7,
+        6,  isMobile ? 8 : 8,
+        7,  isMobile ? 10 : 10,
+        8,  isMobile ? 10 : 10,
+        10, isMobile ? 12 : 12,
+        14, isMobile ? 14 : 14,
+        16, isMobile ? 16 : 16
       ],
       'text-anchor': 'center',
       'text-allow-overlap': false,
@@ -980,15 +1008,15 @@ map.on('click', (e) => {
   map.on('mouseenter', 'stations-circle', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'stations-circle', () => map.getCanvas().style.cursor = '');
 // Ascolta lo zoom della mappa per aggiornare i decimali al volo
-// Ascolta lo zoom della mappa per aggiornare i decimali al volo (Soglia: 10)
-let lastZoomState = map.getZoom() < 10; // true se <10, false se >=10
+// Ascolta lo zoom della mappa per aggiornare i decimali al volo (Soglia: 8)
+let lastZoomState = map.getZoom() < 8; // true se <8, false se >=8
 
 map.on('zoom', () => {
-  const isUnderZoom10 = map.getZoom() < 10;
+  const isUnderZoom8 = map.getZoom() < 8;
   
-  // Aggiorna solo quando si attraversa la soglia dello zoom 10 (in entrambe le direzioni)
-  if (isUnderZoom10 !== lastZoomState) {
-    lastZoomState = isUnderZoom10;
+  // Aggiorna solo quando si attraversa la soglia dello zoom 8 (in entrambe le direzioni)
+  if (isUnderZoom8 !== lastZoomState) {
+    lastZoomState = isUnderZoom8;
     updateLayer();
   }
 });
