@@ -1156,9 +1156,9 @@ const fetchOMIRL = async () => {
         dewpHigh: st.dewpHigh ?? null,
         dewpLow: st.dewpLow ?? null,
 
-        heat: null,
+        heat: st.HI ?? null,
         heatHigh: null,
-        heatLow: null,
+        heatLow: st.TempLow ?? null,
 
         lat,
         lon
@@ -1843,7 +1843,7 @@ const fetchDMA = async () => {
         dewpHigh: null,
         dewpLow: null,
 
-        heat: null,
+        heat: st.HI ?? null,
         heatHigh: null,
         heatLow: st.TL ?? null,
 
