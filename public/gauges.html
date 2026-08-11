@@ -1,1639 +1,279 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Meteo - Dati Stazione</title> 
-    <!-- Caricamento di Tailwind CSS e Font Inter -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Caricamento di Chart.js per i grafici avanzati -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        /* Stili Custom per il tema del pannello grigio chiaro */
-        :root {
-            --card-bg: #ffffff; 
-            --text-main: #1F2937; 
-            --text-secondary: #4B5573; 
-            --max-color: #EF4444; /* Rosso */
-            --min-color: #3B82F6; /* Blu */
-            --icon-stroke: #fdfbfb; 
-            --icon-fill: #FFFFFF; 
-            --empty-bg: #c2d5fc; 
-        }
+  <title>Stazione Meteo</title>
 
-        /* ************************************************************ */
-        /* LAYOUT BASE */
-        /* ************************************************************ */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--empty-bg); 
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center; 
-            justify-content: flex-start; 
-            min-height: 100vh;
-        }
-
-        .grid-wrapper {
-            max-width: 1400px;
-            width: 100%;
-        }
-
-        .grid-container {
-            grid-template-columns: repeat(4, 1fr);
-            grid-auto-rows: 6.5rem; /* Altezza di base della riga */
-        }
-
-        /* Stile base per tutte le card */
-        .gauge-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(253, 253, 253, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 1rem; 
-            border: none;
-            overflow: hidden;
-        }
-
-        /* ************************************************************ */
-        /* TIPOGRAFIA E VALORI */
-        /* ************************************************************ */
-        .main-value-lg { font-size: 5rem; font-weight: 800; color: var(--text-main); line-height: 1; }
-        .main-value-unit-lg { font-size: 5rem; font-weight: 800; line-height: 1; }
-        
-        /* Valore principale per card 1x1 (2.5rem - invariato) */
-        .main-value-sm { font-size: 2.5rem; font-weight: 800; color: var(--text-main); line-height: 1; white-space: nowrap; }
-        .main-value-unit-sm { font-size: 2.5rem; font-weight: 800; color: var(--text-main); line-height: 1; }
-        
-        /* STILE AGGIORNATO: Valore Pioggia Totale (85.2) - Ora è 'sm' per ingrandirlo */
-        .rain-current-value { 
-            font-size: 2.5rem; /* text-4xl o 2.5rem */
-            font-weight: 800; 
-            color: var(--text-main); 
-            line-height: 1; 
-            white-space: nowrap; 
-        }
-        .rain-current-unit {
-            font-size: 1.25rem; /* leggermente più piccolo, ma non minuscolo */
-            font-weight: 700;
-            line-height: 1;
-            color: #4B5563; 
-        }
-        
-        .small-card-title {
-            color: var(--text-main);
-            font-size: 0.8rem; 
-            font-weight: 700;
-            line-height: 1.1; 
-            text-align: left;
-        }
-        
-        /* Sovrascrittura unità */
-        .main-value-lg sup, 
-        .main-value-unit-lg sup,
-        .main-value-sm sup,
-        .main-value-unit-sm sup,
-        .main-value-xs sup, 
-        .min-max-value sup { 
-            position: static; 
-            font-weight: 800;
-            line-height: 1;
-            font-size: 100%; 
-        }
-        
-        /* Colori per Min/Max */
-        .max-value { color: var(--max-color); }
-        .min-value { color: var(--min-color); }
-        
-        /* STILE AGGIORNATO: Stile per i Min/Max impilati (ORA PIÙ GRANDI - text-base/text-lg) */
-        .stacked-min-max {
-            display: flex;
-            flex-direction: column;
-            justify-content: center; 
-            align-items: flex-end; 
-            font-size: 1rem; /* text-base */
-            font-weight: 900; /* Extra bold per maggiore enfasi */
-            line-height: 1.2; 
-            white-space: nowrap;
-        }
-        
-        /* STILE AGGIORNATO: Stile per il Max/Min orizzontale della card principale (A1) */
-        .main-temp-minmax {
-            font-size: 1.25rem; /* text-xl */
-            font-weight: 700;
-            color: var(--text-secondary);
-        }
-        /* Valori Min/Max in A1 resi più grandi e audaci */
-        .main-temp-minmax .max-value { color: var(--max-color); font-weight: 900; }
-        .main-temp-minmax .min-value { color: var(--min-color); font-weight: 900; }
-
-        /* Icone */
-        .icon-box {
-            width: 50px; height: 50px; min-width: 50px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            background-color: var(--icon-fill); border: 2px solid var(--icon-stroke); flex-shrink: 0; 
-        }
-        .icon-style {
-            stroke: var(--icon-stroke); stroke-width: 1.5; fill: none; width: 28px; height: 28px;
-        }.icon-style-large { stroke: var(--icon-stroke); stroke-width: 2; fill: none;
-  width: 110px;
-  height: 80px;  transform: scaleX(1.5);
-}.icon-style-medium { stroke: var(--icon-stroke); stroke-width: 2; fill: none;
-  width: 80px;
-  height: 50px;  transform: scaleX(1);}
-        .icon-style-filled { fill: #FFD700; } 
-        .icon-style-drop-blue { fill: #00BFFF; } 
-        .icon-style-fire { fill: #FF6600; }
-        .icon-style-wind { fill: #a3a3a3; }
-        .icon-style-mountain { fill: #A8D0A8; }
-        
-        /* Grafico */
-        .chart-box {
-            border: 3px solid var(--icon-stroke);
-            box-shadow: 4px 4px 0 var(--text-main);
-            overflow: hidden; 
-        }
-
-        /* Stile per i titoli interni del grafico */
-        .chart-title-internal {
-            font-size: 0.875rem; /* text-sm */
-            font-weight: 700; /* font-bold */
-            color: #1F2937; /* text-gray-800 */
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-        }
-        
-        /* Stile per i valori Min/Max del grafico */
-        .chart-min-max-indicator {
-            position: absolute;
-            right: 0.5rem;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem; /* text-sm */
-            font-weight: 700;
-            border-radius: 0.375rem;
-            line-height: 1;
-        }
-        .chart-max-indicator {
-            top: 0.5rem;
-            color: var(--max-color);
-            background-color: rgba(239, 68, 68, 0.1); /* Sfondo rosso leggero */
-        }
-        .chart-min-indicator {
-            bottom: 0.5rem;
-            color: var(--min-color);
-            background-color: rgba(59, 130, 246, 0.1); /* Sfondo blu leggero */
-        }
-        /* Stile per i valori min/max nella lista record */
-        .record-min-max-values {
-            font-size: 1.125rem; /* text-lg per i valori numerici nel record */
-            font-weight: 900;
-        }
-/* ===== Mobile (<768px) ===== */
-@media (max-width: 767px) {
-  .grid-container {
-    grid-template-columns: 1fr; /* 1 colonna sola */
-    grid-auto-rows: auto; /* altezza automatica per contenuto */
-  }
-
-  .gauge-card {
-    grid-column: 1 / -1 !important; /* ogni card occupa tutta la larghezza */
-    grid-row: auto !important;       /* altezza automatica */
-  }
-
-  /* Espandiamo la temperatura in alto */
-  #gauge-temp {
-    grid-row: auto !important;
-    grid-column: 1 / -1 !important;
-  }
-
-  /* Piccole card sotto */
-  .gauge-card:not(#gauge-temp) {
-    margin-top: 0.5rem;
-  }
-}
-    </style>
-    <script>
-        let tempChartInstance = null;
-        let pressureChartInstance = null;
-
-        document.addEventListener("DOMContentLoaded", () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const station = urlParams.get("station");
-  const stationSource = urlParams.get("source");
-  const titleEl = document.getElementById("main-title-location");
-  const apiKeyWU = "e1f10a1e78da46f5b10a1e78da96f525";
-
-  if (!station || !stationSource) {
-    titleEl.textContent = "ERRORE: Parametri mancanti";
-    return;
-  }
-
-  const formatValue = (value) => {
-    if (value === undefined || value === null) return "N/D";
-    return parseFloat(value).toFixed(1);
-  };
-
-  const formatWithUnit = (value, unit) => {
-    if (!unit) return value;
-    if (unit === "°" || unit === "%") return `${value}${unit}`;
-    return `${value}<span style="font-size:0.5em;">${unit}</span>`;
-  };
-
-  const setMainSmWithMinMax = (valueId, minMaxId, value, min, max, unit = "") => {
-    const valueEl = document.getElementById(valueId);
-    if (valueEl) {
-      valueEl.innerHTML = formatWithUnit(formatValue(value), unit);
-      if (valueId === "temp-value") {
-        valueEl.className = "main-value-lg"; // temperatura grande
-      } else {
-        valueEl.className = "main-value-sm main-value-unit-sm";
-      }
+  <style>
+    * {
+      box-sizing: border-box;
     }
 
-    const minMaxEl = document.getElementById(minMaxId);
-    if (minMaxEl) {
-      const maxUnit = unit === "°" || unit === "%" ? unit : "";
-      const minUnit = unit === "°" || unit === "%" ? unit : "";
-      minMaxEl.innerHTML = `
-        <span class="max-value">${formatValue(max)}${maxUnit}</span>
-        <span class="min-value">${formatValue(min)}${minUnit}</span>
-      `;
-      minMaxEl.className = "stacked-min-max";
-    }
-  };
-
-  const updateWUData = async () => {
-    try {
-      // Dati correnti WU
-      const jsonUrl = `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKeyWU}&stationId=${station}&numericPrecision=decimal&format=json&units=m`;
-      const res = await fetch(jsonUrl);
-      if (!res.ok) throw new Error("Errore nel caricamento dati Wunderground");
-
-      const currentData = await res.json();
-      if (!currentData || !currentData.observations || currentData.observations.length === 0) {
-        titleEl.textContent = `ERRORE: Dati WU non trovati (${station})`;
-        return;
-      }
-
-      const obs = currentData.observations[0];
-      titleEl.textContent = `${obs.stationID} - ${obs.neighborhood}`;
-
-      // Dati giornalieri high/low
-      const dailyUrl = `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKeyWU}&stationId=${station}&numericPrecision=decimal&format=json&units=m`;
-      const dailyRes = await fetch(dailyUrl);
-      let daily = {};
-      if (dailyRes.ok) {
-        const dailyData = await dailyRes.json();
-        if (dailyData.summaries && dailyData.summaries.length > 0) {
-          daily = dailyData.summaries[0];
-        }
-      }
-
-      // TEMPERATURA PRINCIPALE (stile originale)
-      const temperatura = obs.metric.temp;
-      const tMin = daily.metric?.tempLow ?? temperatura;
-      const tMax = daily.metric?.tempHigh ?? temperatura;
-
-      const tempEl = document.getElementById("temp-value");
-      tempEl.textContent = formatValue(temperatura) + "°";
-      tempEl.className = "main-value-lg";
-
-      const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
-      tempMinMaxEl.innerHTML = `
-        <span style="font-weight: normal; color: black;">Max: </span>
-        <span class="max-value" style="font-weight: bold; color: red;">${formatValue(tMax)}°</span>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <span style="font-weight: normal; color: black;">Min: </span>
-        <span class="min-value" style="font-weight: bold; color: blue;">${formatValue(tMin)}°</span>
-      `;
-
-      // ALTRI VALORI SMALL CON MIN/MAX
-      setMainSmWithMinMax("dewpoint-value", "dewpoint-minmax", obs.metric.dewpt, daily.metric?.dewptLow ?? obs.metric.dewpt, daily.metric?.dewptHigh ?? obs.metric.dewpt, "°");
-      setMainSmWithMinMax("umidity-value", "umidity-minmax", obs.humidity, daily.humidityLow ?? obs.humidity, daily.humidityHigh ?? obs.humidity, "%");
-      setMainSmWithMinMax("wind-value", "wind-minmax", obs.metric.windSpeed, daily.metric?.windspeedLow ?? obs.metric.windSpeed, daily.metric?.windspeedHigh ?? obs.metric.windSpeed, " km/h");
-      setMainSmWithMinMax("rainrate-value", "rainrate-minmax", obs.metric.precipRate, obs.metric.precipRate, obs.metric.precipRate, " mm/h");
-      setMainSmWithMinMax("raintotal-value", "raintotal-minmax", obs.metric.precipTotal, obs.metric.precipTotal, obs.metric.precipTotal, " mm");
-      setMainSmWithMinMax("heatindex-value", "heatindex-minmax", obs.metric.heatIndex, daily.metric?.heatindexLow ?? obs.metric.heatIndex, daily.metric?.heatindexHigh ?? obs.metric.heatIndex, "°");
-      setMainSmWithMinMax("radsol-value", "radsol-minmax", obs.solarRadiation, daily.solarRadiationLow ?? obs.solarRadiation, daily.solarRadiationHigh ?? obs.solarRadiation, " W/m²");
-      setMainSmWithMinMax("uv-value", "uv-minmax", obs.uv, daily.uvLow ?? obs.uv, daily.uvHigh ?? obs.uv, " UV");
-      setMainSmWithMinMax("850hpa-value", "850hpa-minmax", 0, 0, 0, "°");
-      setMainSmWithMinMax("pressione-value", "pressione-minmax", obs.metric.pressure, daily.metric?.pressureMin ?? obs.metric.pressure, daily.metric?.pressureMax ?? obs.metric.pressure, " hPa");
-
-      document.getElementById("metadata-status").textContent = "Online";
-      document.getElementById("metadata-timestamp").textContent =
-        new Date(obs.obsTimeUtc).toLocaleString("it-IT");
-
-    } catch (err) {
-      console.error("Errore caricamento dati Wunderground:", err);
-      titleEl.textContent = `ERRORE: Dati WU non caricati (${station})`;
-    }
-  };
-  const updateOmirlData = async () => {
-  try {
-    const res = await fetch("https://api-stazioni-meteo.vercel.app/omirl.json");
-    if (!res.ok) throw new Error("Errore nel caricamento dati OMIRL");
-
-    const text = await res.text();
-    const lines = text.trim().split("\n").map(l => JSON.parse(l));
-    const timestamp = lines[0].timestamp;
-
-    // Trasforma underscore in spazi nella variabile station
-    const stationName = station.replace(/_/g, " ").toLowerCase();
-
-    // Trova la stazione per nome (case insensitive)
-    const data = lines.find(d => d.N && d.N.toLowerCase() === stationName);
-
-    if (!data) {
-      titleEl.textContent = `ERRORE: Dati OMIRL non trovati (${station.replace(/_/g, " ")})`;
-      return;
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      color: #222;
     }
 
-    // Mostra il nome corretto con spazi
-    titleEl.textContent = data.N.replace(/_/g, " ");
+    /* =========================
+       ELENCO STAZIONI
+       ========================= */
 
-    const T = data.T; // Temperatura
-    const H = data.H; // Umidità relativa %
-
-    // Calcolo Dew Point (Magnus formula)
-    let dewPoint = null;
-    if (T != null && H != null) {
-      const a = 17.27;
-      const b = 237.7;
-      const alpha = ((a * T) / (b + T)) + Math.log(H / 100);
-      dewPoint = (b * alpha) / (a - alpha);
+    #stations {
+      width: 100%;
+      background: white;
+      padding: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #ddd;
     }
 
-    // Calcolo Heat Index (solo se T >= 27°C e H >= 40%)
-    let heatIndex = T;
-    if (T != null && H != null) {
-      const tF = T * 9/5 + 32; // Converti in Fahrenheit
-      heatIndex = -42.379 + 2.04901523*tF + 10.14333127*H
-                  - 0.22475541*tF*H - 6.83783e-3*tF*tF
-                  - 5.481717e-2*H*H + 1.22874e-3*tF*tF*H
-                  + 8.5282e-4*tF*H*H - 1.99e-6*tF*tF*H*H;
-      heatIndex = (heatIndex - 32) * 5/9; // Ritorna in °C
+    .station-button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #f7f7f7;
+      color: #222;
+      text-decoration: none;
+      cursor: pointer;
+      transition: 0.2s;
     }
 
-    const tMin = data.TL;
-    const tMax = data.TH;
-
-    // Aggiorna temperatura principale
-    const tempEl = document.getElementById("temp-value");
-    tempEl.textContent = formatValue(T) + "°";
-    tempEl.className = "main-value-lg";
-
-    const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
-    tempMinMaxEl.innerHTML = `
-      <span style="font-weight: normal; color: black;">Max: </span>
-      <span class="max-value" style="font-weight: bold; color: red;">${formatValue(tMax)}°</span>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-      <span style="font-weight: normal; color: black;">Min: </span>
-      <span class="min-value" style="font-weight: bold; color: blue;">${formatValue(tMin)}°</span>
-    `;
-
-    // Aggiorna valori small con min/max
-    setMainSmWithMinMax("dewpoint-value", "dewpoint-minmax", dewPoint ?? 0, dewPoint ?? 0, dewPoint ?? 0, "°");
-    setMainSmWithMinMax("umidity-value", "umidity-minmax", H ?? 0, data.HL ?? H ?? 0, data.HH ?? H ?? 0, "%");
-    setMainSmWithMinMax("wind-value", "wind-minmax", data.V ?? 0, data.V ?? 0, data.G ?? data.V ?? 0, " km/h");
-    setMainSmWithMinMax("rainrate-value", "rainrate-minmax", data.RR ?? 0, data.RR ?? 0, data.RR ?? 0, " mm/h");
-    setMainSmWithMinMax("raintotal-value", "raintotal-minmax", data.R ?? 0, data.R ?? 0, data.R ?? 0, " mm");
-    setMainSmWithMinMax("heatindex-value", "heatindex-minmax", heatIndex ?? 0, heatIndex ?? 0, heatIndex ?? 0, "°");
-    setMainSmWithMinMax("radsol-value", "radsol-minmax", 0, 0, 0, " W/m²");
-    setMainSmWithMinMax("uv-value", "uv-minmax", 0, 0, 0, " UV");
-    setMainSmWithMinMax("850hpa-value", "850hpa-minmax", 0, 0, 0, "°");
-    setMainSmWithMinMax("pressione-value", "pressione-minmax", 0, 0, 0, " hPa");
-
-    document.getElementById("metadata-status").textContent = "Online";
-    document.getElementById("metadata-timestamp").textContent =
-      new Date(timestamp).toLocaleString("it-IT");
-
-  } catch (err) {
-    console.error("Errore caricamento dati OMIRL:", err);
-    titleEl.textContent = `ERRORE: Dati OMIRL non caricati (${station.replace(/_/g, " ")})`;
-  }
-};
-const stationsLimet = [
-  {
-    name: "Genova Oregina",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-oregina/data/cu/realtimegauges.txt?_=1779483850918",
-    lat: 44.423,
-    lon: 8.926
-  },  {
-    name: "Genova Corso De Stefanis",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-marassi-destefanis/data/cu/realtimegauges.txt?_=1779484598147",
-    lat: 44.421,
-    lon: 8.948
-  },  {
-    name: "Genova WTC",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-wtc/data/cu/realtimegauges.txt?_=1779484737483",
-    lat: 44.407,
-    lon: 8.900
-  },  {
-    name: "Genova S.Eusebio",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-eusebio/data/cu/realtimegauges.txt?_=1779484856070",
-    lat: 44.441,
-    lon: 8.986
-  },  {
-    name: "Sant'Olcese",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-solcese/data/cu/realtimegauges.txt?_=1779484954811",
-    lat: 44.483,
-    lon: 8.968
-  },  {
-    name: "Montoggio",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-montoggio/data/cu/realtimegauges.txt?_=1779485029801",
-    lat: 44.516,
-    lon: 9.049
-  },  {
-    name: "Sant'Alberto",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-salberto/data/cu/realtimegauges.txt?_=1779485097509",
-    lat: 44.437,
-    lon: 9.105
-  },  {
-    name: "Ronco Scrivia",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-ronco-scrivia/data/cu/realtimegauges.txt?_=1779485165511",
-    lat: 44.612,
-    lon: 8.956
-  },  {
-    name: "Campo Ligure",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-campo-ligure/data/cu/realtimegauges.txt?_=1779485479109",
-    lat: 44.540,
-    lon: 8.697
-  },  {
-    name: "Rossiglione",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rossiglione/data/cu/realtimegauges.txt?_=1779486467930",
-    lat: 44.562,
-    lon: 8.669
-  },  {
-    name: "Urbe S.Pietro",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-urbe/data/cu/realtimegauges.txt?_=1779486270373",
-    lat: 44.486,
-    lon: 8.587
-  },  {
-    name: "Giusvalla",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-giusvalla/data/cu/realtimegauges.txt?_=1779486531787",
-    lat: 44.448,
-    lon: 8.394
-  },  {
-    name: "Genova Fabbriche",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-fabbriche-brusinetti/web/js/menu.js?_=1779486589430",
-    lat: 44.446,
-    lon: 8.714
-  },  {
-    name: "Genova Voltri Tramontana Surf",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-voltri/data/cu/realtimegauges.txt?_=1779486646519",
-    lat: 44.427,
-    lon: 8.757
-  },  {
-    name: "Varazze Casanova",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-casanova/data/cu/realtimegauges.txt?_=1779486705730",
-    lat: 44.375,
-    lon: 8.574
-  },  {
-    name: "Celle Ligure",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-celle/data/cu/realtimegauges.txt?_=1779486858793",
-    lat: 44.343,
-    lon: 8.545
-  },  {
-    name: "Albisola Marina",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-albisola/data/cu/realtimegauges.txt?_=1779486911560",
-    lat: 44.326,
-    lon: 8.501
-  },  {
-    name: "Savona Nautico",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-savona/data/cu/realtimegauges.txt?_=1779486953241",
-    lat: 44.308,
-    lon: 8.487
-  },  {
-    name: "Savona Zinola",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-savona-zinola/data/cu/realtimegauges.txt?_=1779487149182",
-    lat: 44.282,
-    lon: 8.443
-  },  {
-    name: "Vado Ligure",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-vado/web/js/menu.js?_=1779487205459",
-    lat: 44.266,
-    lon: 8.416
-  },  {
-    name: "Millesimo",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-millesimo/data/cu/realtimegauges.txt?_=1779487260641",
-    lat: 44.369,
-    lon: 8.196
-  },  {
-    name: "Ameglia",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-ameglia-marrana/data/cu/realtimegauges.txt?_=1779487425542",
-    lat: 44.044,
-    lon: 9.968
-  },  {
-    name: "Moneglia",
-    url: "https://meteomoneglia.altervista.org/realtimegauges.txt?_=1779487566556",
-    lat: 44.240,
-    lon: 9.485
-  },  {
-    name: "Moneglia S. Lorenzo",
-    url: "https://meteomonegliacasale.altervista.org/realtimegauges.txt?_=1779487843767",
-    lat: 44.244,
-    lon: 9.488
-  },  {
-    name: "Rifugio Treggin",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-sorgenti-gromolo/data/cu/realtimegauges.txt?_=1779487900995",
-    lat: 44.316,
-    lon: 9.479
-  },  {
-    name: "Sestri Levante San Bernardino",
-    url: "https://ik1wno.altervista.org/realtimegauges.txt?_=1779487969986",
-    lat: 44.286,
-    lon: 9.418
-  },  {
-    name: "Pontori",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-pontori/data/cu/realtimegauges.txt?_=1779488028696",
-    lat: 44.367,
-    lon: 9.433
-  },  {
-    name: "San Colombano Certenoli",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-fregarie-scolombano/data/cu/realtimegauges.txt?_=1779488125489",
-    lat: 44.380,
-    lon: 9.306
-  },  {
-    name: "Cicagna",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-cicagna/data/cu/realtimegauges.txt?_=1779488189697",
-    lat: 44.408,
-    lon: 9.236
-  },
-  {
-    name: "Santa Maria di Rapallo",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-smaria/data/cu/realtimegauges.txt?_=1779488252162",
-    lat: 44.358,
-    lon: 9.186
-  },
-  {
-    name: "Ruta di Camogli",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-ruta/data/cu/realtimegauges.txt?_=1779488333448",
-    lat: 44.345,
-    lon: 9.169
-  },  {
-    name: "San Rocco di Camogli",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-sanrocco/data/cu/realtimegauges.txt?_=1779488661794",
-    lat: 44.345,
-    lon: 9.169
-  },  {
-    name: "Costasecca - SML",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-costa-secca/data/cu/realtimegauges.txt?_=1779488769846",
-    lat: 44.330,
-    lon: 9.200
-  },  {
-    name: "Batterie Punta Chiappa Camogli",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-batterie-pchiappa/data/cu/realtimegauges.txt?_=1779488715785",
-    lat: 44.322,
-    lon: 9.152
-  },  {
-    name: "Casa del Mare - SML",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-sml/data/cu/realtimegauges.txt?_=1779488819099",
-    lat: 44.329,
-    lon: 9.215
-  },  {
-    name: "Rapallo Boate",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-boate/data/cu/realtimegauges.txt?_=1779488877202",
-    lat: 44.347,
-    lon: 9.226
-  },  {
-    name: "Rapallo Lungomare",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rapallo-lungomare/data/cu/realtimegauges.txt?_=1779489122679",
-    lat: 44.348,
-    lon: 9.230
-  },  {
-    name: "Rifugio Monte Caucaso",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-caucaso/data/cu/realtimegauges.txt?_=1779489154454",
-    lat: 44.456,
-    lon: 9.225
-  },  {
-    name: "Parazzuolo di Rezzoaglio",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-parazzuolo/data/cu/realtimegauges.txt?_=1779489196744",
-    lat: 44.478,
-    lon: 9.323
-  },  {
-    name: "Cabanne di Rezzoaglio",
-    url: "https://meteocabanne.altervista.org/ssg/realtimegauges.txt?_=1779489242219",
-    lat: 44.490,
-    lon: 9.339
-  },  {
-    name: "Rezzoaglio Cerisola",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rezzoaglio-cerisola/data/cu/realtimegauges.txt?_=1779489302030",
-    lat: 44.516,
-    lon: 9.408
-  },  {
-    name: "Lago delle Lame",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-lame/data/cu/realtimegauges.txt?_=1779489375365",
-    lat: 44.502,
-    lon: 9.408
-  },  {
-    name: "Monte Bue",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-bue/data/cu/realtimegauges.txt?_=1779489570827",
-    lat: 44.556,
-    lon: 9.492
-  },  {
-    name: "Prato della Cipolla",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-cipolla/data/cu/realtimegauges.txt?_=1779489617800",
-    lat: 44.558,
-    lon: 9.486
-  },  {
-    name: "Rocca d'Aveto",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rocca/data/cu/realtimegauges.txt?_=1779489659597",
-    lat: 44.552,
-    lon: 9.471
-  },  {
-    name: "Rifugio Antola",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-rifugio-parco-antola/data/cu/realtimegauges.txt?_=1779489850142",
-    lat: 44.568,
-    lon: 9.105
-  },  {
-    name: "Briga Alta",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-piaggia/data/cu/realtimegauges.txt?_=1779489913088",
-    lat: 44.081,
-    lon: 7.748
-  },  {
-    name: "Masone Vallechiara",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-masone-vallechiara/data/cu/realtimegauges.txt?_=1782641269112",
-    lat: 44.503,
-    lon: 8.720
-  },   {
-    name: "Genova Borzoli",
-    url: "https://edu.retemet.com/ws/davis/borzoli/realtimegauges.txt?_=1779490025510",
-    lat: 44.429,
-    lon: 8.856
-  },  {
-    name: "Ceranesi - Lencisa",
-    url: "https://meteolencisa.altervista.org/cu/realtimegauges.txt?_=1779490106360",
-    lat: 44.493,
-    lon: 8.849
-  },  {
-    name: "Ceranesi - Gaiazza",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-gaiazza-ceranesi/data/cu/realtimegauges.txt?_=1779490201325",
-    lat: 44.502,
-    lon: 8.881
-  },  {
-    name: "Masone San Pietro",
-    url: "https://meteomasone.altervista.org/cu/realtimegauges.txt?_=1779490252937",
-    lat: 44.491,
-    lon: 8.735
-  },  {
-    name: "Genova Multedo",
-    url: "https://multedometeo.altervista.org/home/realtimegauges.txt?_=1779490303976",
-    lat: 44.429,
-    lon: 8.826
-  },  {
-    name: "Genova Erzelli",
-    url: "https://meteoerzelli.altervista.org/cu/realtimegauges.txt?_=1779490350703",
-    lat: 44.417,
-    lon: 8.863
-  },  {
-    name: "Genova Pra Sapello",
-    url: "https://meteoprabranega.altervista.org/cu/realtimegauges.txt?_=1779490395923",
-    lat: 44.427,
-    lon: 8.781
-  },  {
-    name: "Genova Nervi",
-    url: "http://meteonervi.altervista.org/ssg/realtimegauges.txt?_=1779491474800",
-    lat: 44.382,
-    lon: 9.026
-  },  {
-    name: "Pian dei Preti",
-    url: "https://meteopiandeipreti.altervista.org/cu/realtimegauges.txt?_=1779491550845",
-    lat: 44.426,
-    lon: 9.174
-  },  {
-    name: "Cogoleto",
-    url: "https://meteocogoleto.altervista.org/cumulus/realtimegauges.txt?_=1779491625864",
-    lat: 44.389,
-    lon: 8.643
-  },  {
-    name: "Albisola Superiore",
-    url: "https://stellameteo.altervista.org/cumulus/realtimegauges.txt?_=1779491689368",
-    lat: 44.336,
-    lon: 8.517
-  },  {
-    name: "Sarzana",
-    url: "https://meteosarzana.altervista.org/realtimegauges.txt?_=1779491876536",
-    lat: 44.100,
-    lon: 9.985
-  },  {
-    name: "La Spezia Porto Lotti",
-    url: "https://www.navimeteoharbour.com/ws/porto_lotti/customclientraw.txt?_=1779491940193",
-    lat: 44.097,
-    lon: 9.859
-  },  {
-    name: "Brugnato",
-    url: "https://brugnatovvf.altervista.org/FILE/customclientraw.txt?_=1779492254982",
-    lat: 44.236,
-    lon: 9.722
-  },  {
-    name: "Mattarana",
-    url: "https://stazioni.soluzionimeteo.it/mattarana/MBrealtimegauges.txt?_=1779492326272",
-    lat: 44.247,
-    lon: 9.623
-  },  {
-    name: "Favale di Malvaro",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-favale/data/wd/file/customclientraw.txt?_=1779492528756",
-    lat: 44.452,
-    lon: 9.260
-  },  {
-    name: "Zoagli Loc. Oliveto",
-    url: "https://retelimet.centrometeoligure.it/stazioni/meteo-zoagli-oliveto/data/cu/realtimegauges.txt?_=1779492698284",
-    lat: 44.344,
-    lon: 9.276
-  },
-  // altre stazioni...
-];
-
-const updateLimetData = async () => {
-    console.log("UPDATE LIMET AVVIATO");
-  try {
-    const stationName = station.replace(/_/g, " ").toLowerCase();
-
-const loadStation = async (url) => {
-  console.log("FETCH:", url);
-
-  const res = await fetch(url);
-
-  console.log("STATUS:", res.status);
-
-  const json = await res.json();
-
-  console.log("JSON:", json);
-
-  if (!json.stations || !Array.isArray(json.stations)) {
-    throw new Error("Formato API non valido");
-  }
-
-  return json.stations.find(
-    s => s.N.toLowerCase() === stationName
-  );
-};
-
-    // Cerca prima su limet.json
-    let data = await loadStation("https://api-stazioni-meteo.eggittof.workers.dev/limet.json");
-
-    // Se non trovata cerca su limet2.json
-    if (!data) {
-      data = await loadStation("https://api-stazioni-meteo.eggittof.workers.dev/limet2.json");
+    .station-button:hover {
+      background: #e8e8e8;
     }
 
-    if (!data) {
-      titleEl.textContent = `ERRORE: Stazione LIMET non trovata (${station.replace(/_/g, " ")})`;
-      return;
+    .station-button.active {
+      background: #222;
+      color: white;
+      border-color: #222;
     }
 
-    const toNumber = value =>
-      value == null ? null : parseFloat(String(value).replace(",", "."));
-
-    titleEl.textContent = data.N;
-
-    const T = toNumber(data.T);
-    const H = toNumber(data.H);
-
-    const tMin = toNumber(data.TL);
-    const tMax = toNumber(data.TH);
-
-    const dew = toNumber(data.D);
-    const dewMin = toNumber(data.DL);
-    const dewMax = toNumber(data.DH);
-
-    const heat = toNumber(data.HI);
-    const heatMax = toNumber(data.HIH ?? data.HI);
-
-    const wind = toNumber(data.V);
-    const gust = toNumber(data.VR);
-
-    const rainRate = toNumber(data.RR);
-    const rainRateMax = toNumber(data.RRH ?? data.RR);
-
-    const rain = toNumber(data.R);
-
-    const pressure = toNumber(data.P);
-    const pressureMin = toNumber(data.PL ?? data.P);
-    const pressureMax = toNumber(data.PH ?? data.P);
-
-    const uv = toNumber(data.UV);
-    const uvMax = toNumber(data.UVH ?? data.UV);
-
-    const solar = toNumber(data.SR);
-    const solarMax = toNumber(data.SRH ?? data.SR);
-
-    // Temperatura principale
-    const tempEl = document.getElementById("temp-value");
-    tempEl.textContent = formatValue(T) + "°";
-    tempEl.className = "main-value-lg";
-
-    const tempMinMaxEl = document.getElementById("temp-minmax-horizontal");
-    tempMinMaxEl.innerHTML = `
-      <span style="font-weight: normal; color: black;">Max: </span>
-      <span class="max-value" style="font-weight: bold; color: red;">
-        ${formatValue(tMax)}°
-      </span>
-
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-
-      <span style="font-weight: normal; color: black;">Min: </span>
-      <span class="min-value" style="font-weight: bold; color: blue;">
-        ${formatValue(tMin)}°
-      </span>
-    `;
-
-    setMainSmWithMinMax(
-      "dewpoint-value",
-      "dewpoint-minmax",
-      dew,
-      dewMin,
-      dewMax,
-      "°"
-    );
-
-    setMainSmWithMinMax(
-      "umidity-value",
-      "umidity-minmax",
-      H,
-      toNumber(data.HL),
-      toNumber(data.HH),
-      "%"
-    );
-
-    setMainSmWithMinMax(
-      "wind-value",
-      "wind-minmax",
-      wind,
-      wind,
-      gust,
-      " km/h"
-    );
-
-    setMainSmWithMinMax(
-      "rainrate-value",
-      "rainrate-minmax",
-      rainRate,
-      rainRate,
-      rainRateMax,
-      " mm/h"
-    );
-
-    setMainSmWithMinMax(
-      "raintotal-value",
-      "raintotal-minmax",
-      rain,
-      rain,
-      rain,
-      " mm"
-    );
-
-    setMainSmWithMinMax(
-      "heatindex-value",
-      "heatindex-minmax",
-      heat,
-      heat,
-      heatMax,
-      "°"
-    );
-
-    setMainSmWithMinMax(
-      "radsol-value",
-      "radsol-minmax",
-      solar,
-      solar,
-      solarMax,
-      " W/m²"
-    );
-
-    setMainSmWithMinMax(
-      "uv-value",
-      "uv-minmax",
-      uv,
-      uv,
-      uvMax,
-      " UV"
-    );
-
-    setMainSmWithMinMax(
-      "850hpa-value",
-      "850hpa-minmax",
-      0,
-      0,
-      0,
-      "°"
-    );
-
-    setMainSmWithMinMax(
-      "pressione-value",
-      "pressione-minmax",
-      pressure,
-      pressureMin,
-      pressureMax,
-      " hPa"
-    );
-
-    document.getElementById("metadata-status").textContent = "Online";
-
-    document.getElementById("metadata-timestamp").textContent =
-      `${new Date().toLocaleDateString("it-IT")} ${data.TIME}`;
-
-  } catch (err) {
-    console.error(err);
-
-    titleEl.textContent =
-      `ERRORE: Dati LIMET non caricati (${station.replace(/_/g, " ")})`;
-  }
-};
-
-});
-
-        
-        // ************************************************************
-        // 1. SET DI DATI PER STAZIONI MULTIPLE
-        //    (I dati dei grafici sono A 24 PUNTI come richiesto)
-        // ************************************************************
-        
-        /**
-         * Genera dati casuali per 24 ore, con un punto dati per ogni ora.
-         * @param {number} min - Valore minimo.
-         * @param {number} max - Valore massimo.
-         * @returns {number[]} Array di 24 valori.
-         */
-        function generate24HourData(min, max, cycleOffset = 0) {
-            const data = [];
-            for (let i = 0; i < 24; i++) {
-                // Simula un ciclo giornaliero (sinusoidale)
-                const value = min + (max - min) * (0.5 + 0.5 * Math.sin(Math.PI * (i - 8 + cycleOffset) / 12));
-                // Aggiunge un piccolo rumore casuale
-                const noise = (Math.random() - 0.5) * (max - min) * 0.1;
-                data.push(parseFloat((value + noise).toFixed(1)));
-            }
-            return data;
-        }
-        
-        const HOUR_LABELS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')); 
-
-        // COLLEZIONE GLOBALE DEI DATI DI TUTTE LE STAZIONI
-        const ALL_STATION_DATA = {
-            // DATI STAZIONE LA SPEZIA (SP001) - Mite e Umido
-            'SP001': {
-                metadata: { location: "La Spezia", timestamp: "29/09 17:17", status: "Gradevole" },
-                current: {
-                    temp: { value: 15.3, unit: '°', min: 3.4, max: 18.1, decimals: 1, size: 'lg', label: "TEMPERATURA" }, 
-                    dewpoint: { value: 12.1, unit: '°', min: 2.9, max: 13.4, decimals: 1, label: "DEWPOINT" },
-                    humidity: { value: 95, unit: '%', min: 85, max: 99, decimals: 0, label: "UMIDITÀ RELATIVA" },
-                    pressure: { value: 995.6, unit: 'hPa', min: 995.4, max: 1000.6, decimals: 1, size: 'sm', label: "PRESSIONE ATMOSFERICA" },
-                    wind: { value: 19.4, unit: 'km/h', min: 0.0, max: 34.4, decimals: 1, label: "VELOCITÀ VENTO" },
-                    rain_rate: { value: 0.0, unit: 'mm/h', min: 0.0, max: 13.4, decimals: 1, size: 'sm', label: "TASSO DI PIOGGIA" },
-                    // Pioggia totale (85.2 mm ingrandito come da richiesta precedente)
-                    rain_total: { value: 85.2, unit: 'mm', month: 120.5, year: 980.2, decimals: 1, label: "PIOGGIA TOTALE" }, 
-                    heat_index: { value: 18.7, unit: '°', min: 3.4, max: 20.4, decimals: 1, label: "HEAT INDEX" },
-                    solar_rad: { value: 513, unit: 'W/m²', min: 0, max: 567, decimals: 0, label: "RADIAZIONE SOLARE" },
-                    uv_index: { value: 1, unit: 'UV', min: 0, max: 2, decimals: 0, label: "INDICE UV" },
-                    temp_850hpa: { value: 6.8, unit: '°', min: 5.6, max: 7.4, decimals: 1, label: "TEMPERATURA 850hPa" }
-                },
-                charts: {
-                    temp_labels: HOUR_LABELS,
-                    temp_data: generate24HourData(8.0, 18.1), 
-                    pressure_labels: HOUR_LABELS,
-                    pressure_data: generate24HourData(995.4, 1000.6)
-                },
-                records: [ /* Dati record identici per semplicità */
-                    { label: "Temperatura", value: 15.3, unit: '°', min: 3.4, max: 18.1, decimals: 1 },
-                    { label: "Umidità", value: 95, unit: '%', min: 85, max: 99, decimals: 0 },
-                    { label: "Vento", value: 19.4, unit: 'km/h', min: 0.0, max: 34.4, decimals: 1 },
-                    { label: "Pressione", value: 995.6, unit: 'hPa', min: 995.4, max: 1000.6, decimals: 1 }, 
-                    { label: "Pioggia Totale", value: 85.2, unit: 'mm', min: 120.5, max: 980.2, decimals: 1 }, 
-                    { label: "Radiazione Sol.", value: 513, unit: 'W/m²', min: 0, max: 567, decimals: 0 },
-                    { label: "Dewpoint", value: 12.1, unit: '°', min: 2.9, max: 13.4, decimals: 1 },
-                    { label: "Heat Index", value: 18.7, unit: '°', min: 3.4, max: 20.4, decimals: 1 }
-                ]
-            },
-            
-
-        };
-
-
-        // ************************************************************
-        // 2. FUNZIONI DI UTILITY E DATA RETRIEVAL
-        // ************************************************************
-
-        /**
-         * Estrae il parametro 'stationId' dalla stringa di query URL.
-         * @returns {string} L'ID della stazione o l'ID di default ('SP001').
-         */
-        function getStationIdFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get('stationId') || 'SP001'; // Default: La Spezia
-        }
-
-        /**
-         * Funzione robusta per formattare i valori, gestendo gli input non numerici.
-         * Questo previene l'errore 'val.toFixed is not a function'.
-         * @param {number|string} value - Il valore da formattare.
-         * @param {number} decimals - Numero di decimali.
-         * @param {boolean} forceZeroDecimal - Se forzare la visualizzazione di .0 (usato per Rain Rate 0.0).
-         * @returns {string} Valore formattato o un placeholder.
-         */
-        function formatSafeValue(value, decimals, forceZeroDecimal = false) {
-            const numericValue = parseFloat(value);
-            
-            if (isNaN(numericValue) || value === null || typeof value === 'undefined') {
-                return '-'; 
-            }
-            
-            let displayValue = numericValue.toFixed(decimals);
-            
-            // Rimuovi lo zero decimale se è solo .0, a meno che non sia forzato.
-            if (!forceZeroDecimal) {
-                displayValue = displayValue.replace(/\.0+$/, '');
-            }
-
-            return displayValue;
-        }
-
-        // ************************************************************
-        // 3. FUNZIONI DI AGGIORNAMENTO UI (INVARIATE, ECCETTO PER L'USO DEL NUOVO DATASET)
-        // ************************************************************
-        
-        function updateGaugeValue(elementId, data) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            const unit = data.unit;
-            const decimals = data.decimals;
-            const size = data.size || 'sm'; 
-            
-            const forceZero = (elementId === 'rainrate-value' && parseFloat(data.value) === 0.0);
-
-            const displayValue = formatSafeValue(data.value, decimals, forceZero);
-
-            let valueClass = '';
-            let unitClass = '';
-
-            if (size === 'lg') {
-                valueClass = 'main-value-lg';
-                unitClass = 'main-value-unit-lg'; 
-            } else if (elementId === 'raintotal-value') { 
-                valueClass = 'rain-current-value'; // 2.5rem per Pioggia Totale
-                unitClass = 'rain-current-unit'; 
-            } else {
-                valueClass = 'main-value-sm';
-                unitClass = 'main-value-unit-sm'; 
-            }
-            
-            let displayUnit = unit;
-            if (unit === '°') {
-                displayUnit = '&deg;';
-            } else if (unit === '%') {
-                // Lascia come '%'
-            } else {
-                displayUnit = unit; 
-            }
-            
-            let finalValueHtml = '';
-
-            if (size === 'lg') {
-                finalValueHtml = `
-                    <span class="${valueClass} flex items-start">${displayValue}</span>
-                    <span class="${unitClass} ml-1" style="font-size: 5rem; font-weight: 800; line-height: 1;">${displayUnit}</span>
-                `; 
-            } else if (elementId === 'raintotal-value') {
-                 // Pioggia Totale ingrandito (85.2 mm)
-                finalValueHtml = `
-                    <span class="${valueClass}">${displayValue}</span>
-                    <span class="ml-1 ${unitClass}">${unit}</span>
-                `;
-            } else {
-                const currentUnitClass = 'main-value-sm';
-                
-                if (unit === '°' || unit === '%') {
-                     finalValueHtml = `<span class="${currentUnitClass}">${displayValue}${displayUnit}</span>`;
-                } else {
-                     finalValueHtml = `<span class="${valueClass}">${displayValue}</span><span class="ml-1 text-xl font-extrabold text-gray-700">${displayUnit}</span>`;
-                }
-            }
-            
-            element.innerHTML = finalValueHtml;
-        }
-        
-        function updateStackedMinMaxValue(elementId, data) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            const decimals = data.decimals;
-            const unit = data.unit;
-
-            const formatValue = (value) => {
-                const val = formatSafeValue(value, decimals);
-                let unitDisplay = '';
-                
-                if (unit === '°') {
-                    unitDisplay = ' &deg;';
-                } else if (unit === '%') {
-                    unitDisplay = ' %';
-                }
-                else if (unit === 'hPa' || unit === 'km/h' || unit === 'W/m²') {
-                    unitDisplay = ''; 
-                }
-                return `${val}${unitDisplay}`;
-            };
-            
-            const maxDisplayValue = formatValue(data.max);
-            const minDisplayValue = formatValue(data.min);
-            
-            element.innerHTML = `
-                <span class="max-line max-value">${maxDisplayValue}</span>
-                <span class="min-line min-value">${minDisplayValue}</span>
-            `; 
-        }
-
-        function updateRainMinMax(elementId, data) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            const decimals = data.decimals;
-            
-            const monthVal = data.month;
-            const monthDisplayValue = formatSafeValue(monthVal, decimals);
-            
-            const yearVal = data.year;
-            const yearDisplayValue = formatSafeValue(yearVal, decimals);
-
-            element.innerHTML = `
-                <div class="flex flex-col items-end justify-center h-full space-y-1 text-sm">
-                    <span class="font-extrabold max-value">${monthDisplayValue}</span>
-                    <span class="font-extrabold min-value">${yearDisplayValue}</span>
-                </div>
-            `; 
-        }
-
-        function updateMainTempMinMax(elementId, data) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            const decimals = data.decimals;
-            const unit = data.unit;
-            
-            const formatValue = (value) => {
-                const val = formatSafeValue(value, decimals);
-                let unitDisplay = '';
-                
-                if (unit === '°') {
-                    unitDisplay = ' &deg;';
-                } else if (unit === '%') {
-                    unitDisplay = ' %';
-                }
-                return `${val}${unitDisplay}`;
-            };
-
-            const maxDisplayValue = formatValue(data.max);
-            const minDisplayValue = formatValue(data.min);
-
-            element.innerHTML = `
-                <span class="text-gray-700 mr-1 text-base font-bold">Max:</span>
-                <span class="max-value mr-4">${maxDisplayValue}</span>
-                <span class="text-gray-700 mr-1 text-base font-bold">Min:</span>
-                <span class="min-value">${minDisplayValue}</span>
-            `;
-        }
-        
-        function populateRecords(records) {
-            const recordsList = document.getElementById('records-list');
-            if (!recordsList) return;
-            recordsList.innerHTML = ''; 
-
-            records.forEach(item => {
-                const li = document.createElement('li');
-                li.className = `flex justify-between items-center p-3 rounded-lg hover:bg-gray-200 transition-colors`;
-                
-                const formatValue = (value, unit, decimals, isRainRate) => {
-                    const valDisplay = formatSafeValue(value, decimals, isRainRate && parseFloat(value) === 0.0);
-                    
-                    let unitHtml = unit;
-                    if (unit === '°') unitHtml = '&deg;'; 
-                    else if (unit !== '%') unitHtml = ` ${unit}`; 
-                    
-                    if (item.label === "Pioggia Totale" && (item.value !== value)) {
-                        unitHtml = ''; 
-                    }
-
-                    return `${valDisplay}${unitHtml}`;
-                }
-
-                const valueDisplay = formatValue(item.value, item.unit, item.decimals, item.label === "Pioggia");
-                
-                let minDisplay = formatValue(item.min, item.unit, item.decimals, item.label === "Pioggia");
-                let maxDisplay = formatValue(item.max, item.unit, item.decimals, item.label === "Pioggia");
-                
-                let minLabel = 'MIN (24h)';
-                let maxLabel = 'MAX (24h)';
-
-                const isRainTotal = item.label === "Pioggia Totale";
-
-                if (isRainTotal) {
-                    minLabel = 'MESE'; 
-                    maxLabel = 'ANNO'; 
-                    minDisplay = formatSafeValue(item.min, item.decimals);
-                    maxDisplay = formatSafeValue(item.max, item.decimals);
-                }
-
-                const minMaxClasses = 'record-min-max-values'; 
-
-                li.innerHTML = `
-                    <div class="font-semibold text-gray-700 w-1/3">${item.label}</div>
-                    <div class="flex flex-col items-center w-1/3">
-                        <span class="text-xs text-gray-500">ATTUALE</span>
-                        <span class="text-xl font-black text-gray-800">${valueDisplay}</span>
-                    </div>
-                    <div class="flex justify-end space-x-4 w-1/3 text-sm font-bold">
-                        <div class="flex flex-col items-end">
-                            <span class="text-xs text-gray-500">${minLabel}</span>
-                            <span class="min-value ${minMaxClasses}">${minDisplay}</span>
-                        </div>
-                        <div class="flex flex-col items-end">
-                            <span class="text-xs text-gray-500">${maxLabel}</span>
-                            <span class="max-value ${minMaxClasses}">${maxDisplay}</span>
-                        </div>
-                    </div>
-                `;
-                recordsList.appendChild(li);
-            });
-        }
-        
-        function updateChartMinMaxIndicators(canvasId, dataValues, yAxisUnit) {
-            const container = document.getElementById(canvasId).closest('.chart-box');
-            
-            if (!container || dataValues.length === 0) return;
-
-            const numericDataValues = dataValues.filter(v => !isNaN(parseFloat(v)));
-
-            if (numericDataValues.length === 0) return;
-
-            const minVal = Math.min(...numericDataValues);
-            const maxVal = Math.max(...numericDataValues);
-            
-            const unit = yAxisUnit.trim();
-            let unitDisplay = unit;
-            if (unit === '°') {
-                unitDisplay = '&deg;';
-            } else if (unit === 'hPa') {
-                unitDisplay = ' hPa';
-            } else {
-                unitDisplay = ''; 
-            }
-            
-            const maxDisplay = `Max: ${maxVal.toFixed(1).replace(/\.0+$/, '')}${unitDisplay}`;
-            const minDisplay = `Min: ${minVal.toFixed(1).replace(/\.0+$/, '')}${unitDisplay}`;
-
-            let maxEl = container.querySelector('.chart-max-indicator');
-            let minEl = container.querySelector('.chart-min-indicator');
-
-            if (!maxEl) {
-                maxEl = document.createElement('span');
-                maxEl.className = 'chart-min-max-indicator chart-max-indicator';
-                container.appendChild(maxEl);
-            }
-            if (!minEl) { 
-                minEl = document.createElement('span');
-                minEl.className = 'chart-min-max-indicator chart-min-indicator'; 
-                container.appendChild(minEl); 
-            }
-
-            maxEl.innerHTML = maxDisplay;
-            minEl.innerHTML = minDisplay;
-        }
-        
-        function createChart(canvasId, label, dataValues, dataLabels, color, yAxisUnit) {
-            if (canvasId === 'tempChart' && tempChartInstance) {
-                tempChartInstance.destroy();
-            } else if (canvasId === 'pressureChart' && pressureChartInstance) {
-                pressureChartInstance.destroy();
-            }
-            
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) {
-                console.error(`Canvas element with ID '${canvasId}' not found.`);
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                console.error(`Could not get 2D context for canvas ID '${canvasId}'.`);
-                return;
-            }
-
-            const newChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dataLabels, 
-                    datasets: [{
-                        label: label, 
-                        data: dataValues, 
-                        borderColor: color, 
-                        backgroundColor: `${color}40`, 
-                        borderWidth: 3,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                        pointBackgroundColor: '#FFFFFF',
-                        pointBorderColor: color,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: false }, 
-                        tooltip: { 
-                            mode: 'index', 
-                            intersect: false,
-                            callbacks: {
-                                title: function(tooltipItems) {
-                                    return 'Ora: ' + tooltipItems[0].label + ':00';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: { display: false },
-                            grid: { display: false },
-                            ticks: {
-                                callback: function(value, index) {
-                                    return this.getLabelForValue(value) + ':00';
-                                },
-                                maxTicksLimit: 12 
-                            }
-                        },
-                        y: {
-                            title: { display: false },
-                            beginAtZero: false,
-                            grid: { color: '#d1d5db', borderDash: [5, 5] },
-                            ticks: {
-                                callback: function(value) {
-                                    const cleanedUnit = yAxisUnit.trim();
-                                    if (cleanedUnit === '°') {
-                                        return value + '°';
-                                    } else if (cleanedUnit === '%') {
-                                        return value + '%';
-                                    } else if (cleanedUnit === 'hPa') {
-                                        return value + ' hPa';
-                                    }
-                                    return value;
-                                }
-                            }
-                        }
-                    },
-                    animation: {
-                        duration: 800,
-                        easing: 'easeInOutQuad'
-                    }
-                },
-                plugins: [] 
-            });
-
-            if (canvasId === 'tempChart') {
-                tempChartInstance = newChart;
-            } else if (canvasId === 'pressureChart') {
-                pressureChartInstance = newChart;
-            }
-            
-            updateChartMinMaxIndicators(canvasId, dataValues, yAxisUnit);
-        }
-        
-        // ************************************************************
-        // 4. FUNZIONE DI INIZIALIZZAZIONE GLOBALE AGGIORNATA
-        // ************************************************************
-
-
-    </script>
+    /* =========================
+       CONTENUTO
+       ========================= */
+
+    main {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    #info {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    #stationImage {
+      display: block;
+      width: 100%;
+      max-width: 1200px;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.15);
+    }
+
+    #error {
+      display: none;
+      padding: 20px;
+      background: #ffe5e5;
+      border: 1px solid #ffb0b0;
+      border-radius: 10px;
+      color: #a00000;
+    }
+  </style>
 </head>
 
-<body class="p-4 sm:p-8">
+<body>
+
+  <!-- =========================
+       ELENCO STAZIONI
+       ========================= -->
+
+  <div id="stations"></div>
+
+  <!-- =========================
+       CONTENUTO
+       ========================= -->
+
+  <main>
+
+    <h1 id="title">Stazione</h1>
+
+    <div id="info"></div>
+
+    <div id="error"></div>
+
+    <img
+      id="stationImage"
+      src=""
+      alt="Immagine stazione"
+    >
+
+  </main>
+
+  <script>
+
+    // =========================
+    // CONFIGURAZIONE STAZIONI
+    // =========================
+    
+    const stationPhotos = {
+
+      "IGENOA2897": {
+        name: "IGENOA2897",
+        photo: "SanMartino1.png"
+      }
+
+      // Esempio per aggiungere altre stazioni:
+      //
+      // "IGENOA1234": {
+      //   name: "IGENOA1234",
+      //   photo: "AltraFoto.png"
+      // },
+      //
+      // "IGENOA5678": {
+      //   name: "IGENOA5678",
+      //   photo: "AltraFoto2.png"
+      // }
+
+    };
 
 
-    <div class="grid-wrapper">
-        <h1 class="text-3xl sm:text-4xl font-black text-gray-800 mb-6 text-center sm:text-left">
-            Dati Stazione: 
-            <span id="main-title-location" class="text-blue-600">Caricamento...</span>
-        </h1>
-        
-        <!-- Contenitore Griglia (4 Colonne) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 transition-all duration-300 auto-rows-auto">
+    // =========================
+    // LEGGE PARAMETRI URL
+    // =========================
+
+    const params = new URLSearchParams(window.location.search);
+
+    const station = params.get("station");
+    const source = params.get("source");
+    const name = params.get("name");
 
 
-            <!-- Card A1 (1x2): TEMPERATURA ATTUALE (GRANDE) -->
-            <div id="gauge-temp" class="gauge-card col-span-2 row-span-2 md:col-span-1 md:row-span-2 p-4 flex flex-col justify-start">
-                <p class="text-sm font-bold text-gray-800 mb-2">Temperatura</p>
-                
-                <div class="flex items-center justify-start flex-grow">
-                    <!-- Valore principale LG (Popolato da JSON) -->
-                    <span class="flex items-end" id="temp-value">...</span>
-                </div>
-                
-                <!-- Max/Min Orizzontale -->
-                <div class="main-temp-minmax flex items-center justify-start mt-3 mb-2" id="temp-minmax-horizontal">
-                    <!-- Max: [Valore] Min: [Valore] -->
-                </div>
-                
-                <!-- Metadati -->
-                <div class="flex justify-between items-center text-sm font-semibold text-gray-700 mt-auto">
-                    <div class="flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zM10 8a2 2 0 100 4 2 2 0 000-4z" />
-                        </svg>
-                        <span id="metadata-status">Caricamento...</span>
-                    </div>
-                    <div class="flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span id="metadata-timestamp">Caricamento...</span>
-                    </div>
-                </div>
-            </div>
+    // =========================
+    // CREA ELENCO STAZIONI
+    // =========================
 
-            <!-- Card A2 (1x1): Dewpoint -->
-            <div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-              <div class="icon-box">
-                <img src="https://i.ibb.co/GfMNyGcY/dew.png" alt="Dew Point" class="icon-style-large" />
-              </div>
-              <span class="flex items-end" id="dewpoint-value">...</span>
-              <div class="stacked-min-max" id="dewpoint-minmax">...</div>
-            </div>
-            
-            
-<!-- Card A3 (1x1): Umidità -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/bjhPCZhk/UR.png" 
-          alt="Umidità" 
-          class="icon-style-medium" 
-      />
-  </div>
-  <span class="flex items-end" id="umidity-value">...</span>
-  <div class="stacked-min-max" id="umidity-minmax">...</div>
-</div>
+    const stationsContainer =
+      document.getElementById("stations");
+
+    Object.entries(stationPhotos).forEach(
+      ([stationId, data]) => {
+
+        const button =
+          document.createElement("a");
+
+        button.className = "station-button";
+
+        if (stationId === station) {
+          button.classList.add("active");
+        }
+
+        button.textContent = data.name;
+
+        const newParams =
+          new URLSearchParams();
+
+        newParams.set("station", stationId);
+
+        if (source) {
+          newParams.set("source", source);
+        }
+
+        newParams.set("name", data.name);
+
+        button.href =
+          `${window.location.pathname}?${newParams.toString()}`;
+
+        stationsContainer.appendChild(button);
+      }
+    );
 
 
-<!-- Card B1 (1x1): Pressione Atmosferica -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/60XrBZtD/PRESS.png" 
-          alt="Pressione Atmosferica" 
-          class="icon-style-large" 
-      />
-  </div>
-  <span class="flex items-end" id="pressione-value">...</span>
-  <div class="stacked-min-max" id="pressione-minmax">...</div>
-</div>
+    // =========================
+    // MOSTRA STAZIONE
+    // =========================
 
-            
-<!-- Card B2 (1x1): Tasso di Pioggia -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/5xfpfQy9/RATE.png" 
-          alt="Tasso di Pioggia" 
-          class="icon-style-large"
-      />
-  </div>
-  <span class="flex items-end" id="rainrate-value">...</span>
-  <div class="stacked-min-max" id="rainrate-minmax">...</div>
-</div>
+    const title =
+      document.getElementById("title");
+
+    const info =
+      document.getElementById("info");
+
+    const image =
+      document.getElementById("stationImage");
+
+    const error =
+      document.getElementById("error");
 
 
-<!-- Card B3 (1x1): Pioggia Totale Giornaliera -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/G4Dn7ZS4/DAILY.png" 
-          alt="Pioggia Totale Giornaliera" 
-          class="icon-style-large"
-      />
-  </div>
-  <span class="flex items-end" id="raintotal-value">...</span>
-  <div class="flex flex-row space-x-1 items-center justify-end" id="raintotal-minmax">...</div>
-</div>
+    if (!station) {
 
-            
-<!-- Card C1 (1x1): Vento -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.postimg.cc/w3GHk2Lq/wind-icon.png" 
-          alt="Vento" 
-          class="icon-style-large"
-      />
-  </div>
-  <span class="flex items-end" id="wind-value">...</span>
-  <div class="stacked-min-max" id="wind-minmax">...</div>
-</div>
+      title.textContent =
+        "Nessuna stazione selezionata";
 
-            
-<!-- Card C2 (1x1): Heat Index -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/YFJfQ5Tt/HEAT.png" 
-          alt="Heat Index" 
-          class="icon-style-large" 
-      />
-  </div>
-  <span class="flex items-end" id="heatindex-value">...</span>
-  <div class="stacked-min-max" id="heatindex-minmax">...</div>
-</div>
+      info.textContent =
+        "Seleziona una stazione dall'elenco.";
 
-            
-            <!-- Card C3 (1x1): Radiazione Solare -->
-            <div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-              <div class="icon-box">
-                  <img 
-                      src="https://i.postimg.cc/t1NDXrp4/radiazione.png" 
-                      alt="Radiazione Solare" 
-                      class="icon-style-large"
-                  />
-              </div>
-              <span class="flex items-end" id="radsol-value">...</span>
-              <div class="stacked-min-max" id="radsol-minmax">...</div>
-          </div>
-            
-<!-- Card D1 (1x1): Indice UV -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/prbVNMhQ/UV.png" 
-          alt="UV" 
-          class="icon-style-large"
-      />
-  </div>
-  <span class="flex items-end" id="uv-value">...</span>
-  <div class="stacked-min-max" id="uv-minmax">...</div>
-</div>
+      image.style.display = "none";
 
-            
-<!-- Card D2 (1x1): Temperatura a 850hPa -->
-<div class="gauge-card col-span-2 md:col-span-1 row-span-1 flex-row items-center justify-between">
-  <div class="icon-box">
-      <img 
-          src="https://i.ibb.co/chVtwvz1/850hpa.png" 
-          alt="Temperatura 850hPa" 
-          class="icon-style-large"
-      />
-  </div>
-  <span class="flex items-end" id="850hpa-value">...</span>
-  <div class="stacked-min-max" id="850hpa-minmax">...</div>
-</div>
+    } else if (!stationPhotos[station]) {
 
-            <!-- Card E1 (2x3): Grafico Temperatura - Dati a 24 ore -->
-            <div class="gauge-card chart-box col-span-4 row-span-3 md:col-span-2 md:row-span-3 p-0 flex flex-col justify-between overflow-hidden relative">
-                <div class="absolute top-0 left-0 p-3 z-10">
-                    <p class="chart-title-internal">Temperatura (Ultime 24 ore)</p>
-                </div>
-                <div class="flex-grow relative h-full w-full p-2 pr-10">
-                    <canvas id="tempChart" class="w-full h-full"></canvas>
-                </div>
-            </div>
-            
-            <!-- Card E2 (2x3): Grafico Pressione - Dati a 24 ore -->
-            <div class="gauge-card chart-box col-span-4 row-span-3 md:col-span-2 md:row-span-3 p-0 flex flex-col justify-between overflow-hidden relative">
-                <div class="absolute top-0 left-0 p-3 z-10">
-                    <p class="chart-title-internal">Pressione (Ultime 24 ore)</p>
-                </div>
-                <div class="flex-grow relative h-full w-full p-2 pr-10">
-                    <canvas id="pressureChart" class="w-full h-full"></canvas>
-                </div>
-            </div>
+      title.textContent =
+        "Stazione non trovata";
 
-            <!-- Card F1 (4x1/2): Fonte Dati -->
-            <div class="gauge-card col-span-4 row-span-1 p-4 flex flex-col justify-center">
-                <p class="text-sm font-bold text-gray-800">Dati provenienti da: <span class="font-normal text-gray-700">LIMET, Meteociel</span></p>
-            </div>
-            
-            <!-- Card G1 (4x3): Record Dettagliati -->
-            <div class="gauge-card col-span-4 row-span-3 p-6 flex flex-col overflow-y-auto">
-                <p class="text-xl font-bold text-gray-800 mb-4">RECORD DETTAGLIATI</p>
-                <div class="space-y-2 flex-grow">
-                    <div class="flex justify-between items-center p-3 rounded-lg bg-gray-300 font-bold text-sm text-gray-800">
-                        <span class="w-1/3">MISURA</span>
-                        <span class="w-1/3 text-center">VALORE ATTUALE</span>
-                        <span class="w-1/3 text-right">MIN / MAX (24h/Tot.)</span> 
-                    </div>
-                    <ul id="records-list" class="space-y-1">
-                        <!-- I record verranno inseriti qui dallo script JS -->
-                    </ul>
-                </div>
-            </div>
+      info.textContent =
+        station;
 
-        </div>
-    </div>
+      image.style.display = "none";
+
+      error.style.display = "block";
+
+      error.textContent =
+        `Non è configurata alcuna foto per la stazione "${station}".`;
+
+    } else {
+
+      const data =
+        stationPhotos[station];
+
+      title.textContent =
+        name || data.name;
+
+      info.textContent =
+        `Station: ${station}` +
+        (source ? ` • Source: ${source}` : "");
+
+      image.src =
+        data.photo;
+
+      image.alt =
+        `Foto ${data.name}`;
+
+      image.style.display = "block";
+
+      image.onerror = () => {
+
+        image.style.display = "none";
+
+        error.style.display = "block";
+
+        error.textContent =
+          `Impossibile trovare l'immagine "${data.photo}".`;
+
+      };
+    }
+
+  </script>
 
 </body>
 </html>
