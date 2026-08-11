@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -11,11 +12,15 @@
       box-sizing: border-box;
     }
 
+    html,
     body {
       margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      color: #222;
+      background: #000;
     }
 
     /* =========================
@@ -23,24 +28,38 @@
        ========================= */
 
     #stations {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      background: white;
-      padding: 15px;
+      z-index: 10;
+
+      padding: 12px;
+
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
-      border-bottom: 1px solid #ddd;
+
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+
+      border-bottom: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     .station-button {
-      padding: 10px 16px;
+      padding: 9px 15px;
+
       border-radius: 8px;
       border: 1px solid #ccc;
+
       background: #f7f7f7;
       color: #222;
+
       text-decoration: none;
       cursor: pointer;
+
       transition: 0.2s;
+      font-size: 14px;
     }
 
     .station-button:hover {
@@ -54,40 +73,107 @@
     }
 
     /* =========================
-       CONTENUTO
+       CONTENUTO FULL SCREEN
        ========================= */
 
     main {
-      max-width: 1200px;
-      margin: 30px auto;
-      padding: 0 20px;
+      position: relative;
+
+      width: 100vw;
+      height: 100vh;
+
+      margin: 0;
+      padding: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background: #000;
     }
 
-    h1 {
-      margin-bottom: 5px;
+    /* =========================
+       IMMAGINE
+       ========================= */
+
+    #stationImage {
+      width: 100vw;
+      height: 100vh;
+
+      display: block;
+
+      /*
+        Contiene tutta l'immagine senza deformarla.
+        Potrebbero rimanere piccole bande nere se
+        il rapporto dell'immagine è diverso dallo schermo.
+      */
+      object-fit: contain;
+
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    /* =========================
+       TITOLO / INFO
+       ========================= */
+
+    #title,
+    #info {
+      position: fixed;
+      z-index: 5;
+
+      left: 20px;
+
+      color: white;
+
+      text-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.8);
+
+      pointer-events: none;
+    }
+
+    #title {
+      bottom: 45px;
+      margin: 0;
+
+      font-size: 28px;
     }
 
     #info {
-      color: #666;
-      margin-bottom: 20px;
+      bottom: 20px;
+      margin: 0;
+
+      font-size: 14px;
     }
 
-    #stationImage {
-      display: block;
-      width: 100%;
-      max-width: 1200px;
-      height: auto;
-      border-radius: 12px;
-      box-shadow: 0 3px 15px rgba(0,0,0,0.15);
-    }
+    /* =========================
+       ERRORE
+       ========================= */
 
     #error {
       display: none;
-      padding: 20px;
-      background: #ffe5e5;
-      border: 1px solid #ffb0b0;
-      border-radius: 10px;
+
+      position: fixed;
+      z-index: 20;
+
+      top: 50%;
+      left: 50%;
+
+      transform: translate(-50%, -50%);
+
+      padding: 25px;
+
+      max-width: 90%;
+
+      background: white;
+
+      border-radius: 12px;
+
       color: #a00000;
+
+      text-align: center;
+
+      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.4);
     }
   </style>
 </head>
@@ -99,6 +185,7 @@
        ========================= -->
 
   <div id="stations"></div>
+
 
   <!-- =========================
        CONTENUTO
@@ -120,12 +207,13 @@
 
   </main>
 
+
   <script>
 
     // =========================
     // CONFIGURAZIONE STAZIONI
     // =========================
-    
+
     const stationPhotos = {
 
       "IGENOA2897": {
@@ -133,38 +221,47 @@
         photo: "SanMartino1.png"
       }
 
-      // Esempio per aggiungere altre stazioni:
+      // Esempio:
       //
       // "IGENOA1234": {
       //   name: "IGENOA1234",
-      //   photo: "AltraFoto.png"
+      //   photo: "Brignole.png"
       // },
       //
       // "IGENOA5678": {
       //   name: "IGENOA5678",
-      //   photo: "AltraFoto2.png"
+      //   photo: "Nervi.png"
       // }
 
     };
 
 
     // =========================
-    // LEGGE PARAMETRI URL
+    // PARAMETRI URL
     // =========================
 
-    const params = new URLSearchParams(window.location.search);
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
 
-    const station = params.get("station");
-    const source = params.get("source");
-    const name = params.get("name");
+    const station =
+      params.get("station");
+
+    const source =
+      params.get("source");
+
+    const name =
+      params.get("name");
 
 
     // =========================
-    // CREA ELENCO STAZIONI
+    // ELENCO STAZIONI
     // =========================
 
     const stationsContainer =
       document.getElementById("stations");
+
 
     Object.entries(stationPhotos).forEach(
       ([stationId, data]) => {
@@ -172,35 +269,49 @@
         const button =
           document.createElement("a");
 
-        button.className = "station-button";
+        button.className =
+          "station-button";
 
         if (stationId === station) {
           button.classList.add("active");
         }
 
-        button.textContent = data.name;
+        button.textContent =
+          data.name;
 
         const newParams =
           new URLSearchParams();
 
-        newParams.set("station", stationId);
+        newParams.set(
+          "station",
+          stationId
+        );
 
         if (source) {
-          newParams.set("source", source);
+          newParams.set(
+            "source",
+            source
+          );
         }
 
-        newParams.set("name", data.name);
+        newParams.set(
+          "name",
+          data.name
+        );
 
         button.href =
           `${window.location.pathname}?${newParams.toString()}`;
 
-        stationsContainer.appendChild(button);
+        stationsContainer.appendChild(
+          button
+        );
+
       }
     );
 
 
     // =========================
-    // MOSTRA STAZIONE
+    // ELEMENTI
     // =========================
 
     const title =
@@ -216,6 +327,10 @@
       document.getElementById("error");
 
 
+    // =========================
+    // MOSTRA STAZIONE
+    // =========================
+
     if (!station) {
 
       title.textContent =
@@ -224,9 +339,12 @@
       info.textContent =
         "Seleziona una stazione dall'elenco.";
 
-      image.style.display = "none";
+      image.style.display =
+        "none";
 
-    } else if (!stationPhotos[station]) {
+    }
+
+    else if (!stationPhotos[station]) {
 
       title.textContent =
         "Stazione non trovata";
@@ -234,43 +352,63 @@
       info.textContent =
         station;
 
-      image.style.display = "none";
+      image.style.display =
+        "none";
 
-      error.style.display = "block";
+      error.style.display =
+        "block";
 
       error.textContent =
         `Non è configurata alcuna foto per la stazione "${station}".`;
 
-    } else {
+    }
+
+    else {
 
       const data =
         stationPhotos[station];
 
+
       title.textContent =
         name || data.name;
 
+
       info.textContent =
         `Station: ${station}` +
-        (source ? ` • Source: ${source}` : "");
+        (source
+          ? ` • Source: ${source}`
+          : "");
+
 
       image.src =
         data.photo;
 
+
       image.alt =
         `Foto ${data.name}`;
 
-      image.style.display = "block";
+
+      image.style.display =
+        "block";
+
+
+      // =========================
+      // ERRORE IMMAGINE
+      // =========================
 
       image.onerror = () => {
 
-        image.style.display = "none";
+        image.style.display =
+          "none";
 
-        error.style.display = "block";
+        error.style.display =
+          "block";
 
         error.textContent =
           `Impossibile trovare l'immagine "${data.photo}".`;
 
       };
+
     }
 
   </script>
