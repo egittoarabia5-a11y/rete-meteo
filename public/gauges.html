@@ -6,6 +6,23 @@
 
   <title>Stazione Meteo</title>
 
+  <!-- Font Inter -->
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
   <style>
     * {
       box-sizing: border-box;
@@ -22,6 +39,8 @@
       overflow: hidden;
 
       background: #000;
+
+      font-family: "Inter", sans-serif;
     }
 
     /* =========================
@@ -52,14 +71,102 @@
 
       border: 0;
       border-radius: 0;
-      box-shadow: none;
     }
+
+
+    /* =========================
+       BARRA SUPERIORE
+       ========================= */
+
+    #stationBar {
+
+      position: fixed;
+
+      top: 18px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      z-index: 10;
+
+      /*
+        Larghezza quasi completa,
+        ma con margini laterali.
+      */
+      width: calc(100% - 36px);
+
+      min-height: 58px;
+
+      padding: 14px 26px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 999px;
+
+      /*
+        Effetto vetro / metallo
+        stile iPhone
+      */
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255,255,255,0.38),
+          rgba(255,255,255,0.16) 45%,
+          rgba(255,255,255,0.10)
+        );
+
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+
+      border: 1px solid rgba(255,255,255,0.35);
+
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.45),
+        inset 0 -1px 1px rgba(0,0,0,0.12),
+        0 8px 30px rgba(0,0,0,0.25);
+
+      color: white;
+
+      text-align: center;
+
+      white-space: nowrap;
+
+      overflow: hidden;
+
+      /*
+        Leggera trasparenza generale
+      */
+      opacity: 0.96;
+    }
+
+
+    #stationName {
+
+      font-size: 17px;
+
+      font-weight: 600;
+
+      letter-spacing: -0.25px;
+
+      line-height: 1.2;
+
+      text-shadow:
+        0 1px 3px rgba(0,0,0,0.45);
+
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+    }
+
 
     /* =========================
        ERRORE
        ========================= */
 
     #error {
+
       display: none;
 
       position: fixed;
@@ -75,17 +182,47 @@
 
       background: white;
 
-      border-radius: 12px;
+      border-radius: 16px;
 
       color: #a00000;
 
       text-align: center;
 
-      font-family: Arial, sans-serif;
+      font-family: "Inter", sans-serif;
 
       box-shadow:
-        0 5px 30px rgba(0, 0, 0, 0.4);
+        0 5px 30px rgba(0,0,0,0.4);
+
+      z-index: 20;
     }
+
+
+    /* =========================
+       MOBILE
+       ========================= */
+
+    @media (max-width: 600px) {
+
+      #stationBar {
+
+        top: 12px;
+
+        width: calc(100% - 24px);
+
+        min-height: 50px;
+
+        padding: 12px 20px;
+
+      }
+
+      #stationName {
+
+        font-size: 14px;
+
+      }
+
+    }
+
   </style>
 </head>
 
@@ -93,7 +230,27 @@
 
   <main>
 
+    <!-- =========================
+         BARRA
+         ========================= -->
+
+    <div id="stationBar">
+
+      <div id="stationName"></div>
+
+    </div>
+
+
+    <!-- =========================
+         ERRORE
+         ========================= -->
+
     <div id="error"></div>
+
+
+    <!-- =========================
+         FOTO
+         ========================= -->
 
     <img
       id="stationImage"
@@ -113,20 +270,31 @@
     const stationPhotos = {
 
       "IGENOA2897": {
-        name: "IGENOA2897",
+
+        name: "Genova San Martino - Fonte: Wunderground",
+
         photo: "SanMartino1.png"
+
       }
 
-      // Altre stazioni:
-      //
+      // =========================
+      // ALTRE STAZIONI
+      // =========================
+
       // "IGENOA1234": {
-      //   name: "IGENOA1234",
-      //   photo: "Brignole.png"
-      // },
       //
+      //   name: "Genova Brignole - Fonte: Wunderground",
+      //
+      //   photo: "Brignole.png"
+      //
+      // },
+
       // "IGENOA5678": {
-      //   name: "IGENOA5678",
+      //
+      //   name: "Genova Nervi - Fonte: Wunderground",
+      //
       //   photo: "Nervi.png"
+      //
       // }
 
     };
@@ -154,6 +322,16 @@
         "stationImage"
       );
 
+    const bar =
+      document.getElementById(
+        "stationBar"
+      );
+
+    const stationName =
+      document.getElementById(
+        "stationName"
+      );
+
     const error =
       document.getElementById(
         "error"
@@ -161,7 +339,7 @@
 
 
     // =========================
-    // MOSTRA FOTO
+    // MOSTRA STAZIONE
     // =========================
 
     if (
@@ -170,6 +348,9 @@
     ) {
 
       image.style.display =
+        "none";
+
+      bar.style.display =
         "none";
 
       error.style.display =
@@ -185,6 +366,19 @@
       const data =
         stationPhotos[station];
 
+
+      // =========================
+      // NOME
+      // =========================
+
+      stationName.textContent =
+        data.name;
+
+
+      // =========================
+      // FOTO
+      // =========================
+
       image.src =
         data.photo;
 
@@ -199,6 +393,9 @@
       image.onerror = () => {
 
         image.style.display =
+          "none";
+
+        bar.style.display =
           "none";
 
         error.style.display =
