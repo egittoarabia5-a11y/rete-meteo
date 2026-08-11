@@ -324,9 +324,6 @@
   IGENOA3170: { api: "IGENOA3170", nome: "Genova Via Posalunga", sovrastima: "yes" },
   IGENOA3135: { api: "IGENOA3135", nome: "Genova S.Desiderio", sovrastima: "yes" },
   IGENOA3138: { api: "IGENOA3138", nome: "Genova Pino", sovrastima: "no" },
-  IGENOA2783: { api: "IGENOA2783", nome: "Genova Terpi", sovrastima: "no" },
-  IGENOA3085: { api: "IGENOA3085", nome: "Genova Sturla", sovrastima: "no" },
-  IGENOVAG3: { api: "IGENOVAG3", nome: "Genova San Fruttuoso", sovrastima: "no" },
   IVARAZ2: { api: "IVARAZ2", nome: "Monte Beigua", sovrastima: "no" },
   IURBE3: { api: "URBE3", nome: "Passo del Faiallo", sovrastima: "no" },
   ILIGURIA181: { api: "ILIGURIA181", nome: "Veirera", sovrastima: "yes" },
@@ -343,12 +340,9 @@
   IAVEGN2: { api: "IAVEGN2", nome: "Avegno Testana", sovrastima: "no" },
   IMELE16: { api: "IMELE16", nome: "Genova Acquasanta", sovrastima: "no" },
   IMELE15: { api: "IMELE15", nome: "Mele", sovrastima: "no" },
-  IGENOA2839: { api: "IGENOA2839", nome: "Genova Lavatrici", sovrastima: "no" },
   ICOGOL39: { api: "ICOGOL39", nome: "Sciarborasca Molino", sovrastima: "no" },
   ICOGOL7: { api: "ICOGOL7", nome: "Cogoleto Madonnina", sovrastima: "no" },
   ICOGOL10: { api: "ICOGOL10", nome: "Cogoleto Beuca", sovrastima: "no" },
-  ICAMPO219: { api: "ICAMPO219", nome: "Campo Ligure", sovrastima: "no" },
-  IMASON4: { api: "IMASON4", nome: "Masone", sovrastima: "no" },
   ISERRA22: { api: "ISERRA22", nome: "Mignanego", sovrastima: "no" },
   ICAMPO445: { api: "ICAMPO445", nome: "Pietralavezzara", sovrastima: "no" },
   ICAMPO312: { api: "ICAMPO312", nome: "Campomorone", sovrastima: "no" },
@@ -408,13 +402,11 @@
   IGENOA2997: { api: "IGENOA2997", nome: "Genova Quinto" },
   IGENOA3021: { api: "IGENOA3021", nome: "Genova Begato" },
   IGENOA3032: { api: "IGENOA3032", nome: "Genova Fontanegli" },
-  IGENOA3035: { api: "IGENOA3079" },
   IGENOA3052: { api: "IGENOA3080", nome: "Genova Boccadasse" },
   IGENOA3058: { api: "IGENOA3058", nome: "Genova Via Chiodo" },
   ILIGURIA67: { api: "ILIGURIA67", nome: "Genova Villa Scassi" },
   IGENOVAA2: { api: "IGENOVAA2" },
   IBOGLI12: { api: "IBOGLI12", nome: "Bogliasco Via F.li Ferrari" },
-  IPIEVE46: { api: "IPIEVE46", nome: "Pieve Alta" },
   IGENOA3082: { api: "IGENOA3082", nome: "Geirato" },
   IURBE3: { api: "IURBE3", nome: "Passo del Faiallo", sovrastima: "no" },
   IVARAZ9: { api: "IVARAZ9", nome: "Piani D'Invrea", sovrastima: "no" },
@@ -947,10 +939,10 @@ map.addLayer({
       'circle-radius': [
         'interpolate', ['linear'], ['zoom'],
         // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
- 4,  isMobile ? 4 : 7,
-        7,  isMobile ? 9 : 11,
-        10, isMobile ? 15 : 15,
-        14, isMobile ? 17 : 17
+ 4,  isMobile ? 4 : 9,
+        7,  isMobile ? 9 : 13,
+        10, isMobile ? 15 : 17,
+        14, isMobile ? 17 : 19
       ],
       'circle-color': ['get', 'color'],
       'circle-stroke-color': '#ffffff',
@@ -975,13 +967,13 @@ map.addLayer({
       'text-font': ['Inter Bold', 'Arial Bold'],
       'text-size': [
         'interpolate', ['linear'], ['zoom'],
-        4,  isMobile ? 7 : 7,
-        6,  isMobile ? 8 : 8,
-        7,  isMobile ? 10 : 10,
-        8,  isMobile ? 10 : 10,
-        10, isMobile ? 12 : 12,
-        14, isMobile ? 14 : 14,
-        16, isMobile ? 16 : 16
+        4,  isMobile ? 7 : 9,
+        6,  isMobile ? 8 : 10,
+        7,  isMobile ? 10 : 12,
+        8,  isMobile ? 10 : 12,
+        10, isMobile ? 12 : 14,
+        14, isMobile ? 14 : 16,
+        16, isMobile ? 16 : 18
       ],
       'text-anchor': 'center',
       'text-allow-overlap': false,
@@ -1865,55 +1857,6 @@ const fetchDMA = async () => {
     console.error("Errore fetch IGNORETE:", err);
   }
 };
-const fetchWF = async () => {
-  try {
-    const res = await fetch(
-      "https://api-stazioni-meteo.eggittof.workers.dev/weatherflow.json"
-    );
-
-    const data = await res.json();
-
-    if (!data?.stations) return;
-
-    data.stations.forEach((st) => {
-
-      // ✅ FIX: ID stabile
-      const id = st.N;
-
-      const lat = Number(st.LAT);
-      const lon = Number(st.LON);
-
-      if (!lat || !lon) return;
-
-      allStations[id] = {
-        source: "WEATHERFLOW",
-        temp: st.T ?? null,
-        tempHigh: null,
-        tempLow: null,
-        hum: st.H ?? null,
-        humHigh: null,
-        humLow: null,
-        dewp: st.D ?? null,
-        dewpHigh: null,
-        dewpLow: null,
-        wind: st.V ?? null,
-        windGust: st.VR ?? null,
-        windDir: st.WD ?? null,
-        rainDaily: st.R ?? null,
-        rainRate: st.RR ?? null,
-        heat: null,
-        heatHigh: null,
-        heatLow: null,
-        lat,
-        lon
-      };
-      updateLayer(id);
-    });
-
-  } catch (err) {
-    console.error("Errore fetch WF:", err);
-  }
-};
 const fetchComuneGenova = async () => {
 
   try {
@@ -2494,7 +2437,6 @@ setRegion("lombardia");
   fetchComuneGenova();
   fetchLimet();
   fetchPWSGenova();
-  fetchWF();
   fetchWeatherLinkLIG();
 }
 function startLiguria(){
@@ -2519,7 +2461,6 @@ function startLiguria(){
   intervals.push(setInterval(fetchComuneGenova, 300000));
   intervals.push(setInterval(fetchLimet, 300000));
   intervals.push(setInterval(fetchPWSGenova, 300000));
-  intervals.push(setInterval(fetchWF, 300000));
 }
 function startTrentino(){
 
