@@ -283,10 +283,14 @@
 
         <!-- 3 - HEAT INDEX -->
 
-        <div class="glass-box">
+<div class="glass-box">
 
-        </div>
+    <canvas
+        id="heatIndexGauge"
+        class="gauge-canvas"
+    ></canvas>
 
+</div>
 
         <!-- 4 - HUMIDEX -->
 
@@ -758,7 +762,7 @@ const temperatureGauge = new steelseries.Radial(
    20.0 °C
 ========================================= */
 
-temperatureGauge.setValueAnimated(20.0);
+temperatureGauge.setValueAnimated(24.2);
 /* =========================================
    GAUGE DEWPOINT
 ========================================= */
@@ -836,7 +840,85 @@ const dewpointGauge = new steelseries.Radial(
    15.0 °C
 ========================================= */
 
-dewpointGauge.setValueAnimated(15.0);
+dewpointGauge.setValueAnimated(15.9);
+/* =========================================
+   GAUGE HEAT INDEX
+========================================= */
+
+const heatIndexGauge = new steelseries.Radial(
+
+    document.getElementById("heatIndexGauge"),
+
+    {
+
+        gaugeType:
+            gaugeGlobals.gaugeType,
+
+        size:
+            240,
+
+        minValue:
+            -20,
+
+        maxValue:
+            50,
+
+        threshold:
+            35,
+
+        titleString:
+            "HEAT INDEX",
+
+        unitString:
+            "°C",
+
+        lcdDecimals:
+            1,
+
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED
+
+    }
+
+);
+
+
+/* =========================================
+   VALORE DI TEST
+   24.0 °C
+========================================= */
+
+heatIndexGauge.setValueAnimated(34.2);
     </script>
 
 
