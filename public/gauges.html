@@ -24,7 +24,6 @@
   >
 
   <style>
-
     * {
       box-sizing: border-box;
     }
@@ -43,7 +42,6 @@
 
       font-family: "Inter", sans-serif;
     }
-
 
     /* =========================
        FOTO FULL SCREEN
@@ -91,6 +89,10 @@
 
       z-index: 10;
 
+      /*
+        Larghezza quasi completa,
+        ma con margini laterali.
+      */
       width: calc(100% - 36px);
 
       min-height: 58px;
@@ -103,6 +105,10 @@
 
       border-radius: 999px;
 
+      /*
+        Effetto vetro / metallo
+        stile iPhone
+      */
       background:
         linear-gradient(
           135deg,
@@ -129,6 +135,9 @@
 
       overflow: hidden;
 
+      /*
+        Leggera trasparenza generale
+      */
       opacity: 0.96;
     }
 
@@ -152,187 +161,45 @@
     }
 
 
-    /* =========================
-       DASHBOARD
-       ========================= */
-
-    #dashboard {
-
-      position: fixed;
-
-      top: 92px;
-      left: 18px;
-
-      width: 25vw;
-
-      min-width: 280px;
-
-      height: calc(100vh - 110px);
-
-      z-index: 9;
-
-      padding: 24px;
-
-      border-radius: 30px;
-
-      background:
-        linear-gradient(
-          135deg,
-          rgba(255,255,255,0.32),
-          rgba(255,255,255,0.14) 45%,
-          rgba(255,255,255,0.08)
-        );
-
-      backdrop-filter: blur(22px) saturate(160%);
-      -webkit-backdrop-filter: blur(22px) saturate(160%);
-
-      border: 1px solid rgba(255,255,255,0.32);
-
-      box-shadow:
-        inset 0 1px 1px rgba(255,255,255,0.40),
-        inset 0 -1px 1px rgba(0,0,0,0.12),
-        0 8px 30px rgba(0,0,0,0.25);
-
-      color: white;
-
-      overflow: hidden;
-    }
-
-
-    /* =========================
-       DASHBOARD TITOLO
-       ========================= */
-
-    .dashboard-title {
-
-      font-size: 13px;
-
-      font-weight: 600;
-
-      text-transform: uppercase;
-
-      letter-spacing: 0.8px;
-
-      opacity: 0.65;
-
-      margin-bottom: 20px;
-    }
-
-
-    /* =========================
-       TEMPERATURA
-       ========================= */
-
-    .dashboard-item {
-
-      width: 100%;
-
-      padding: 18px 0;
-
-      border-bottom:
-        1px solid rgba(255,255,255,0.18);
-    }
-
-
-    .dashboard-label {
-
-      font-size: 16px;
-
-      font-weight: 500;
-
-      opacity: 0.85;
-
-      margin-bottom: 8px;
-    }
-
-
-    .dashboard-value {
-
-      font-size: 34px;
-
-      font-weight: 600;
-
-      letter-spacing: -1px;
-    }
-
-
-    /* =========================
-       ERRORE
-       ========================= */
-
-    #error {
-
-      display: none;
-
-      position: fixed;
-
-      top: 50%;
-      left: 50%;
-
-      transform: translate(-50%, -50%);
-
-      padding: 25px;
-
-      max-width: 90%;
-
-      background: white;
-
-      border-radius: 16px;
-
-      color: #a00000;
-
-      text-align: center;
-
-      font-family: "Inter", sans-serif;
-
-      box-shadow:
-        0 5px 30px rgba(0,0,0,0.4);
-
-      z-index: 20;
-    }
-
-
-    /* =========================
-       MOBILE
-       ========================= */
-
-    @media (max-width: 800px) {
-
-      #stationBar {
-
-        top: 12px;
-
-        width: calc(100% - 24px);
-
-        min-height: 50px;
-
-        padding: 12px 20px;
-      }
-
-      #stationName {
-
-        font-size: 14px;
-      }
-
-      #dashboard {
-
-        top: 74px;
-
-        left: 12px;
-
-        width: calc(100vw - 24px);
-
-        min-width: 0;
-
-        height: 300px;
-
-        border-radius: 24px;
-
-        padding: 20px;
-      }
-
-    }
-
+/* ========================= DASHBOARD A SINISTRA ========================= */ 
+#dashboard 
+{ position: fixed; 
+  top: 92px; 
+  left: 18px; 
+  width: 25vw; 
+  height: calc(100vh - 110px); 
+  z-index: 9; 
+  padding: 24px; 
+  border-radius: 30px; 
+  background: linear-gradient( 135deg, rgba(255,255,255,0.38), rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.10) ); 
+  backdrop-filter: blur(22px) saturate(160%); 
+  -webkit-backdrop-filter: blur(22px) saturate(160%); 
+  border: 1px solid rgba(255,255,255,0.35); 
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -1px 1px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.25); 
+  color: white; 
+  overflow: hidden; } 
+
+  #dashboardTitle 
+  { font-size: 18px; 
+    font-weight: 600; 
+    margin-bottom: 20px; 
+    text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+     /* ========================= ERRORE ========================= */ 
+     #error { display: none; 
+      position: fixed; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      padding: 25px; 
+      max-width: 90%; 
+      background: white; 
+      border-radius: 16px; 
+      color: #a00000; 
+      text-align: center; 
+      font-family: "Inter", sans-serif; 
+      box-shadow: 0 5px 30px rgba(0,0,0,0.4); 
+      z-index: 20; } 
+      /* ========================= MOBILE ========================= */ @media (max-width: 600px) { #stationBar { top: 12px; width: calc(100% - 24px); min-height: 50px; padding: 12px 20px; } #stationName { font-size: 14px; } #dashboard { top: 74px; left: 12px; width: calc(100% - 24px); height: 300px; border-radius: 24px; } }
   </style>
 </head>
 
@@ -341,41 +208,12 @@
   <main>
 
     <!-- =========================
-         BARRA SUPERIORE
+         BARRA
          ========================= -->
 
     <div id="stationBar">
 
       <div id="stationName"></div>
-
-    </div>
-
-
-    <!-- =========================
-         DASHBOARD
-         ========================= -->
-
-    <div id="dashboard">
-
-      <div class="dashboard-title">
-        Dashboard
-      </div>
-
-
-      <div class="dashboard-item">
-
-        <div class="dashboard-label">
-          Temperatura:
-        </div>
-
-        <div
-          class="dashboard-value"
-          id="temperature"
-        >
-          --
-        </div>
-
-      </div>
 
     </div>
 
@@ -409,45 +247,37 @@
     const stationPhotos = {
 
       "IGENOA2897": {
-
-        name:
-          "Genova San Martino - Fonte: Wunderground - Altitudine: 104 m.s.l.m.",
-
-        photo:
-          "SanMartino1.png",
-
-        temperature:
-          "22.4 °C"
-
-      },
-
-
+        name: "Genova San Martino - Fonte: Wunderground - Altitudine: 104 m.s.l.m.",
+        photo: "SanMartino1.png"
+      },      
       "IGENOA3052": {
-
-        name:
-          "Genova Boccadasse - Fonte: Wunderground - Altitudine: 41 m.s.l.m.",
-
-        photo:
-          "Boccadasse1.png",
-
-        temperature:
-          "23.1 °C"
-
-      },
-
-
+        name: "Genova Boccadasse - Fonte: Wunderground - Altitudine: 41 m.s.l.m.",
+        photo: "Boccadasse1.png"
+      },      
       "IGENOA3085": {
-
-        name:
-          "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m.",
-
-        photo:
-          "Sturla1.jpg",
-
-        temperature:
-          "22.8 °C"
-
+        name: "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m.",
+        photo: "Sturla1.jpg"
       }
+
+      // =========================
+      // ALTRE STAZIONI
+      // =========================
+
+      // "IGENOA1234": {
+      //
+      //   name: "Genova Brignole - Fonte: Wunderground",
+      //
+      //   photo: "Brignole.png"
+      //
+      // },
+
+      // "IGENOA5678": {
+      //
+      //   name: "Genova Nervi - Fonte: Wunderground",
+      //
+      //   photo: "Nervi.png"
+      //
+      // }
 
     };
 
@@ -484,16 +314,6 @@
         "stationName"
       );
 
-    const dashboard =
-      document.getElementById(
-        "dashboard"
-      );
-
-    const temperature =
-      document.getElementById(
-        "temperature"
-      );
-
     const error =
       document.getElementById(
         "error"
@@ -513,9 +333,6 @@
         "none";
 
       bar.style.display =
-        "none";
-
-      dashboard.style.display =
         "none";
 
       error.style.display =
@@ -541,14 +358,6 @@
 
 
       // =========================
-      // TEMPERATURA
-      // =========================
-
-      temperature.textContent =
-        data.temperature || "--";
-
-
-      // =========================
       // FOTO
       // =========================
 
@@ -569,9 +378,6 @@
           "none";
 
         bar.style.display =
-          "none";
-
-        dashboard.style.display =
           "none";
 
         error.style.display =
