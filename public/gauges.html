@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
+
     <title>Gauges</title>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -12,32 +15,71 @@
     <!-- Font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
 
     <style>
+
         * {
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
+
             width: 100%;
             height: 100%;
+
             overflow: hidden;
+
             background: #000;
+
             font-family: "Inter", sans-serif;
         }
 
-        /* Barra superiore */
-        .top-bar {
+
+        /* =========================================
+           SFONDO STAZIONE
+        ========================================= */
+
+        #stationBackground {
+
             position: fixed;
+
+            inset: 0;
+
+            width: 100vw;
+            height: 100vh;
+
+            object-fit: cover;
+
+            display: block;
+
+            z-index: 0;
+        }
+
+
+        /* =========================================
+           BARRA SUPERIORE
+        ========================================= */
+
+        .top-bar {
+
+            position: fixed;
+
             top: 14px;
             left: 14px;
             right: 14px;
+
             height: 64px;
 
             display: flex;
+
             justify-content: center;
             align-items: center;
 
@@ -63,32 +105,54 @@
                 0 8px 30px rgba(0,0,0,0.25);
 
             color: white;
+
             z-index: 1000;
         }
 
+
+        /* =========================================
+           NOME STAZIONE
+        ========================================= */
+
         .station-name {
+
             font-size: 26px;
+
             font-weight: 600;
+
             letter-spacing: -0.03em;
+
             text-align: center;
+
             white-space: nowrap;
+
             overflow: hidden;
+
             text-overflow: ellipsis;
+
             width: 100%;
         }
 
-        /* Griglia */
+
+        /* =========================================
+           GRIGLIA DEI 15 RIQUADRI
+        ========================================= */
+
         .boxes {
+
             position: fixed;
 
             top: 95px;
+
             left: 10%;
             right: 10%;
+
             bottom: 14px;
 
             display: grid;
 
             grid-template-columns: repeat(5, 1fr);
+
             grid-template-rows: repeat(3, 1fr);
 
             gap: 14px;
@@ -96,8 +160,13 @@
             z-index: 900;
         }
 
-        /* Riquadro */
+
+        /* =========================================
+           RIQUADRO GLASS
+        ========================================= */
+
         .glass-box {
+
             width: 100%;
             height: 100%;
 
@@ -117,212 +186,451 @@
             border: 1px solid rgba(255,255,255,0.22);
 
             box-shadow:
+
                 inset 0 1px 1px rgba(255,255,255,0.25),
+
                 inset 0 -1px 2px rgba(0,0,0,0.15),
+
                 0 8px 30px rgba(0,0,0,0.25);
 
             display: flex;
+
             justify-content: center;
+
             align-items: center;
 
             overflow: hidden;
         }
 
-        /* Canvas del gauge */
+
+        /* =========================================
+           CANVAS GAUGE
+        ========================================= */
+
         .gauge-canvas {
+
             width: 100%;
             height: 100%;
+
             max-width: 260px;
             max-height: 260px;
         }
+
     </style>
+
 </head>
+
 
 <body>
 
-    <!-- Barra superiore -->
+
+    <!-- =========================================
+         SFONDO PNG DELLA STAZIONE
+    ========================================= -->
+
+    <img
+        id="stationBackground"
+        alt=""
+    >
+
+
+    <!-- =========================================
+         BARRA SUPERIORE
+    ========================================= -->
+
     <div class="top-bar">
-        <div class="station-name" id="stationName">
+
+        <div
+            class="station-name"
+            id="stationName"
+        >
             Caricamento...
         </div>
+
     </div>
 
-    <!-- 15 riquadri -->
+
+    <!-- =========================================
+         15 RIQUADRI
+    ========================================= -->
+
     <div class="boxes">
 
+
         <!-- 1 - TEMPERATURA -->
+
         <div class="glass-box">
-            <canvas id="temperatureGauge" class="gauge-canvas"></canvas>
+
+            <canvas
+                id="temperatureGauge"
+                class="gauge-canvas"
+            ></canvas>
+
         </div>
 
-        <!-- 2 -->
-        <div class="glass-box"></div>
 
-        <!-- 3 -->
-        <div class="glass-box"></div>
+        <!-- 2 - DEWPOINT -->
 
-        <!-- 4 -->
-        <div class="glass-box"></div>
+        <div class="glass-box">
 
-        <!-- 5 -->
-        <div class="glass-box"></div>
+        </div>
 
-        <!-- 6 -->
-        <div class="glass-box"></div>
 
-        <!-- 7 -->
-        <div class="glass-box"></div>
+        <!-- 3 - HEAT INDEX -->
 
-        <!-- 8 -->
-        <div class="glass-box"></div>
+        <div class="glass-box">
 
-        <!-- 9 -->
-        <div class="glass-box"></div>
+        </div>
 
-        <!-- 10 -->
-        <div class="glass-box"></div>
 
-        <!-- 11 -->
-        <div class="glass-box"></div>
+        <!-- 4 - HUMIDEX -->
 
-        <!-- 12 -->
-        <div class="glass-box"></div>
+        <div class="glass-box">
 
-        <!-- 13 -->
-        <div class="glass-box"></div>
+        </div>
 
-        <!-- 14 -->
-        <div class="glass-box"></div>
 
-        <!-- 15 -->
-        <div class="glass-box"></div>
+        <!-- 5 - TEMP PERCEPITA -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 6 - UMIDITA' -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 7 - PRESSIONE -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 8 - VENTO -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 9 - DIREZIONE -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 10 - ROSA DEI VENTI -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 11 - UV -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 12 - RADIAZIONE SOLARE -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 13 - PIOGGIA -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 14 - RAIN RATE -->
+
+        <div class="glass-box">
+
+        </div>
+
+
+        <!-- 15 - CLOUDBASE -->
+
+        <div class="glass-box">
+
+        </div>
+
 
     </div>
+
+
 
     <script>
 
-        /* ================================
-           STAZIONI
-        ================================= */
+
+        /* =========================================
+           STAZIONI WUNDERGROUND
+        ========================================= */
 
         const StazioniWunderground = {
+
             "IGENOA2897": {
-                name: "Genova San Martino - Fonte: Wunderground - Altitudine: 104 m.s.l.m.",
-                link: "SanMartino1.png"
+
+                name:
+                    "Genova San Martino - Fonte: Wunderground - Altitudine: 104 m.s.l.m.",
+
+                link:
+                    "SanMartino1.png"
             },
+
 
             "IGENOA3085": {
-                name: "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m.",
-                link: "Sturla1.png"
+
+                name:
+                    "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m.",
+
+                link:
+                    "Sturla1.png"
             },
 
+
             "IGENOA3052": {
-                name: "Genova Boccadasse - Fonte: Wunderground - Altitudine: 41 m.s.l.m.",
-                link: "Boccadasse1.png"
+
+                name:
+                    "Genova Boccadasse - Fonte: Wunderground - Altitudine: 41 m.s.l.m.",
+
+                link:
+                    "Boccadasse1.png"
             }
+
         };
+
+
+
+        /* =========================================
+           STAZIONI OMIRL
+        ========================================= */
 
         const StazioniOMIRL = {
+
             "CFUNZ": {
-                name: "Genova Centro Funzionale - Fonte: OMIRL - Altitudine: 25 m.s.l.m.",
-                link: "CFUNZ2.png"
+
+                name:
+                    "Genova Centro Funzionale - Fonte: OMIRL - Altitudine: 25 m.s.l.m.",
+
+                link:
+                    "CFUNZ2.png"
             }
+
         };
 
 
-        /* ================================
+
+        /* =========================================
            PARAMETRI URL
-        ================================= */
+        ========================================= */
 
-        const params = new URLSearchParams(window.location.search);
-
-        const station = params.get("station");
-        const source = params.get("source");
+        const params =
+            new URLSearchParams(window.location.search);
 
 
-        /* ================================
-           STAZIONE
-        ================================= */
+        const station =
+            params.get("station");
 
-        let stazione;
+
+        const source =
+            params.get("source");
+
+
+
+        /* =========================================
+           SCELTA DELLA STAZIONE
+        ========================================= */
+
+        let stazione = null;
+
 
         if (source === "OMIRL") {
-            stazione = StazioniOMIRL[station];
+
+            stazione =
+                StazioniOMIRL[station];
+
         }
+
+
         else if (source === "Wunderground") {
-            stazione = StazioniWunderground[station];
+
+            stazione =
+                StazioniWunderground[station];
+
         }
 
 
-        const stationName = document.getElementById("stationName");
 
+        /* =========================================
+           ELEMENTI HTML
+        ========================================= */
+
+        const stationName =
+            document.getElementById("stationName");
+
+
+        const stationBackground =
+            document.getElementById("stationBackground");
+
+
+
+        /* =========================================
+           CARICAMENTO STAZIONE
+        ========================================= */
 
         if (stazione) {
 
-            stationName.textContent = stazione.name;
-            document.title = stazione.name;
 
-        } else {
+            /* Nome stazione */
 
-            stationName.textContent = "Stazione non trovata";
+            stationName.textContent =
+                stazione.name;
+
+
+            /* Titolo pagina */
+
+            document.title =
+                stazione.name;
+
+
+            /* Sfondo PNG */
+
+            stationBackground.src =
+                stazione.link;
 
         }
 
 
-        /* ================================
+        else {
+
+
+            /* Stazione non trovata */
+
+            stationName.textContent =
+                "Stazione non trovata";
+
+
+            stationBackground.style.display =
+                "none";
+
+        }
+
+
+
+        /* =========================================
            GAUGE TEMPERATURA
-        ================================= */
+        ========================================= */
 
-        const temperatureGauge = new steelseries.Radial(
+        const temperatureGauge =
 
-            document.getElementById("temperatureGauge"),
+            new steelseries.Radial(
 
-            {
-                gaugeType: steelseries.GaugeType.TYPE4,
+                document.getElementById(
+                    "temperatureGauge"
+                ),
 
-                size: 240,
+                {
 
-                minValue: -20,
-                maxValue: 50,
-
-                threshold: 35,
-
-                titleString: "TEMPERATURA",
-                unitString: "°C",
-
-                lcdDecimals: 1,
-
-                valueColor: steelseries.ColorDef.RED,
-
-                frameDesign: steelseries.FrameDesign.STEEL,
-
-                backgroundColor: steelseries.BackgroundColor.BLACK,
-
-                foregroundType: steelseries.ForegroundType.TYPE1,
-
-                pointerType: steelseries.PointerType.TYPE1,
-
-                pointerColor: steelseries.ColorDef.RED,
-
-                ledColor: steelseries.LedColor.RED_LED,
-
-                lcdColor: steelseries.LcdColor.STANDARD,
-
-                section: null,
-                area: null
-            }
-
-        );
+                    gaugeType:
+                        steelseries.GaugeType.TYPE4,
 
 
-        /* ================================
+                    size:
+                        240,
+
+
+                    minValue:
+                        -20,
+
+
+                    maxValue:
+                        50,
+
+
+                    threshold:
+                        35,
+
+
+                    titleString:
+                        "TEMPERATURA",
+
+
+                    unitString:
+                        "°C",
+
+
+                    lcdDecimals:
+                        1,
+
+
+                    valueColor:
+                        steelseries.ColorDef.RED,
+
+
+                    frameDesign:
+                        steelseries.FrameDesign.STEEL,
+
+
+                    backgroundColor:
+                        steelseries.BackgroundColor.BLACK,
+
+
+                    foregroundType:
+                        steelseries.ForegroundType.TYPE1,
+
+
+                    pointerType:
+                        steelseries.PointerType.TYPE1,
+
+
+                    pointerColor:
+                        steelseries.ColorDef.RED,
+
+
+                    ledColor:
+                        steelseries.LedColor.RED_LED,
+
+
+                    lcdColor:
+                        steelseries.LcdColor.STANDARD,
+
+
+                    section:
+                        null,
+
+
+                    area:
+                        null
+
+                }
+
+            );
+
+
+
+        /* =========================================
            VALORE DI TEST
            20.0 °C
-        ================================= */
+        ========================================= */
 
         temperatureGauge.setValueAnimated(20.0);
 
+
     </script>
 
+
 </body>
+
 </html>
