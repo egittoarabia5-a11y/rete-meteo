@@ -294,16 +294,25 @@
 
         <!-- 4 - HUMIDEX -->
 
-        <div class="glass-box">
+<div class="glass-box">
 
-        </div>
+    <canvas
+        id="humidexGauge"
+        class="gauge-canvas"
+    ></canvas>
 
+</div>
 
         <!-- 5 - TEMP PERCEPITA -->
 
-        <div class="glass-box">
+<div class="glass-box">
 
-        </div>
+    <canvas
+        id="percepitaGauge"
+        class="gauge-canvas"
+    ></canvas>
+
+</div>
 
 
         <!-- 6 - UMIDITA' -->
@@ -711,7 +720,7 @@ const temperatureGauge = new steelseries.Radial(
             35,
 
         titleString:
-            "TEMPERATURA",
+            "Temperatura",
 
         unitString:
             "°C",
@@ -789,7 +798,7 @@ const dewpointGauge = new steelseries.Radial(
             20,
 
         titleString:
-            "DEWPOINT",
+            "Dewpoint",
 
         unitString:
             "°C",
@@ -867,7 +876,7 @@ const heatIndexGauge = new steelseries.Radial(
             35,
 
         titleString:
-            "HEAT INDEX",
+            "Heat Index",
 
         unitString:
             "°C",
@@ -919,6 +928,158 @@ const heatIndexGauge = new steelseries.Radial(
 ========================================= */
 
 heatIndexGauge.setValueAnimated(34.2);
+/* =========================================
+   GAUGE HUMIDEX
+========================================= */
+
+const humidexGauge = new steelseries.Radial(
+
+    document.getElementById("humidexGauge"),
+
+    {
+
+        gaugeType:
+            gaugeGlobals.gaugeType,
+
+        size:
+            240,
+
+        minValue:
+            -20,
+
+        maxValue:
+            50,
+
+        threshold:
+            35,
+
+        titleString:
+            "Humidex",
+
+        unitString:
+            "°C",
+
+        lcdDecimals:
+            1,
+
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED
+
+    }
+
+);
+
+
+/* =========================================
+   VALORE DI TEST
+   25.0 °C
+========================================= */
+
+humidexGauge.setValueAnimated(38.4);
+const percepitaGauge = new steelseries.Radial(
+
+    document.getElementById("percepitaGauge"),
+
+    {
+
+        gaugeType:
+            gaugeGlobals.gaugeType,
+
+        size:
+            240,
+
+        minValue:
+            -20,
+
+        maxValue:
+            50,
+
+        threshold:
+            35,
+
+        titleString:
+            "Temp. Apparente",
+
+        unitString:
+            "°C",
+
+        lcdDecimals:
+            1,
+
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED
+
+    }
+
+);
+
+
+/* =========================================
+   VALORE DI TEST
+   25.0 °C
+========================================= */
+
+percepitaGauge.setValueAnimated(38.4);
     </script>
 
 
