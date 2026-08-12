@@ -271,9 +271,14 @@
 
         <!-- 2 - DEWPOINT -->
 
-        <div class="glass-box">
+<div class="glass-box">
 
-        </div>
+    <canvas
+        id="dewpointGauge"
+        class="gauge-canvas"
+    ></canvas>
+
+</div>
 
 
         <!-- 3 - HEAT INDEX -->
@@ -754,6 +759,84 @@ const temperatureGauge = new steelseries.Radial(
 ========================================= */
 
 temperatureGauge.setValueAnimated(20.0);
+/* =========================================
+   GAUGE DEWPOINT
+========================================= */
+
+const dewpointGauge = new steelseries.Radial(
+
+    document.getElementById("dewpointGauge"),
+
+    {
+
+        gaugeType:
+            gaugeGlobals.gaugeType,
+
+        size:
+            240,
+
+        minValue:
+            -20,
+
+        maxValue:
+            40,
+
+        threshold:
+            20,
+
+        titleString:
+            "DEWPOINT",
+
+        unitString:
+            "°C",
+
+        lcdDecimals:
+            1,
+
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.BLUE_LED
+
+    }
+
+);
+
+
+/* =========================================
+   VALORE DI TEST
+   15.0 °C
+========================================= */
+
+dewpointGauge.setValueAnimated(15.0);
     </script>
 
 
