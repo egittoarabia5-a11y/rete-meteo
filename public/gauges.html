@@ -533,100 +533,46 @@
            GAUGE TEMPERATURA
         ========================================= */
 
-        const temperatureGauge =
+        const temperatureGauge = new steelseries.Radial(
+    document.getElementById("temperatureGauge"),
+    {
+        gaugeType: steelseries.GaugeType.TYPE4,
 
-            new steelseries.Radial(
+        size: 240,
 
-                document.getElementById(
-                    "temperatureGauge"
-                ),
+        minValue: -20,
+        maxValue: 50,
 
-                {
+        threshold: 35,
 
-                    gaugeType:
-                        steelseries.GaugeType.TYPE4,
+        titleString: "TEMPERATURA",
+        unitString: "°C",
 
+        lcdDecimals: 1,
 
-                    size:
-                        240,
+        /* Colori */
+        backgroundColor: steelseries.BackgroundColor.LIGHT_GRAY,
 
+        frameDesign: steelseries.FrameDesign.CHROME,
 
-                    minValue:
-                        -20,
+        valueColor: steelseries.ColorDef.BLACK,
 
+        pointerType: steelseries.PointerType.TYPE1,
 
-                    maxValue:
-                        50,
+        pointerColor: steelseries.ColorDef.BLACK,
 
+        foregroundType: steelseries.ForegroundType.TYPE1,
 
-                    threshold:
-                        35,
+        ledColor: steelseries.LedColor.RED_LED,
 
+        lcdColor: steelseries.LcdColor.WHITE,
 
-                    titleString:
-                        "TEMPERATURA",
+        section: null,
+        area: null
+    }
+);
 
-
-                    unitString:
-                        "°C",
-
-
-                    lcdDecimals:
-                        1,
-
-
-                    valueColor:
-                        steelseries.ColorDef.RED,
-
-
-                    frameDesign:
-                        steelseries.FrameDesign.STEEL,
-
-
-                    backgroundColor:
-                        steelseries.BackgroundColor.BLACK,
-
-
-                    foregroundType:
-                        steelseries.ForegroundType.TYPE1,
-
-
-                    pointerType:
-                        steelseries.PointerType.TYPE1,
-
-
-                    pointerColor:
-                        steelseries.ColorDef.RED,
-
-
-                    ledColor:
-                        steelseries.LedColor.RED_LED,
-
-
-                    lcdColor:
-                        steelseries.LcdColor.STANDARD,
-
-
-                    section:
-                        null,
-
-
-                    area:
-                        null
-
-                }
-
-            );
-
-
-
-        /* =========================================
-           VALORE DI TEST
-           20.0 °C
-        ========================================= */
-
-        temperatureGauge.setValueAnimated(20.0);
-
+temperatureGauge.setValueAnimated(20.0);
 
     </script>
 
