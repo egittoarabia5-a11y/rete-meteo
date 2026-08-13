@@ -332,9 +332,9 @@
 
         <!-- 8 - VENTO -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="windGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 9 - DIREZIONE -->
@@ -1163,6 +1163,46 @@ const pressureGauge = new steelseries.Radial(
 ================================= */
 
 pressureGauge.setValueAnimated(1013.2);
+
+const windGauge = new steelseries.Radial(
+    document.getElementById("windGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 30,
+
+        threshold: 20,
+
+        titleString: "Vento",
+        unitString: "km/h",
+
+        lcdDecimals: 1,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORE DI TEST
+   6.4 km/h
+================================= */
+
+windGauge.setValueAnimated(6.4);
     </script>
 
 
