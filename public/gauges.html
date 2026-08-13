@@ -340,15 +340,15 @@
         <!-- 9 - DIREZIONE -->
 
 <div class="glass-box">
-    <canvas id="windDirectionGauge" class="gauge-canvas"></canvas>
+    <canvas id="windGustGauge" class="gauge-canvas"></canvas>
 </div>
 
 
         <!-- 10 - ROSA DEI VENTI -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="windDirectionGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 11 - UV -->
@@ -381,9 +381,9 @@
 
         <!-- 15 - CLOUDBASE -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="CloudBaseGauge" class="gauge-canvas"></canvas>
+</div>
 
 
     </div>
@@ -1203,6 +1203,45 @@ const windGauge = new steelseries.Radial(
 ================================= */
 
 windGauge.setValueAnimated(6.4);
+const windGustGauge = new steelseries.Radial(
+    document.getElementById("windGustGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 30,
+
+        threshold: 20,
+
+        titleString: "Raffica",
+        unitString: "km/h",
+
+        lcdDecimals: 1,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORE DI TEST
+   6.4 km/h
+================================= */
+
+windGustGauge.setValueAnimated(9.6);
 
 /* ================================
    GAUGE DIREZIONE DEL VENTO
@@ -1482,6 +1521,46 @@ const RainRateGauge = new steelseries.Radial(
 ================================= */
 
 RainRateGauge.setValueAnimated(9.6);
+
+const CloudBaseGauge = new steelseries.Radial(
+    document.getElementById("CloudBaseGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 2000,
+
+        threshold: 75,
+
+        titleString: "Base Nuvolosa",
+        unitString: "m",
+
+        lcdDecimals: 0,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORE DI TEST
+   1013.2 hPa
+================================= */
+
+CloudBaseGauge.setValueAnimated(1500);
     </script>
 
 
