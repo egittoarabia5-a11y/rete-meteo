@@ -596,7 +596,11 @@ let dewpointMaxRecorded = null;   // massima registrata
 let dewpointValue = null;  
 let heatIndexMinRecorded = null;
 let heatIndexMaxRecorded = null;
-let heatIndexValue = null;       // valore attuale
+let heatIndexValue = null;   
+let humidexMinRecorded = null;
+let humidexMaxRecorded = null;
+let humidexValue = null;
+    // valore attuale
 
 async function fetchPws(id) {
 
@@ -2721,11 +2725,6 @@ heatIndexGaugeElement.addEventListener(
 // =========================================
 // DATI HUMIDEX
 // =========================================
-
-let humidexMinRecorded = null;
-let humidexMaxRecorded = null;
-let humidexValue = null;
-
 
 // =========================================
 // CONFIGURAZIONE SCALA
