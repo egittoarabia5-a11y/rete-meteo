@@ -692,18 +692,19 @@ let temperatureValue = 34.2; // valore attuale
 
 
 // =========================================
-// FUNZIONI SCALA
+// FUNZIONE PER CALCOLARE LA SCALA
 // =========================================
 
-function getGaugeMin(value) {
+function updateTemperatureScale() {
 
-    return Math.floor(value / 10) * 10;
+    // Il massimo della scala è sempre
+    // il multiplo di 10 superiore al record massimo
 
-}
+    tempMax = Math.ceil(temperatureMax / 10) * 10;
 
-function getGaugeMax(value) {
+    // La scala deve essere SEMPRE di 60°C
 
-    return Math.ceil(value / 10) * 10;
+    tempMin = tempMax - 60;
 
 }
 
@@ -712,8 +713,10 @@ function getGaugeMax(value) {
 // SCALA INIZIALE
 // =========================================
 
-let tempMin = getGaugeMin(temperatureMin);
-let tempMax = getGaugeMax(temperatureMax);
+let tempMin;
+let tempMax;
+
+updateTemperatureScale();
 
 
 // =========================================
@@ -926,28 +929,31 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // CALCOLA I LIMITI DELLA SCALA
+    // RICALCOLA LA SCALA
     // =========================================
 
-    const newTempMin =
-        getGaugeMin(temperatureMin);
+    const oldTempMin = tempMin;
+    const oldTempMax = tempMax;
 
-    const newTempMax =
-        getGaugeMax(temperatureMax);
+    updateTemperatureScale();
 
 
     // =========================================
-    // AGGIORNA LA SCALA
+    // AGGIORNA LA SCALA SOLO SE NECESSARIO
     // =========================================
 
     if (
-        temperatureGauge.getMinValue() !== newTempMin ||
-        temperatureGauge.getMaxValue() !== newTempMax
+        oldTempMin !== tempMin ||
+        oldTempMax !== tempMax
     ) {
 
-        temperatureGauge.setMinValue(newTempMin);
+        temperatureGauge.setMinValue(
+            tempMin
+        );
 
-        temperatureGauge.setMaxValue(newTempMax);
+        temperatureGauge.setMaxValue(
+            tempMax
+        );
 
     }
 
