@@ -374,9 +374,9 @@
 
         <!-- 14 - RAIN RATE -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="RainRateGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 15 - CLOUDBASE -->
@@ -1442,6 +1442,46 @@ const RainGauge = new steelseries.RadialBargraph(
 );
 
 RainGauge.setValueAnimated(4.8);
+
+const RainRateGauge = new steelseries.Radial(
+    document.getElementById("RainRateGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 100,
+
+        threshold: 75,
+
+        titleString: "Rain Rate",
+        unitString: "mm/h",
+
+        lcdDecimals: 1,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORE DI TEST
+   1013.2 hPa
+================================= */
+
+RainRateGauge.setValueAnimated(9.6);
     </script>
 
 
