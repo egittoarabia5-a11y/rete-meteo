@@ -728,11 +728,15 @@ async function fetchPws(id) {
                 : null;
 
 
-        const tempHigh =
-            summary ? summary.tempHigh : null;
+const tempHigh =
+    summary ? summary.tempHigh : null;
 
-        const tempLow =
-            summary ? summary.tempLow : null;
+const tempLow =
+    summary ? summary.tempLow : null;
+
+console.log("🔵 DAILY SUMMARY RAW:", summary);
+console.log("🔵 tempHigh RAW:", tempHigh, typeof tempHigh);
+console.log("🔵 tempLow RAW:", tempLow, typeof tempLow);
 
         const dewpHigh =
             summary ? summary.dewptHigh : null;
@@ -768,38 +772,43 @@ async function fetchPws(id) {
 
         latestData[id] = {
 
-            source: "Wunderground",
+    source: "Wunderground",
 
-            temp,
-            tempHigh,
-            tempLow,
+    temp,
+    tempHigh,
+    tempLow,
 
-            dewp,
-            dewpHigh,
-            dewpLow,
+    dewp,
+    dewpHigh,
+    dewpLow,
 
-            heat,
-            heatHigh,
-            heatLow,
+    heat,
+    heatHigh,
+    heatLow,
 
-            hum,
-            humHigh,
-            humLow,
+    hum,
+    humHigh,
+    humLow,
 
-            rainDaily,
-            rainRate,
+    rainDaily,
+    rainRate,
 
-            wind,
-            windGust,
-            windGustHigh,
+    wind,
+    windGust,
+    windGustHigh,
 
-            windDir,
+    windDir,
 
-            lat,
-            lon,
+    lat,
+    lon,
 
-            altitude
-        };
+    altitude
+};
+
+console.log("🟢 latestData COMPLETO:", latestData[id]);
+console.log("🟢 temp:", latestData[id].temp);
+console.log("🟢 tempLow:", latestData[id].tempLow);
+console.log("🟢 tempHigh:", latestData[id].tempHigh);
 
 
         console.log(
@@ -852,19 +861,28 @@ function updateSelectedStation() {
     // TEMPERATURA
     // =========================================
 
-    if (
-        data.temp !== null &&
-        data.temp !== undefined &&
-        Number.isFinite(Number(data.temp))
-    ) {
+    console.log("🟡 updateSelectedStation DATA:", data);
 
-        updateTemperatureGauge(
-            data.temp,
-            data.tempLow,
-            data.tempHigh
-        );
+console.log(
+    "🟡 PASSO A updateTemperatureGauge:",
+    data.temp,
+    data.tempLow,
+    data.tempHigh
+);
 
-    }
+if (
+    data.temp !== null &&
+    data.temp !== undefined &&
+    Number.isFinite(Number(data.temp))
+) {
+
+    updateTemperatureGauge(
+        data.temp,
+        data.tempLow,
+        data.tempHigh
+    );
+
+}
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -880,13 +898,33 @@ function updateTemperatureGauge(
     maxValue
 ) {
 
+    console.log("🔴 updateTemperatureGauge RICEVE:", {
+        value: value,
+        minValue: minValue,
+        maxValue: maxValue
+    });
+
+    console.log("🔴 TIPI:", {
+        value: typeof value,
+        minValue: typeof minValue,
+        maxValue: typeof maxValue
+    });
+
+    // RESTO DELLA FUNZIONE... {
+
     // =========================================
     // CONVERSIONE NUMERICA
     // =========================================
 
-    const currentTemp = Number(value);
-    const currentMin = Number(minValue);
-    const currentMax = Number(maxValue);
+const currentTemp = Number(value);
+const currentMin = Number(minValue);
+const currentMax = Number(maxValue);
+
+console.log("🟣 DOPO Number():", {
+    currentTemp,
+    currentMin,
+    currentMax
+});
 
 
     // =========================================
@@ -1158,7 +1196,12 @@ const gaugeGlobals = {
 // =========================================
 
 function updateTemperatureScale() {
-
+    console.log("⚙️ updateTemperatureScale PRIMA:", {
+        temperatureMin,
+        temperatureMax,
+        tempMin,
+        tempMax
+    });
     // Se non abbiamo ancora il massimo
     if (!Number.isFinite(temperatureMax)) {
 
@@ -1177,6 +1220,12 @@ function updateTemperatureScale() {
     // Scala larga sempre 60°C
     tempMin =
         tempMax - 60;
+            console.log("⚙️ updateTemperatureScale DOPO:", {
+        temperatureMin,
+        temperatureMax,
+        tempMin,
+        tempMax
+    });
 }
 
 
