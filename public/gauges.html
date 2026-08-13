@@ -834,42 +834,19 @@ async function fetchPws(id) {
 
 function updateSelectedStation() {
 
-    // =========================================
-    // USA L'ID DELLA STAZIONE DALL'URL
-    // =========================================
-
-    const stationId =
-        station;
-
+    const stationId = station;
 
     if (!stationId) {
-
-        console.warn(
-            "Nessun ID stazione trovato"
-        );
-
+        console.warn("Nessun ID stazione trovato");
         return;
     }
 
-
-    // =========================================
-    // PRENDI I DATI
-    // =========================================
-
-    const data =
-        latestData[stationId];
-
+    const data = latestData[stationId];
 
     if (!data) {
-
-        console.warn(
-            "Nessun dato disponibile per:",
-            stationId
-        );
-
+        console.warn("Nessun dato disponibile per:", stationId);
         return;
     }
-
 
     // =========================================
     // TEMPERATURA
@@ -878,7 +855,7 @@ function updateSelectedStation() {
     if (
         data.temp !== null &&
         data.temp !== undefined &&
-        !isNaN(data.temp)
+        Number.isFinite(Number(data.temp))
     ) {
 
         updateTemperatureGauge(
@@ -888,7 +865,6 @@ function updateSelectedStation() {
         );
 
     }
-
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -905,39 +881,28 @@ function updateTemperatureGauge(
 ) {
 
     // =========================================
-    // TEMPERATURA ATTUALE
+    // CONVERSIONE NUMERICA
     // =========================================
 
     const currentTemp = Number(value);
+    const currentMin = Number(minValue);
+    const currentMax = Number(maxValue);
+
+
+    // =========================================
+    // SALVA I DATI DEL FETCH
+    // =========================================
 
     if (Number.isFinite(currentTemp)) {
         temperatureValue = currentTemp;
     }
 
-
-    // =========================================
-    // MINIMA DAL FETCH
-    // =========================================
-
-    const currentMin = Number(minValue);
-
     if (Number.isFinite(currentMin)) {
-
         temperatureMin = currentMin;
-
     }
 
-
-    // =========================================
-    // MASSIMA DAL FETCH
-    // =========================================
-
-    const currentMax = Number(maxValue);
-
     if (Number.isFinite(currentMax)) {
-
         temperatureMax = currentMax;
-
     }
 
 
@@ -945,25 +910,25 @@ function updateTemperatureGauge(
     // DEBUG
     // =========================================
 
-    console.log(
-        "TEMPERATURE GAUGE:",
-        {
-            attuale: temperatureValue,
-            minima: temperatureMin,
-            massima: temperatureMax
-        }
-    );
+    console.log("UPDATE TEMPERATURE:", {
+        value: value,
+        minValue: minValue,
+        maxValue: maxValue,
+
+        temperatureValue: temperatureValue,
+        temperatureMin: temperatureMin,
+        temperatureMax: temperatureMax
+    });
 
 
     // =========================================
-    // SCALA
+    // AGGIORNA SCALA
     // =========================================
 
     const oldTempMin = tempMin;
     const oldTempMax = tempMax;
 
     updateTemperatureScale();
-
 
     if (
         oldTempMin !== tempMin ||
@@ -985,6 +950,13 @@ function updateTemperatureGauge(
         Number.isFinite(temperatureMax)
     ) {
 
+        console.log(
+            "CONO:",
+            temperatureMin,
+            "→",
+            temperatureMax
+        );
+
         temperatureGauge.setArea([
 
             steelseries.Section(
@@ -999,7 +971,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // VALORE ATTUALE
+    // TEMPERATURA ATTUALE
     // =========================================
 
     if (
@@ -1011,7 +983,6 @@ function updateTemperatureGauge(
         );
 
     }
-
 }
 if (
     source === "Wunderground" &&
