@@ -894,13 +894,29 @@ function updateTemperatureGauge(
 ) {
 
     // =========================================
-    // AGGIORNA MINIMO REALE
+    // VALORE ATTUALE
+    // =========================================
+
+    if (
+        value !== null &&
+        value !== undefined &&
+        !isNaN(value)
+    ) {
+
+        temperatureValue =
+            Number(value);
+
+    }
+
+
+    // =========================================
+    // MINIMO DELLA GIORNATA
     // =========================================
 
     if (
         minValue !== null &&
         minValue !== undefined &&
-        !isNaN(minValue)
+        isFinite(Number(minValue))
     ) {
 
         temperatureMin =
@@ -910,13 +926,13 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // AGGIORNA MASSIMO REALE
+    // MASSIMO DELLA GIORNATA
     // =========================================
 
     if (
         maxValue !== null &&
         maxValue !== undefined &&
-        !isNaN(maxValue)
+        isFinite(Number(maxValue))
     ) {
 
         temperatureMax =
@@ -926,7 +942,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // RICALCOLA LA SCALA
+    // RICALCOLA SCALA
     // =========================================
 
     const oldTempMin =
@@ -939,7 +955,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // AGGIORNA LA SCALA
+    // AGGIORNA SCALA
     // =========================================
 
     if (
@@ -959,7 +975,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // CONO MIN / MAX
+    // CONO MIN → MAX
     // =========================================
 
     temperatureGauge.setArea([
@@ -974,11 +990,8 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // AGGIORNA VALORE ATTUALE
+    // AGGIORNA GAUGE
     // =========================================
-
-    temperatureValue =
-        Number(value);
 
     temperatureGauge.setValueAnimated(
         temperatureValue
