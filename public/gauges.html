@@ -360,9 +360,9 @@
 
         <!-- 12 - RADIAZIONE SOLARE -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="RadGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 13 - PIOGGIA -->
@@ -1335,6 +1335,46 @@ const uvGauge = new steelseries.RadialBargraph(
 );
 
 uvGauge.setValueAnimated(4);
+
+const RadGauge = new steelseries.Radial(
+    document.getElementById("RadGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 1000,
+
+        threshold: 900,
+
+        titleString: "Radiazione Solare",
+        unitString: "W/m²",
+
+        lcdDecimals: 0,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORE DI TEST
+   1013.2 hPa
+================================= */
+
+RadGauge.setValueAnimated(334);
     </script>
 
 
