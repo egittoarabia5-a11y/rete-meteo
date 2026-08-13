@@ -1,4 +1,7 @@
  var windDirection = function (canvas, parameters) {
+        const RAD_FACTOR = Math.PI / 180;
+    const HALF_PI = Math.PI / 2;
+    const TWO_PI = Math.PI * 2;
         parameters = parameters || {};
         var size = (undefined === parameters.size ? 0 : parameters.size),
             frameDesign = (undefined === parameters.frameDesign ? steelseries.FrameDesign.METAL : parameters.frameDesign),
