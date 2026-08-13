@@ -894,64 +894,95 @@ function updateTemperatureGauge(
 ) {
 
     // =========================================
-    // VALORE ATTUALE
-    // =========================================
-
-    temperatureValue = value;
-
-
-    // =========================================
-    // MINIMO
+    // AGGIORNA MINIMO REALE
     // =========================================
 
     if (
         minValue !== null &&
-        minValue !== undefined
+        minValue !== undefined &&
+        !isNaN(minValue)
     ) {
 
-        temperatureMinRecorded =
-            minValue;
+        temperatureMin =
+            Number(minValue);
 
     }
 
 
     // =========================================
-    // MASSIMO
+    // AGGIORNA MASSIMO REALE
     // =========================================
 
     if (
         maxValue !== null &&
-        maxValue !== undefined
+        maxValue !== undefined &&
+        !isNaN(maxValue)
     ) {
 
-        temperatureMaxRecorded =
-            maxValue;
+        temperatureMax =
+            Number(maxValue);
 
     }
 
 
     // =========================================
-    // AGGIORNA GAUGE
+    // RICALCOLA LA SCALA
     // =========================================
 
-    temperatureGauge.setValueAnimated(
-        temperatureValue
-    );
+    const oldTempMin =
+        tempMin;
+
+    const oldTempMax =
+        tempMax;
+
+    updateTemperatureScale();
 
 
     // =========================================
-    // AGGIORNA CONO MIN / MAX
+    // AGGIORNA LA SCALA
+    // =========================================
+
+    if (
+        oldTempMin !== tempMin ||
+        oldTempMax !== tempMax
+    ) {
+
+        temperatureGauge.setMinValue(
+            tempMin
+        );
+
+        temperatureGauge.setMaxValue(
+            tempMax
+        );
+
+    }
+
+
+    // =========================================
+    // CONO MIN / MAX
     // =========================================
 
     temperatureGauge.setArea([
 
         steelseries.Section(
-            temperatureMinRecorded,
-            temperatureMaxRecorded,
+            temperatureMin,
+            temperatureMax,
             "rgba(236, 45, 45, 0.17)"
         )
 
     ]);
+
+
+    // =========================================
+    // AGGIORNA VALORE ATTUALE
+    // =========================================
+
+    temperatureValue =
+        Number(value);
+
+    temperatureGauge.setValueAnimated(
+        temperatureValue
+    );
 
 }
 if (
