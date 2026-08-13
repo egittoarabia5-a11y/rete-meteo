@@ -4218,18 +4218,194 @@ windDirectionGaugeElement.addEventListener(
 );
 
 // =========================================
+// GAUGE INDICE UV
+// =========================================
+
+let uvValue = 14.2;
+let uvMaxRecorded = null;
+
+const uvGauge = new steelseries.RadialBargraph(
+    document.getElementById("UVGauge"),
+    {
+        gaugeType:
+            steelseries.GaugeType.TYPE4,
+
+        size:
+            240,
+
+        minValue:
+            0,
+
+        maxValue:
+            10,
+
+        frameDesign:
+            steelseries.FrameDesign.TILTED_GRAY,
+
+        backgroundColor:
+            steelseries.BackgroundColor.BEIGE,
+
+        foregroundType:
+            steelseries.ForegroundType.TYPE1,
+
+        valueColor:
+            steelseries.ColorDef.RED,
+
+        lcdColor:
+            steelseries.LcdColor.STANDARD,
+
+        lcdVisible:
+            true,
+
+        lcdDecimals:
+            1,
+
+        titleString:
+            "Indice UV",
+
+        unitString:
+            "UV",
+
+        threshold:
+            8,
+
+        thresholdRising:
+            true,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+        ledVisible:
+            false,
+
+        useSectionColors:
+            true,
+
+        section: [
+
+            {
+                start: 0,
+                stop: 2,
+                color: "green"
+            },
+
+            {
+                start: 2,
+                stop: 5,
+                color: "yellow"
+            },
+
+            {
+                start: 5,
+                stop: 7,
+                color: "orange"
+            },
+
+            {
+                start: 7,
+                stop: 10,
+                color: "red"
+            },
+
+            {
+                start: 10,
+                stop: 20,
+                color: "violet"
+            }
+
+        ],
+
+        fullScaleDeflectionTime:
+            2.5
+    }
+);
+
+
+// =========================================
+// SCALA DINAMICA UV
+// 0 → 10 → 12 → 14 → 16 → 18 → 20
+// =========================================
+
+function updateUVGauge(value) {
+
+    let newMax;
+
+    if (value <= 10) {
+
+        newMax = 10;
+
+    }
+    else if (value <= 12) {
+
+        newMax = 12;
+
+    }
+    else if (value <= 14) {
+
+        newMax = 14;
+
+    }
+    else if (value <= 16) {
+
+        newMax = 16;
+
+    }
+    else if (value <= 18) {
+
+        newMax = 18;
+
+    }
+    else if (value <= 20) {
+
+        newMax = 20;
+
+    }
+    else {
+
+        newMax =
+            Math.ceil(value / 2) * 2;
+
+    }
+
+
+    if (
+        uvGauge.getMaxValue() !== newMax
+    ) {
+
+        uvGauge.setMaxValue(
+            newMax
+        );
+
+        uvGauge.setValue(0);
+
+    }
+
+
+    // Salva il valore attuale
+    uvValue = value;
+
+
+    // Aggiorna il valore del gauge
+    uvGauge.setValueAnimated(
+        uvValue
+    );
+
+}
+
+
+// =========================================
+// VALORE DI TEST
+// =========================================
+
+updateUVGauge(14.2);
+
+
+// =========================================
 // POPUP INDICE UV
 // =========================================
 
 const uvGaugeElement =
     document.getElementById("UVGauge");
-
-// =========================================
-// DATI UV
-// =========================================
-
-let uvValue = 14.2;
-let uvMaxRecorded = null;
 
 
 // =========================================
@@ -4289,9 +4465,11 @@ uvGaugeElement.addEventListener(
 
                     <div>
                         Massima:
-                        ${uvMaxRecorded === null
-                            ? "n.d."
-                            : uvMaxRecorded.toFixed(1)}
+                        ${
+                            uvMaxRecorded === null
+                                ? "n.d."
+                                : uvMaxRecorded.toFixed(1)
+                        }
                     </div>
 
                 `;
