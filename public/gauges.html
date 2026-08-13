@@ -81,7 +81,7 @@
 
     border-radius: 8px;
 
-    font-family: Arial, sans-serif;
+    font-family: "Inter", sans-serif;
     font-size: 13px;
     line-height: 1.5;
 
@@ -89,7 +89,7 @@
 
     pointer-events: none;
 
-    z-index: 99999;
+    z-index: 999999;
 
     opacity: 0;
 
@@ -1057,35 +1057,62 @@ document.body.appendChild(
 
 
 // =========================================
+// TIMER POPUP
+// =========================================
+
+let temperatureTooltipTimer = null;
+
+
+// =========================================
 // MOUSE SOPRA IL GAUGE
 // =========================================
 
 temperatureGaugeElement.addEventListener(
     "mouseenter",
-    () => {
+    (event) => {
 
-        temperatureTooltip.innerHTML = `
+        // Posizione iniziale
+        temperatureTooltip.style.left =
+            (event.clientX + 0) + "px";
 
-            <div class="gauge-tooltip-title">
-                Temperatura:
-                <span class="gauge-tooltip-value">
-                    ${temperatureValue.toFixed(1)}°
-                </span>
-            </div>
+        temperatureTooltip.style.top =
+            (event.clientY + 0) + "px";
 
-            <div>
-                Massima:
-                ${temperatureMax.toFixed(1)}°
-                -
-                Minima:
-                ${temperatureMin.toFixed(1)}°
-            </div>
 
-        `;
-
-        temperatureTooltip.classList.add(
-            "visible"
+        // Annulla eventuale timer precedente
+        clearTimeout(
+            temperatureTooltipTimer
         );
+
+
+        // Aspetta 3 secondi
+        temperatureTooltipTimer =
+            setTimeout(() => {
+
+                temperatureTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Temperatura:
+                        <span class="gauge-tooltip-value">
+                            ${temperatureValue.toFixed(1)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${temperatureMax.toFixed(1)}°
+                        -
+                        Minima:
+                        ${temperatureMin.toFixed(1)}°
+                    </div>
+
+                `;
+
+                temperatureTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 3000);
 
     }
 );
@@ -1117,13 +1144,21 @@ temperatureGaugeElement.addEventListener(
     "mouseleave",
     () => {
 
+        // Annulla il timer dei 3 secondi
+        clearTimeout(
+            temperatureTooltipTimer
+        );
+
+        temperatureTooltipTimer = null;
+
+
+        // Nasconde il popup
         temperatureTooltip.classList.remove(
             "visible"
         );
 
     }
 );
-
 
 // =========================================
 // VALORE DI TEST
