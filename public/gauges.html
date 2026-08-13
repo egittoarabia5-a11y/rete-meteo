@@ -11,7 +11,6 @@
     <!-- SteelSeries -->
 <script src="steelseries.js"></script>
 <script src="steelseries_tween.js"></script>
-<script src="windDirection.js"></script>
 
     <!-- Font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1212,15 +1211,16 @@ windGauge.setValueAnimated(6.4);
 const windDirectionGauge = new windDirection(
     document.getElementById("windDirectionGauge"),
     {
-        gaugeType: steelseries.GaugeType.TYPE4,
-
         size: 240,
 
         frameDesign: steelseries.FrameDesign.TILTED_GRAY,
+        frameVisible: true,
 
         backgroundColor: steelseries.BackgroundColor.BEIGE,
+        backgroundVisible: true,
 
         foregroundType: steelseries.ForegroundType.TYPE1,
+        foregroundVisible: true,
 
         pointerTypeLatest: steelseries.PointerType.TYPE1,
         pointerTypeAverage: steelseries.PointerType.TYPE8,
@@ -1232,8 +1232,14 @@ const windDirectionGauge = new windDirection(
         knobStyle: steelseries.KnobStyle.SILVER,
 
         pointSymbols: [
-            "N", "NE", "E", "SE",
-            "S", "SW", "W", "NW"
+            "N",
+            "NE",
+            "E",
+            "SE",
+            "S",
+            "SW",
+            "W",
+            "NW"
         ],
 
         pointSymbolsVisible: true,
@@ -1255,10 +1261,11 @@ const windDirectionGauge = new windDirection(
 
         useColorLabels: true,
 
-        fullScaleDeflectionTime: 2.5,
+        fullScaleDeflectionTime: 2.5
     }
-    
 );
+
+// Valori di test
 windDirectionGauge.setValueAnimatedLatest(135);
 windDirectionGauge.setValueAnimatedAverage(110);
     </script>
