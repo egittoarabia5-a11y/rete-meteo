@@ -967,7 +967,7 @@ function updateTemperatureGauge(
         steelseries.Section(
             temperatureMin,
             temperatureMax,
-            "rgba(236, 45, 45, 0.10)"
+            "rgba(236, 45, 45, 0.17)"
         )
 
     ]);
@@ -999,11 +999,63 @@ updateTemperatureGauge(
    GAUGE DEWPOINT
 ========================================= */
 
+/* =========================================
+GAUGE DEWPOINT
+========================================= */
+
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let dewpointMinRecorded = 5.2;   // minima registrata
+let dewpointMaxRecorded = 27.6;  // massima registrata
+let dewpointValue = 15.9;        // valore attuale
+
+// =========================================
+// CONFIGURAZIONE SCALA
+// =========================================
+
+const dewpointRange = 60;
+const dewpointStep = 10;
+
+// =========================================
+// FUNZIONI PER ARROTONDARE LA SCALA
+// =========================================
+
+function getDewpointGaugeMin(value) {
+
+    return Math.floor(value / 10) * 10;
+
+}
+
+function getDewpointGaugeMax(value) {
+
+    return getDewpointGaugeMin(value) + dewpointRange;
+
+}
+
+// =========================================
+// SCALA INIZIALE
+// Basata sui valori min/max registrati
+// =========================================
+
+let dewpointGaugeMin =
+    getDewpointGaugeMin(dewpointMinRecorded);
+
+let dewpointGaugeMax =
+    getDewpointGaugeMax(dewpointMaxRecorded);
+
+
+// =========================================
+// DEWPOINT GAUGE
+// =========================================
+
 const dewpointGauge = new steelseries.Radial(
 
     document.getElementById("dewpointGauge"),
 
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -1011,10 +1063,10 @@ const dewpointGauge = new steelseries.Radial(
             240,
 
         minValue:
-            -20,
+            dewpointGaugeMin,
 
         maxValue:
-            40,
+            dewpointGaugeMax,
 
         threshold:
             20,
@@ -1060,6 +1112,11 @@ const dewpointGauge = new steelseries.Radial(
 
         ledColor:
             steelseries.LedColor.BLUE_LED,
+
+
+        // =========================================
+        // COLORI DELLA SCALA
+        // =========================================
 
         section: [
 
@@ -1147,10 +1204,11 @@ const dewpointGauge = new steelseries.Radial(
                 "rgba(253, 142, 42, 0.4)"
             ),
 
+            // ROSSO PIÙ CHIARO - OPACITÀ 17%
             steelseries.Section(
                 30,
                 40,
-                "rgba(236, 45, 45, 0.4)"
+                "rgba(236, 45, 45, 0.17)"
             ),
 
             steelseries.Section(
@@ -1158,66 +1216,168 @@ const dewpointGauge = new steelseries.Radial(
                 100,
                 "rgba(245, 109, 205, 0.4)"
             )
+
+        ],
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        area: [
+
+            steelseries.Section(
+                dewpointMinRecorded,
+                dewpointMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
         ]
+
     }
 
 );
 
 
-/* =========================================
-   SCALA DINAMICA DEL DEWPOINT
-   Scala sempre di 60 °C
-   Step di 10 °C
-========================================= */
-
-let dewpointMin = -20;
-let dewpointMax = 40;
+// =========================================
+// SCALA DINAMICA
+// Scala sempre di 60 °C
+// Step di 10 °C
+// =========================================
 
 function updateDewpointGauge(value) {
 
-    // Se il valore supera il limite superiore
-    while (value > dewpointMax) {
+    // -----------------------------------------
+    // Se supera il massimo della scala
+    // -----------------------------------------
 
-        dewpointMin += 10;
-        dewpointMax += 10;
+    while (value > dewpointGaugeMax) {
+
+        dewpointGaugeMin += dewpointStep;
+        dewpointGaugeMax += dewpointStep;
+
     }
 
-    // Se il valore scende sotto il limite inferiore
-    while (value < dewpointMin) {
 
-        dewpointMin -= 10;
-        dewpointMax -= 10;
+    // -----------------------------------------
+    // Se scende sotto il minimo della scala
+    // -----------------------------------------
+
+    while (value < dewpointGaugeMin) {
+
+        dewpointGaugeMin -= dewpointStep;
+        dewpointGaugeMax -= dewpointStep;
+
     }
 
-    // Aggiorna la scala solamente se necessario
+
+    // -----------------------------------------
+    // Aggiorna la scala solamente se cambiata
+    // -----------------------------------------
+
     if (
-        dewpointGauge.getMinValue() !== dewpointMin ||
-        dewpointGauge.getMaxValue() !== dewpointMax
+        dewpointGauge.getMinValue() !== dewpointGaugeMin ||
+        dewpointGauge.getMaxValue() !== dewpointGaugeMax
     ) {
 
-        dewpointGauge.setMinValue(dewpointMin);
-        dewpointGauge.setMaxValue(dewpointMax);
+        dewpointGauge.setMinValue(dewpointGaugeMin);
+
+        dewpointGauge.setMaxValue(dewpointGaugeMax);
+
     }
 
+
+    // -----------------------------------------
+    // Aggiorna il cono min/max
+    // -----------------------------------------
+
+    dewpointGauge.setArea([
+
+        steelseries.Section(
+            dewpointMinRecorded,
+            dewpointMaxRecorded,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // -----------------------------------------
     // Aggiorna il valore
+    // -----------------------------------------
+
     dewpointGauge.setValueAnimated(value);
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateDewpointGauge(15.9);
 /* =========================================
    GAUGE HEAT INDEX
 ========================================= */
 
+/* =========================================
+GAUGE HEAT INDEX
+========================================= */
+
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let heatIndexMinRecorded = 21.8;   // minima registrata
+let heatIndexMaxRecorded = 40.5;  // massima registrata
+let heatIndexValue = 34.2;         // valore attuale
+
+
+// =========================================
+// CONFIGURAZIONE SCALA
+// =========================================
+
+const heatIndexRange = 60;
+const heatIndexStep = 10;
+
+
+// =========================================
+// FUNZIONI PER ARROTONDARE LA SCALA
+// =========================================
+
+function getHeatIndexGaugeMin(value) {
+
+    return Math.floor(value / 10) * 10;
+
+}
+
+function getHeatIndexGaugeMax(value) {
+
+    return getHeatIndexGaugeMin(value) + heatIndexRange;
+
+}
+
+
+// =========================================
+// SCALA INIZIALE
+// =========================================
+
+let heatIndexGaugeMin =
+    getHeatIndexGaugeMin(heatIndexMinRecorded);
+
+let heatIndexGaugeMax =
+    getHeatIndexGaugeMax(heatIndexMaxRecorded);
+
+
+// =========================================
+// HEAT INDEX GAUGE
+// =========================================
+
 const heatIndexGauge = new steelseries.Radial(
 
     document.getElementById("heatIndexGauge"),
 
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -1225,10 +1385,10 @@ const heatIndexGauge = new steelseries.Radial(
             240,
 
         minValue:
-            -20,
+            heatIndexGaugeMin,
 
         maxValue:
-            50,
+            heatIndexGaugeMax,
 
         threshold:
             35,
@@ -1275,81 +1435,273 @@ const heatIndexGauge = new steelseries.Radial(
         ledColor:
             steelseries.LedColor.RED_LED,
 
+
+        // =========================================
+        // COLORI DELLA SCALA
+        // =========================================
+
         section: [
-            steelseries.Section(-100, -35, "rgba(195, 92, 211, 0.4)"),
-            steelseries.Section(-35, -30, "rgba(139, 74, 197, 0.4)"),
-            steelseries.Section(-30, -25, "rgba(98, 65, 188, 0.4)"),
-            steelseries.Section(-25, -20, "rgba(62, 66, 185, 0.4)"),
-            steelseries.Section(-20, -15, "rgba(42, 84, 194, 0.4)"),
-            steelseries.Section(-15, -10, "rgba(25, 112, 210, 0.4)"),
-            steelseries.Section(-10, -5, "rgba(9, 150, 224, 0.4)"),
-            steelseries.Section(-5, 0, "rgba(2, 170, 209, 0.4)"),
-            steelseries.Section(0, 5, "rgba(0, 162, 145, 0.4)"),
-            steelseries.Section(5, 10, "rgba(0, 158, 122, 0.4)"),
-            steelseries.Section(10, 15, "rgba(54, 177, 56, 0.4)"),
-            steelseries.Section(15, 20, "rgba(111, 202, 56, 0.4)"),
-            steelseries.Section(20, 25, "rgba(248, 233, 45, 0.4)"),
-            steelseries.Section(25, 30, "rgba(253, 142, 42, 0.4)"),
-            steelseries.Section(30, 40, "rgba(236, 45, 45, 0.4)"),
-            steelseries.Section(40, 100, "rgba(245, 109, 205, 0.4)")
+
+            steelseries.Section(
+                -100,
+                -35,
+                "rgba(195, 92, 211, 0.4)"
+            ),
+
+            steelseries.Section(
+                -35,
+                -30,
+                "rgba(139, 74, 197, 0.4)"
+            ),
+
+            steelseries.Section(
+                -30,
+                -25,
+                "rgba(98, 65, 188, 0.4)"
+            ),
+
+            steelseries.Section(
+                -25,
+                -20,
+                "rgba(62, 66, 185, 0.4)"
+            ),
+
+            steelseries.Section(
+                -20,
+                -15,
+                "rgba(42, 84, 194, 0.4)"
+            ),
+
+            steelseries.Section(
+                -15,
+                -10,
+                "rgba(25, 112, 210, 0.4)"
+            ),
+
+            steelseries.Section(
+                -10,
+                -5,
+                "rgba(9, 150, 224, 0.4)"
+            ),
+
+            steelseries.Section(
+                -5,
+                0,
+                "rgba(2, 170, 209, 0.4)"
+            ),
+
+            steelseries.Section(
+                0,
+                5,
+                "rgba(0, 162, 145, 0.4)"
+            ),
+
+            steelseries.Section(
+                5,
+                10,
+                "rgba(0, 158, 122, 0.4)"
+            ),
+
+            steelseries.Section(
+                10,
+                15,
+                "rgba(54, 177, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                15,
+                20,
+                "rgba(111, 202, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                20,
+                25,
+                "rgba(248, 233, 45, 0.4)"
+            ),
+
+            steelseries.Section(
+                25,
+                30,
+                "rgba(253, 142, 42, 0.4)"
+            ),
+
+            // ROSSO DELLA SCALA
+            steelseries.Section(
+                30,
+                40,
+                "rgba(236, 45, 45, 0.17)"
+            ),
+
+            steelseries.Section(
+                40,
+                100,
+                "rgba(245, 109, 205, 0.4)"
+            )
+
+        ],
+
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        area: [
+
+            steelseries.Section(
+                heatIndexMinRecorded,
+                heatIndexMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
         ]
+
     }
+
 );
 
 
-/* =========================================
-   SCALA DINAMICA HEAT INDEX
-
-   Ampiezza: 70 °C
-   Spostamento: 10 °C
-========================================= */
-
-let heatIndexMin = -20;
-let heatIndexMax = 50;
+// =========================================
+// SCALA DINAMICA HEAT INDEX
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
+// =========================================
 
 function updateHeatIndexGauge(value) {
 
-    // Valore oltre il limite superiore
-    while (value > heatIndexMax) {
-        heatIndexMin += 10;
-        heatIndexMax += 10;
+    // -----------------------------------------
+    // Se supera il massimo della scala
+    // -----------------------------------------
+
+    while (value > heatIndexGaugeMax) {
+
+        heatIndexGaugeMin += heatIndexStep;
+        heatIndexGaugeMax += heatIndexStep;
+
     }
 
-    // Valore sotto il limite inferiore
-    while (value < heatIndexMin) {
-        heatIndexMin -= 10;
-        heatIndexMax -= 10;
+
+    // -----------------------------------------
+    // Se scende sotto il minimo della scala
+    // -----------------------------------------
+
+    while (value < heatIndexGaugeMin) {
+
+        heatIndexGaugeMin -= heatIndexStep;
+        heatIndexGaugeMax -= heatIndexStep;
+
     }
 
-    // Aggiorna la scala solo quando cambia
+
+    // -----------------------------------------
+    // Aggiorna la scala solamente se cambiata
+    // -----------------------------------------
+
     if (
-        heatIndexGauge.getMinValue() !== heatIndexMin ||
-        heatIndexGauge.getMaxValue() !== heatIndexMax
+        heatIndexGauge.getMinValue() !== heatIndexGaugeMin ||
+        heatIndexGauge.getMaxValue() !== heatIndexGaugeMax
     ) {
-        heatIndexGauge.setMinValue(heatIndexMin);
-        heatIndexGauge.setMaxValue(heatIndexMax);
+
+        heatIndexGauge.setMinValue(heatIndexGaugeMin);
+
+        heatIndexGauge.setMaxValue(heatIndexGaugeMax);
+
     }
 
+
+    // -----------------------------------------
+    // Aggiorna il cono rosso
+    // -----------------------------------------
+
+    heatIndexGauge.setArea([
+
+        steelseries.Section(
+            heatIndexMinRecorded,
+            heatIndexMaxRecorded,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // -----------------------------------------
     // Aggiorna il valore
+    // -----------------------------------------
+
     heatIndexGauge.setValueAnimated(value);
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-   34.2 °C
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateHeatIndexGauge(34.2);
 /* =========================================
    GAUGE HUMIDEX
 ========================================= */
 
+/* =========================================
+GAUGE HUMIDEX
+========================================= */
+
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let humidexMinRecorded = 21.8;   // minima registrata
+let humidexMaxRecorded = 40.5;  // massima registrata
+let humidexValue = 38.4;         // valore attuale
+
+
+// =========================================
+// CONFIGURAZIONE SCALA
+// =========================================
+
+const humidexRange = 60;
+const humidexStep = 10;
+
+
+// =========================================
+// FUNZIONI PER ARROTONDARE LA SCALA
+// =========================================
+
+function getHumidexGaugeMin(value) {
+
+    return Math.floor(value / 10) * 10;
+
+}
+
+function getHumidexGaugeMax(value) {
+
+    return getHumidexGaugeMin(value) + humidexRange;
+
+}
+
+
+// =========================================
+// SCALA INIZIALE
+// =========================================
+
+let humidexGaugeMin =
+    getHumidexGaugeMin(humidexMinRecorded);
+
+let humidexGaugeMax =
+    getHumidexGaugeMax(humidexMaxRecorded);
+
+
+// =========================================
+// HUMIDEX GAUGE
+// =========================================
+
 const humidexGauge = new steelseries.Radial(
 
     document.getElementById("humidexGauge"),
 
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -1357,10 +1709,10 @@ const humidexGauge = new steelseries.Radial(
             240,
 
         minValue:
-            -20,
+            humidexGaugeMin,
 
         maxValue:
-            50,
+            humidexGaugeMax,
 
         threshold:
             35,
@@ -1407,77 +1759,269 @@ const humidexGauge = new steelseries.Radial(
         ledColor:
             steelseries.LedColor.RED_LED,
 
+
+        // =========================================
+        // COLORI DELLA SCALA
+        // =========================================
+
         section: [
-            steelseries.Section(-100, -35, "rgba(195, 92, 211, 0.4)"),
-            steelseries.Section(-35, -30, "rgba(139, 74, 197, 0.4)"),
-            steelseries.Section(-30, -25, "rgba(98, 65, 188, 0.4)"),
-            steelseries.Section(-25, -20, "rgba(62, 66, 185, 0.4)"),
-            steelseries.Section(-20, -15, "rgba(42, 84, 194, 0.4)"),
-            steelseries.Section(-15, -10, "rgba(25, 112, 210, 0.4)"),
-            steelseries.Section(-10, -5, "rgba(9, 150, 224, 0.4)"),
-            steelseries.Section(-5, 0, "rgba(2, 170, 209, 0.4)"),
-            steelseries.Section(0, 5, "rgba(0, 162, 145, 0.4)"),
-            steelseries.Section(5, 10, "rgba(0, 158, 122, 0.4)"),
-            steelseries.Section(10, 15, "rgba(54, 177, 56, 0.4)"),
-            steelseries.Section(15, 20, "rgba(111, 202, 56, 0.4)"),
-            steelseries.Section(20, 25, "rgba(248, 233, 45, 0.4)"),
-            steelseries.Section(25, 30, "rgba(253, 142, 42, 0.4)"),
-            steelseries.Section(30, 40, "rgba(236, 45, 45, 0.4)"),
-            steelseries.Section(40, 100, "rgba(245, 109, 205, 0.4)")
+
+            steelseries.Section(
+                -100,
+                -35,
+                "rgba(195, 92, 211, 0.4)"
+            ),
+
+            steelseries.Section(
+                -35,
+                -30,
+                "rgba(139, 74, 197, 0.4)"
+            ),
+
+            steelseries.Section(
+                -30,
+                -25,
+                "rgba(98, 65, 188, 0.4)"
+            ),
+
+            steelseries.Section(
+                -25,
+                -20,
+                "rgba(62, 66, 185, 0.4)"
+            ),
+
+            steelseries.Section(
+                -20,
+                -15,
+                "rgba(42, 84, 194, 0.4)"
+            ),
+
+            steelseries.Section(
+                -15,
+                -10,
+                "rgba(25, 112, 210, 0.4)"
+            ),
+
+            steelseries.Section(
+                -10,
+                -5,
+                "rgba(9, 150, 224, 0.4)"
+            ),
+
+            steelseries.Section(
+                -5,
+                0,
+                "rgba(2, 170, 209, 0.4)"
+            ),
+
+            steelseries.Section(
+                0,
+                5,
+                "rgba(0, 162, 145, 0.4)"
+            ),
+
+            steelseries.Section(
+                5,
+                10,
+                "rgba(0, 158, 122, 0.4)"
+            ),
+
+            steelseries.Section(
+                10,
+                15,
+                "rgba(54, 177, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                15,
+                20,
+                "rgba(111, 202, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                20,
+                25,
+                "rgba(248, 233, 45, 0.4)"
+            ),
+
+            steelseries.Section(
+                25,
+                30,
+                "rgba(253, 142, 42, 0.4)"
+            ),
+
+            // ROSSO DELLA SCALA
+            steelseries.Section(
+                30,
+                40,
+                "rgba(236, 45, 45, 0.17)"
+            ),
+
+            steelseries.Section(
+                40,
+                100,
+                "rgba(245, 109, 205, 0.4)"
+            )
+
+        ],
+
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        area: [
+
+            steelseries.Section(
+                humidexMinRecorded,
+                humidexMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
         ]
+
     }
+
 );
 
 
-/* =========================================
-   SCALA DINAMICA HUMIDEX
-
-   Ampiezza: 70 °C
-   Spostamento: 10 °C
-========================================= */
-
-let humidexMin = -20;
-let humidexMax = 50;
+// =========================================
+// SCALA DINAMICA HUMIDEX
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
+// =========================================
 
 function updateHumidexGauge(value) {
 
-    // Se supera il limite superiore
-    while (value > humidexMax) {
-        humidexMin += 10;
-        humidexMax += 10;
+    // -----------------------------------------
+    // Se supera il massimo della scala
+    // -----------------------------------------
+
+    while (value > humidexGaugeMax) {
+
+        humidexGaugeMin += humidexStep;
+        humidexGaugeMax += humidexStep;
+
     }
 
-    // Se scende sotto il limite inferiore
-    while (value < humidexMin) {
-        humidexMin -= 10;
-        humidexMax -= 10;
+
+    // -----------------------------------------
+    // Se scende sotto il minimo della scala
+    // -----------------------------------------
+
+    while (value < humidexGaugeMin) {
+
+        humidexGaugeMin -= humidexStep;
+        humidexGaugeMax -= humidexStep;
+
     }
 
-    // Aggiorna la scala solo se necessario
+
+    // -----------------------------------------
+    // Aggiorna la scala solamente se cambiata
+    // -----------------------------------------
+
     if (
-        humidexGauge.getMinValue() !== humidexMin ||
-        humidexGauge.getMaxValue() !== humidexMax
+        humidexGauge.getMinValue() !== humidexGaugeMin ||
+        humidexGauge.getMaxValue() !== humidexGaugeMax
     ) {
-        humidexGauge.setMinValue(humidexMin);
-        humidexGauge.setMaxValue(humidexMax);
+
+        humidexGauge.setMinValue(humidexGaugeMin);
+
+        humidexGauge.setMaxValue(humidexGaugeMax);
+
     }
 
+
+    // -----------------------------------------
+    // Aggiorna il cono rosso
+    // -----------------------------------------
+
+    humidexGauge.setArea([
+
+        steelseries.Section(
+            humidexMinRecorded,
+            humidexMaxRecorded,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // -----------------------------------------
     // Aggiorna il valore
+    // -----------------------------------------
+
     humidexGauge.setValueAnimated(value);
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-   38.4 °C
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateHumidexGauge(38.4);
+/* =========================================
+GAUGE TEMPERATURA APPARENTE
+========================================= */
+
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let percepitaMinRecorded = 21.8;   // minima registrata
+let percepitaMaxRecorded = 40.5;   // massima registrata
+let percepitaValue = 33.9;         // valore attuale
+
+
+// =========================================
+// CONFIGURAZIONE SCALA
+// =========================================
+
+const percepitaRange = 60;
+const percepitaStep = 10;
+
+
+// =========================================
+// FUNZIONI PER ARROTONDARE LA SCALA
+// =========================================
+
+function getPercepitaGaugeMin(value) {
+
+    return Math.floor(value / 10) * 10;
+
+}
+
+function getPercepitaGaugeMax(value) {
+
+    return getPercepitaGaugeMin(value) + percepitaRange;
+
+}
+
+
+// =========================================
+// SCALA INIZIALE
+// =========================================
+
+let percepitaGaugeMin =
+    getPercepitaGaugeMin(percepitaMinRecorded);
+
+let percepitaGaugeMax =
+    getPercepitaGaugeMax(percepitaMaxRecorded);
+
+
+// =========================================
+// PERCEPITA GAUGE
+// =========================================
+
 const percepitaGauge = new steelseries.Radial(
 
     document.getElementById("percepitaGauge"),
 
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -1485,10 +2029,10 @@ const percepitaGauge = new steelseries.Radial(
             240,
 
         minValue:
-            -20,
+            percepitaGaugeMin,
 
         maxValue:
-            50,
+            percepitaGaugeMax,
 
         threshold:
             35,
@@ -1535,70 +2079,208 @@ const percepitaGauge = new steelseries.Radial(
         ledColor:
             steelseries.LedColor.RED_LED,
 
+
+        // =========================================
+        // COLORI DELLA SCALA
+        // =========================================
+
         section: [
-            steelseries.Section(-100, -35, "rgba(195, 92, 211, 0.4)"),
-            steelseries.Section(-35, -30, "rgba(139, 74, 197, 0.4)"),
-            steelseries.Section(-30, -25, "rgba(98, 65, 188, 0.4)"),
-            steelseries.Section(-25, -20, "rgba(62, 66, 185, 0.4)"),
-            steelseries.Section(-20, -15, "rgba(42, 84, 194, 0.4)"),
-            steelseries.Section(-15, -10, "rgba(25, 112, 210, 0.4)"),
-            steelseries.Section(-10, -5, "rgba(9, 150, 224, 0.4)"),
-            steelseries.Section(-5, 0, "rgba(2, 170, 209, 0.4)"),
-            steelseries.Section(0, 5, "rgba(0, 162, 145, 0.4)"),
-            steelseries.Section(5, 10, "rgba(0, 158, 122, 0.4)"),
-            steelseries.Section(10, 15, "rgba(54, 177, 56, 0.4)"),
-            steelseries.Section(15, 20, "rgba(111, 202, 56, 0.4)"),
-            steelseries.Section(20, 25, "rgba(248, 233, 45, 0.4)"),
-            steelseries.Section(25, 30, "rgba(253, 142, 42, 0.4)"),
-            steelseries.Section(30, 40, "rgba(236, 45, 45, 0.4)"),
-            steelseries.Section(40, 100, "rgba(245, 109, 205, 0.4)")
+
+            steelseries.Section(
+                -100,
+                -35,
+                "rgba(195, 92, 211, 0.4)"
+            ),
+
+            steelseries.Section(
+                -35,
+                -30,
+                "rgba(139, 74, 197, 0.4)"
+            ),
+
+            steelseries.Section(
+                -30,
+                -25,
+                "rgba(98, 65, 188, 0.4)"
+            ),
+
+            steelseries.Section(
+                -25,
+                -20,
+                "rgba(62, 66, 185, 0.4)"
+            ),
+
+            steelseries.Section(
+                -20,
+                -15,
+                "rgba(42, 84, 194, 0.4)"
+            ),
+
+            steelseries.Section(
+                -15,
+                -10,
+                "rgba(25, 112, 210, 0.4)"
+            ),
+
+            steelseries.Section(
+                -10,
+                -5,
+                "rgba(9, 150, 224, 0.4)"
+            ),
+
+            steelseries.Section(
+                -5,
+                0,
+                "rgba(2, 170, 209, 0.4)"
+            ),
+
+            steelseries.Section(
+                0,
+                5,
+                "rgba(0, 162, 145, 0.4)"
+            ),
+
+            steelseries.Section(
+                5,
+                10,
+                "rgba(0, 158, 122, 0.4)"
+            ),
+
+            steelseries.Section(
+                10,
+                15,
+                "rgba(54, 177, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                15,
+                20,
+                "rgba(111, 202, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                20,
+                25,
+                "rgba(248, 233, 45, 0.4)"
+            ),
+
+            steelseries.Section(
+                25,
+                30,
+                "rgba(253, 142, 42, 0.4)"
+            ),
+
+            // ROSSO DELLA SCALA - OPACITÀ 17%
+            steelseries.Section(
+                30,
+                40,
+                "rgba(236, 45, 45, 0.17)"
+            ),
+
+            steelseries.Section(
+                40,
+                100,
+                "rgba(245, 109, 205, 0.4)"
+            )
+
+        ],
+
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        area: [
+
+            steelseries.Section(
+                percepitaMinRecorded,
+                percepitaMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
         ]
+
     }
+
 );
 
 
-/* =========================================
-   SCALA DINAMICA TEMPERATURA APPARENTE
-
-   Ampiezza: 70 °C
-   Spostamento: 10 °C
-========================================= */
-
-let percepitaMin = -20;
-let percepitaMax = 50;
+// =========================================
+// SCALA DINAMICA TEMPERATURA APPARENTE
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
+// =========================================
 
 function updatePercepitaGauge(value) {
 
-    // Valore oltre il limite superiore
-    while (value > percepitaMax) {
-        percepitaMin += 10;
-        percepitaMax += 10;
+    // -----------------------------------------
+    // Se supera il massimo della scala
+    // -----------------------------------------
+
+    while (value > percepitaGaugeMax) {
+
+        percepitaGaugeMin += percepitaStep;
+        percepitaGaugeMax += percepitaStep;
+
     }
 
-    // Valore sotto il limite inferiore
-    while (value < percepitaMin) {
-        percepitaMin -= 10;
-        percepitaMax -= 10;
+
+    // -----------------------------------------
+    // Se scende sotto il minimo della scala
+    // -----------------------------------------
+
+    while (value < percepitaGaugeMin) {
+
+        percepitaGaugeMin -= percepitaStep;
+        percepitaGaugeMax -= percepitaStep;
+
     }
 
-    // Aggiorna la scala solamente se necessario
+
+    // -----------------------------------------
+    // Aggiorna la scala solamente se cambiata
+    // -----------------------------------------
+
     if (
-        percepitaGauge.getMinValue() !== percepitaMin ||
-        percepitaGauge.getMaxValue() !== percepitaMax
+        percepitaGauge.getMinValue() !== percepitaGaugeMin ||
+        percepitaGauge.getMaxValue() !== percepitaGaugeMax
     ) {
-        percepitaGauge.setMinValue(percepitaMin);
-        percepitaGauge.setMaxValue(percepitaMax);
+
+        percepitaGauge.setMinValue(percepitaGaugeMin);
+
+        percepitaGauge.setMaxValue(percepitaGaugeMax);
+
     }
 
+
+    // -----------------------------------------
+    // Aggiorna il cono rosso
+    // -----------------------------------------
+
+    percepitaGauge.setArea([
+
+        steelseries.Section(
+            percepitaMinRecorded,
+            percepitaMaxRecorded,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // -----------------------------------------
     // Aggiorna il valore
+    // -----------------------------------------
+
     percepitaGauge.setValueAnimated(value);
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-   33.9 °C
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updatePercepitaGauge(33.9);
 /* ================================
@@ -1634,19 +2316,42 @@ const humidityGauge = new steelseries.Radial(
 
         ledColor: steelseries.LedColor.RED_LED,
         lcdColor: gaugeGlobals.lcdColour,
+
         section: [
-            steelseries.Section(0, 20, "rgba(255,255,0,0.3)"),
-            steelseries.Section(20, 80, "rgba(0,255,0,0.3)"),
-            steelseries.Section(80, 100, "rgba(255,0,0,0.3)"),
-        ]
+            steelseries.Section(
+                0,
+                20,
+                "rgba(255,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                20,
+                80,
+                "rgba(0,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                80,
+                100,
+                "rgba(255,0,0,0.3)"
+            )
+        ],
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        valueGradient: false,
+
+        minMeasuredValue: 0,
+        maxMeasuredValue: 100
     }
 );
 
-
-/* ================================
-   VALORE DI TEST
-   60.0 %
-================================= */
+/* =========================================
+VALORE DI TEST
+64.2 %
+========================================= */
 
 humidityGauge.setValueAnimated(64.2);
 const pressureGauge = new steelseries.Radial(
@@ -1678,13 +2383,21 @@ const pressureGauge = new steelseries.Radial(
 
         ledColor: steelseries.LedColor.RED_LED,
         lcdColor: gaugeGlobals.lcdColour,
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        minMeasuredValue: 960,
+        maxMeasuredValue: 1050,
+
+        valueGradient: false
     }
 );
 
-
 /* ================================
-   VALORE DI TEST
-   1013.2 hPa
+VALORE DI TEST
+1013.2 hPa
 ================================= */
 
 pressureGauge.setValueAnimated(1013.2);
@@ -1719,18 +2432,29 @@ const windGauge = new steelseries.Radial(
         ledColor: steelseries.LedColor.RED_LED,
         lcdColor: gaugeGlobals.lcdColour,
 
+        // =========================================
+        // CONI FISSI DEL VENTO
+        // =========================================
+
         section: [
-            steelseries.Section(0, 10, "rgba(0,255,0,0.3)"),
-            steelseries.Section(10, 30, "rgba(255,255,0,0.3)"),
-            steelseries.Section(30, 500, "rgba(255,0,0,0.3)"),
+            steelseries.Section(
+                0,
+                5,
+                "rgba(0, 255, 0, 0.17)"
+            ),
+
+            steelseries.Section(
+                5,
+                20,
+                "rgba(255, 0, 0, 0.17)"
+            )
         ]
     }
 );
 
-
 /* =========================================
-   SCALA DINAMICA DEL VENTO
-   0 → 30 → 50 → 100 → 200 → 500
+SCALA DINAMICA DEL VENTO
+0 → 30 → 50 → 100 → 200 → 500
 ========================================= */
 
 function updateWindGauge(value) {
@@ -1739,19 +2463,19 @@ function updateWindGauge(value) {
 
     if (value <= 30) {
         newMax = 30;
-    } 
+    }
     else if (value <= 50) {
         newMax = 50;
-    } 
+    }
     else if (value <= 100) {
         newMax = 100;
-    } 
+    }
     else if (value <= 200) {
         newMax = 200;
-    } 
+    }
     else if (value <= 500) {
         newMax = 500;
-    } 
+    }
     else {
         // Oltre 500 continua a scalare a blocchi di 500
         newMax = Math.ceil(value / 500) * 500;
@@ -1759,6 +2483,7 @@ function updateWindGauge(value) {
 
     // Cambia la scala solo se necessario
     if (windGauge.getMaxValue() !== newMax) {
+
         windGauge.setMaxValue(newMax);
 
         // Riporta temporaneamente la lancetta a 0
@@ -1769,10 +2494,9 @@ function updateWindGauge(value) {
     windGauge.setValueAnimated(value);
 }
 
-
 /* =========================================
-   VALORE DI TEST
-   6.4 km/h
+VALORE DI TEST
+6.4 km/h
 ========================================= */
 
 updateWindGauge(6.4);
@@ -1806,18 +2530,29 @@ const windGustGauge = new steelseries.Radial(
         ledColor: steelseries.LedColor.RED_LED,
         lcdColor: gaugeGlobals.lcdColour,
 
+        // =========================================
+        // CONI FISSI DELLE RAFFICHE
+        // =========================================
+
         section: [
-            steelseries.Section(0, 10, "rgba(0,255,0,0.3)"),
-            steelseries.Section(10, 30, "rgba(255,255,0,0.3)"),
-            steelseries.Section(30, 500, "rgba(255,0,0,0.3)"),
+            steelseries.Section(
+                0,
+                15,
+                "rgba(0, 255, 0, 0.17)"
+            ),
+
+            steelseries.Section(
+                15,
+                30,
+                "rgba(255, 0, 0, 0.17)"
+            )
         ]
     }
 );
 
-
 /* =========================================
-   SCALA DINAMICA DELLE RAFFICHE
-   0 → 30 → 50 → 100 → 200 → 500
+SCALA DINAMICA DELLE RAFFICHE
+0 → 30 → 50 → 100 → 200 → 500
 ========================================= */
 
 function updateWindGustGauge(value) {
@@ -1845,21 +2580,21 @@ function updateWindGustGauge(value) {
     }
 
     if (windGustGauge.getMaxValue() !== newMax) {
+
         windGustGauge.setMaxValue(newMax);
+
         windGustGauge.setValue(0);
     }
 
     windGustGauge.setValueAnimated(value);
 }
 
-
 /* =========================================
-   VALORE DI TEST
-   9.6 km/h
+VALORE DI TEST
+9.6 km/h
 ========================================= */
 
 updateWindGustGauge(9.6);
-
 /* ================================
    GAUGE DIREZIONE DEL VENTO
 ================================= */
