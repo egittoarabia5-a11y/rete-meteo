@@ -1968,52 +1968,25 @@ GAUGE TEMPERATURA APPARENTE
 ========================================= */
 
 // =========================================
-// DATI MIN / MAX
+// DATI SCALA
 // =========================================
 
-let percepitaMinRecorded = 21.8;   // minima registrata
-let percepitaMaxRecorded = 40.5;   // massima registrata
-let percepitaValue = 33.9;         // valore attuale
+let percepitaGaugeMin = -20;
+let percepitaGaugeMax = 50;
 
-
-// =========================================
-// CONFIGURAZIONE SCALA
-// =========================================
-
-const percepitaRange = 60;
 const percepitaStep = 10;
 
 
 // =========================================
-// FUNZIONI PER ARROTONDARE LA SCALA
+// DATI MIN / MAX REGISTRATI
 // =========================================
 
-function getPercepitaGaugeMin(value) {
-
-    return Math.floor(value / 10) * 10;
-
-}
-
-function getPercepitaGaugeMax(value) {
-
-    return getPercepitaGaugeMin(value) + percepitaRange;
-
-}
+let percepitaMinRecorded = 21.8;
+let percepitaMaxRecorded = 45.5;
 
 
 // =========================================
-// SCALA INIZIALE
-// =========================================
-
-let percepitaGaugeMin =
-    getPercepitaGaugeMin(percepitaMinRecorded);
-
-let percepitaGaugeMax =
-    getPercepitaGaugeMax(percepitaMaxRecorded);
-
-
-// =========================================
-// PERCEPITA GAUGE
+// TEMPERATURA APPARENTE GAUGE
 // =========================================
 
 const percepitaGauge = new steelseries.Radial(
@@ -2021,7 +1994,6 @@ const percepitaGauge = new steelseries.Radial(
     document.getElementById("percepitaGauge"),
 
     {
-
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -2171,6 +2143,7 @@ const percepitaGauge = new steelseries.Radial(
             ),
 
             // ROSSO DELLA SCALA - OPACITÀ 17%
+
             steelseries.Section(
                 30,
                 40,
@@ -2183,80 +2156,97 @@ const percepitaGauge = new steelseries.Radial(
                 "rgba(245, 109, 205, 0.4)"
             )
 
-        ],
-
-
-        // =========================================
-        // CONO ROSSO MIN / MAX
-        // =========================================
-
-        area: [
-
-            steelseries.Section(
-                percepitaMinRecorded,
-                percepitaMaxRecorded,
-                "rgba(236, 45, 45, 0.17)"
-            )
-
         ]
-
     }
-
 );
 
 
 // =========================================
-// SCALA DINAMICA TEMPERATURA APPARENTE
-//
-// Range sempre di 60 °C
-// Spostamento di 10 °C
+// FUNZIONE AGGIORNAMENTO
 // =========================================
 
-function updatePercepitaGauge(value) {
+function updatePercepitaGauge(
+    value,
+    minValue,
+    maxValue
+) {
 
-    // -----------------------------------------
-    // Se supera il massimo della scala
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA MINIMO REGISTRATO
+    // =========================================
+
+    if (minValue < percepitaMinRecorded) {
+
+        percepitaMinRecorded = minValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MASSIMO REGISTRATO
+    // =========================================
+
+    if (maxValue > percepitaMaxRecorded) {
+
+        percepitaMaxRecorded = maxValue;
+
+    }
+
+
+    // =========================================
+    // SCALA DINAMICA
+    //
+    // SEMPRE 70 °C DI AMPIEZZA
+    // SPOSTAMENTO DI 10 °C
+    //
+    // -20 → 50
+    // -10 → 60
+    //   0 → 70
+    //  10 → 80
+    // ecc.
+    // =========================================
 
     while (value > percepitaGaugeMax) {
 
         percepitaGaugeMin += percepitaStep;
+
         percepitaGaugeMax += percepitaStep;
 
     }
 
 
-    // -----------------------------------------
-    // Se scende sotto il minimo della scala
-    // -----------------------------------------
-
     while (value < percepitaGaugeMin) {
 
         percepitaGaugeMin -= percepitaStep;
+
         percepitaGaugeMax -= percepitaStep;
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna la scala solamente se cambiata
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA LA SCALA SOLO SE CAMBIATA
+    // =========================================
 
     if (
         percepitaGauge.getMinValue() !== percepitaGaugeMin ||
         percepitaGauge.getMaxValue() !== percepitaGaugeMax
     ) {
 
-        percepitaGauge.setMinValue(percepitaGaugeMin);
+        percepitaGauge.setMinValue(
+            percepitaGaugeMin
+        );
 
-        percepitaGauge.setMaxValue(percepitaGaugeMax);
+        percepitaGauge.setMaxValue(
+            percepitaGaugeMax
+        );
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna il cono rosso
-    // -----------------------------------------
+    // =========================================
+    // CONO ROSSO MIN / MAX
+    // =========================================
 
     percepitaGauge.setArea([
 
@@ -2269,11 +2259,13 @@ function updatePercepitaGauge(value) {
     ]);
 
 
-    // -----------------------------------------
-    // Aggiorna il valore
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA VALORE ATTUALE
+    // =========================================
 
-    percepitaGauge.setValueAnimated(value);
+    percepitaGauge.setValueAnimated(
+        value
+    );
 
 }
 
@@ -2282,7 +2274,11 @@ function updatePercepitaGauge(value) {
 // VALORE DI TEST
 // =========================================
 
-updatePercepitaGauge(33.9);
+updatePercepitaGauge(
+    36.9,   // temperatura attuale
+    21.8,   // minima registrata
+    45.5    // massima registrata
+);
 /* ================================
    GAUGE UMIDITÀ
 ================================= */
