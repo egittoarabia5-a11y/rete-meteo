@@ -353,9 +353,9 @@
 
         <!-- 11 - UV -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="UVGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 12 - RADIAZIONE SOLARE -->
@@ -1257,7 +1257,7 @@ const windDirectionGauge = new steelseries.WindDirection(
             "Average"
         ],
 
-        titleString: "DIREZIONE VENTO",
+        titleString: "Direzione Vento",
 
         useColorLabels: true,
 
@@ -1268,6 +1268,73 @@ const windDirectionGauge = new steelseries.WindDirection(
 // Valori di test
 windDirectionGauge.setValueAnimatedLatest(135);
 windDirectionGauge.setValueAnimatedAverage(110);
+
+const uvGauge = new steelseries.RadialBargraph(
+    document.getElementById("UVGauge"),
+    {
+        gaugeType: steelseries.GaugeType.TYPE4,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 12,
+
+        frameDesign: steelseries.FrameDesign.TILTED_GRAY,
+
+        backgroundColor: steelseries.BackgroundColor.BEIGE,
+
+        foregroundType: steelseries.ForegroundType.TYPE1,
+
+        valueColor: steelseries.ColorDef.RED,
+
+        lcdColor: steelseries.LcdColor.STANDARD,
+        lcdVisible: true,
+        lcdDecimals: 1,
+
+        titleString: "Indice UV",
+        unitString: "UV",
+
+        threshold: 8,
+        thresholdRising: true,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        ledVisible: true,
+
+        useSectionColors: true,
+
+        section: [
+            {
+                start: 0,
+                stop: 2,
+                color: "green"
+            },
+            {
+                start: 2,
+                stop: 5,
+                color: "yellow"
+            },
+            {
+                start: 5,
+                stop: 7,
+                color: "orange"
+            },
+            {
+                start: 7,
+                stop: 10,
+                color: "red"
+            },
+            {
+                start: 10,
+                stop: 12,
+                color: "violet"
+            }
+        ],
+
+        fullScaleDeflectionTime: 2.5
+    }
+);
+
+uvGauge.setValueAnimated(4);
     </script>
 
 
