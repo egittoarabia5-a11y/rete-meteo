@@ -1229,39 +1229,51 @@ const gaugeGlobals = {
 // =========================================
 
 function updateTemperatureScale() {
-    console.log("⚙️ updateTemperatureScale PRIMA:", {
-        temperatureMin,
-        temperatureMax,
-        tempMin,
-        tempMax
-    });
-    // Se non abbiamo ancora il massimo
+
+    // =========================================
+    // SCALA STANDARD
+    // =========================================
+
     if (!Number.isFinite(temperatureMax)) {
 
-        tempMax = 40;
         tempMin = -20;
+        tempMax = 40;
 
         return;
     }
 
 
-    // Massimo = multiplo di 10 superiore
+    // =========================================
+    // MASSIMO FINO A 40°C
+    // =========================================
+
+    if (temperatureMax <= 40) {
+
+        tempMin = -20;
+        tempMax = 40;
+
+        return;
+    }
+
+
+    // =========================================
+    // OLTRE 40°C
+    // =========================================
+
     tempMax =
         Math.ceil(temperatureMax / 10) * 10;
 
-
-    // Scala larga sempre 60°C
     tempMin =
         tempMax - 60;
-            console.log("⚙️ updateTemperatureScale DOPO:", {
-        temperatureMin,
-        temperatureMax,
-        tempMin,
-        tempMax
+
+
+    console.log("📏 SCALA TEMPERATURA:", {
+        temperaturaMassima: temperatureMax,
+        scalaMin: tempMin,
+        scalaMax: tempMax
     });
+
 }
-
-
 
 // =========================================
 // SCALA INIZIALE
