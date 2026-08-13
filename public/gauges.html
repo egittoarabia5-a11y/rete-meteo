@@ -1294,7 +1294,7 @@ const windGustGauge = new steelseries.Radial(
         size: 240,
 
         minValue: 0,
-        maxValue: 30,
+        maxValue: 70,
 
         threshold: 20,
 
@@ -1314,7 +1314,12 @@ const windGustGauge = new steelseries.Radial(
         knobStyle: gaugeGlobals.knobStyle,
 
         ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        lcdColor: gaugeGlobals.lcdColour,
+        section: [
+            steelseries.Section(0, 20, "rgba(0,255,0,0.3)"),
+            steelseries.Section(20, 50, "rgba(255,255,0,0.3)"),
+            steelseries.Section(50, 500, "rgba(255,0,0,0.3)"),
+        ]
     }
 );
 
@@ -1486,7 +1491,13 @@ const RadGauge = new steelseries.Radial(
         knobStyle: gaugeGlobals.knobStyle,
 
         ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        lcdColor: gaugeGlobals.lcdColour,
+        
+        section: [
+            steelseries.Section(0, 200, "rgba(0,255,0,0.3)"),
+            steelseries.Section(200, 500, "rgba(255,255,0,0.3)"),
+            steelseries.Section(500, 1900, "rgba(255,0,0,0.3)"),
+        ]
     }
 );
 
@@ -1593,7 +1604,13 @@ const RainRateGauge = new steelseries.Radial(
         knobStyle: gaugeGlobals.knobStyle,
 
         ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        lcdColor: gaugeGlobals.lcdColour,
+        
+        section: [
+            steelseries.Section(0, 20, "rgba(0,255,0,0.3)"),
+            steelseries.Section(20, 50, "rgba(255,255,0,0.3)"),
+            steelseries.Section(50, 500, "rgba(255,0,0,0.3)"),
+        ]
     }
 );
 
@@ -1633,7 +1650,13 @@ const CloudBaseGauge = new steelseries.Radial(
         knobStyle: gaugeGlobals.knobStyle,
 
         ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        lcdColor: gaugeGlobals.lcdColour,
+        
+        section: [
+            steelseries.Section(0, 200, "rgba(0,255,0,0.3)"),
+            steelseries.Section(200, 1000, "rgba(255,255,0,0.3)"),
+            steelseries.Section(1000, 7000, "rgba(255,0,0,0.3)"),
+        ]
     }
 );
 
