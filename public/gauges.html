@@ -428,38 +428,47 @@
            STAZIONI WUNDERGROUND
         ========================================= */
 
-        const StazioniWunderground = {
+       const StazioniWunderground = {
 
-            "IGENOA2897": {
+    "IGENOA2897": {
 
-                name:
-                    "Genova San Martino - Fonte: Wunderground - Altitudine: 104 m.s.l.m.",
+        name:
+            "Genova San Martino - Fonte: Wunderground - Altitudine: 104 m.s.l.m.",
 
-                link:
-                    "SanMartino1.png"
-            },
+        link:
+            "SanMartino1.png",
 
-
-            "IGENOA3085": {
-
-                name:
-                    "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m.",
-
-                link:
-                    "Sturla1.png"
-            },
+        api:
+            "IGENOA2897"
+    },
 
 
-            "IGENOA3052": {
+    "IGENOA3085": {
 
-                name:
-                    "Genova Boccadasse - Fonte: Wunderground - Altitudine: 41 m.s.l.m.",
+        name:
+            "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m.",
 
-                link:
-                    "Boccadasse1.png"
-            }
+        link:
+            "Sturla1.png",
 
-        };
+        api:
+            "IGENOA3085"
+    },
+
+
+    "IGENOA3052": {
+
+        name:
+            "Genova Boccadasse - Fonte: Wunderground - Altitudine: 41 m.s.l.m.",
+
+        link:
+            "Boccadasse1.png",
+
+        api:
+            "IGENOA3052"
+    }
+
+};
 
 
 
@@ -576,23 +585,76 @@
                 "none";
 
         }
-
+const latestData = {};
 const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
+
+
 async function fetchPws(id) {
 
     try {
 
+        // =========================================
+        // VERIFICA STAZIONE
+        // =========================================
+
+        const stationData =
+            StazioniWunderground[id];
+
+        if (!stationData) {
+
+            console.error(
+                "Stazione Wunderground non trovata:",
+                id
+            );
+
+            return;
+        }
+
+
+        // =========================================
+        // FETCH DATI ATTUALI
+        // =========================================
+
         const urlCurrent =
-            `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${stations[id].api}&numericPrecision=decimal&format=json&units=m`;
+            `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${stationData.api}&numericPrecision=decimal&format=json&units=m`;
+
 
         const resCurrent =
             await fetch(urlCurrent);
 
+
+        if (!resCurrent.ok) {
+
+            throw new Error(
+                `HTTP ${resCurrent.status}`
+            );
+
+        }
+
+
         const dataCurrent =
             await resCurrent.json();
 
+
+        if (
+            !dataCurrent.observations ||
+            !dataCurrent.observations.length
+        ) {
+
+            throw new Error(
+                "Nessuna osservazione ricevuta"
+            );
+
+        }
+
+
         const observation =
             dataCurrent.observations[0];
+
+
+        // =========================================
+        // DATI ATTUALI
+        // =========================================
 
         const temp =
             observation.metric.temp;
@@ -632,14 +694,25 @@ async function fetchPws(id) {
 
 
         // =========================================
-        // DATI GIORNALIERI
+        // FETCH DATI GIORNALIERI
         // =========================================
 
         const urlDaily =
-            `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${stations[id].api}&numericPrecision=decimal&format=json&units=m`;
+            `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${stationData.api}&numericPrecision=decimal&format=json&units=m`;
+
 
         const resDaily =
             await fetch(urlDaily);
+
+
+        if (!resDaily.ok) {
+
+            throw new Error(
+                `HTTP Daily ${resDaily.status}`
+            );
+
+        }
+
 
         const dataDaily =
             await resDaily.json();
@@ -681,20 +754,18 @@ async function fetchPws(id) {
                 : null;
 
         const windGustHigh =
-            summary ? summary.windgustHigh : null;
-
-
-        const source =
-            "Wunderground";
+            summary
+                ? summary.windgustHigh
+                : null;
 
 
         // =========================================
-        // SALVA DATI STAZIONE
+        // SALVA I DATI
         // =========================================
 
         latestData[id] = {
 
-            source,
+            source: "Wunderground",
 
             temp,
             tempHigh,
@@ -728,29 +799,31 @@ async function fetchPws(id) {
         };
 
 
-        // =========================================
-        // AGGIORNA MARKER
-        // =========================================
+        console.log(
+            "Dati Wunderground ricevuti:",
+            id,
+            latestData[id]
+        );
 
-        updateMarker(id);
-
 
         // =========================================
-        // SE QUESTA È LA STAZIONE VISUALIZZATA
-        // AGGIORNA I GAUGE
+        // AGGIORNA GAUGE
         // =========================================
 
         updateSelectedStation();
 
 
-    } catch (err) {
+    }
+
+    catch (err) {
 
         console.error(
-            `Errore fetch dati ${id}:`,
+            `Errore fetch Wunderground ${id}:`,
             err
         );
 
     }
+
 }
 // =========================================
 // AGGIORNA STAZIONE SELEZIONATA
@@ -759,23 +832,25 @@ async function fetchPws(id) {
 function updateSelectedStation() {
 
     // =========================================
-    // PRENDI IL TITOLO DELLA STAZIONE
+    // USA L'ID DELLA STAZIONE DALL'URL
     // =========================================
 
-    const stationNameElement =
-        document.querySelector(".station-name");
+    const stationId =
+        station;
 
-    if (!stationNameElement) {
+
+    if (!stationId) {
+
+        console.warn(
+            "Nessun ID stazione trovato"
+        );
+
         return;
     }
 
 
-    const stationId =
-        stationNameElement.textContent.trim();
-
-
     // =========================================
-    // CERCA I DATI
+    // PRENDI I DATI
     // =========================================
 
     const data =
@@ -790,7 +865,6 @@ function updateSelectedStation() {
         );
 
         return;
-
     }
 
 
@@ -878,6 +952,15 @@ function updateTemperatureGauge(
         )
 
     ]);
+
+}
+if (
+    source === "Wunderground" &&
+    stazione &&
+    station
+) {
+
+    fetchPws(station);
 
 }
         /* =========================================
