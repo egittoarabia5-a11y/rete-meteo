@@ -678,51 +678,104 @@ const gaugeGlobals = {
    GAUGE TEMPERATURA
 ========================================= */
 
-const temperatureGauge = new steelseries.RadialBargraph(
+const temperatureGauge = new steelseries.Radial(
+
     document.getElementById("temperatureGauge"),
+
     {
-        gaugeType: steelseries.GaugeType.TYPE4,
 
-        size: 270,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        minValue: -10,
-        maxValue: 40,
+        size:
+            240,
 
-        frameDesign: steelseries.FrameDesign.TILTED_GRAY,
+        minValue:
+            gaugeGlobals.tempScaleDefMinC,
 
-        backgroundColor: steelseries.BackgroundColor.BEIGE,
+        maxValue:
+            gaugeGlobals.tempScaleDefMaxC,
 
-        foregroundType: steelseries.ForegroundType.TYPE1,
+        threshold:
+            35,
 
-        valueColor: steelseries.ColorDef.GREEN,
+        titleString:
+            "Temperatura",
 
-        section: [
-            {
-                start: -10,
-                stop: 10,
-                color: steelseries.ColorDef.GREEN
-            },
-            {
-                start: 10,
-                stop: 25,
-                color: steelseries.ColorDef.YELLOW
-            },
-            {
-                start: 25,
-                stop: 40,
-                color: steelseries.ColorDef.RED
-            }
-        ],
+        unitString:
+            "°C",
 
-        useSectionColors: true,
+        lcdDecimals:
+            1,
 
-        lcdColor: steelseries.LcdColor.STANDARD,
-        lcdVisible: true,
+        frameDesign:
+            gaugeGlobals.frameDesign,
 
-        titleString: "TEMPERATURA",
-        unitString: "°C"
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+ledColor:
+    steelseries.LedColor.RED_LED,
+
+section: [
+    steelseries.Section(
+        gaugeGlobals.tempScaleDefMinC,
+        10,
+        "rgba(0, 150, 255, 0.3)"
+    ),
+
+    steelseries.Section(
+        10,
+        25,
+        "rgba(0, 255, 0, 0.3)"
+    ),
+
+    steelseries.Section(
+        25,
+        35,
+        "rgba(255, 255, 0, 0.3)"
+    ),
+
+    steelseries.Section(
+        35,
+        gaugeGlobals.tempScaleDefMaxC,
+        "rgba(255, 0, 0, 0.3)"
+    )
+]
+
     }
+
 );
+
+
+/* =========================================
+   VALORE DI TEST
+   20.0 °C
+========================================= */
 
 temperatureGauge.setValueAnimated(24.2);
 /* =========================================
