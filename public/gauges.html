@@ -899,48 +899,60 @@ function updateTemperatureGauge(
 ) {
 
     console.log("🔴 updateTemperatureGauge RICEVE:", {
-        value: value,
-        minValue: minValue,
-        maxValue: maxValue
+        value,
+        minValue,
+        maxValue
     });
 
-    console.log("🔴 TIPI:", {
-        value: typeof value,
-        minValue: typeof minValue,
-        maxValue: typeof maxValue
+    // =========================================
+    // CONVERSIONE NUMERI
+    // =========================================
+
+    const currentTemp = Number(value);
+    const currentMin = Number(minValue);
+    const currentMax = Number(maxValue);
+
+
+    console.log("🟣 VALORI CONVERTITI:", {
+        currentTemp,
+        currentMin,
+        currentMax
     });
 
-    // RESTO DELLA FUNZIONE... {
 
     // =========================================
-    // CONVERSIONE NUMERICA
-    // =========================================
-
-const currentTemp = Number(value);
-const currentMin = Number(minValue);
-const currentMax = Number(maxValue);
-
-console.log("🟣 DOPO Number():", {
-    currentTemp,
-    currentMin,
-    currentMax
-});
-
-
-    // =========================================
-    // SALVA I DATI DEL FETCH
+    // TEMPERATURA ATTUALE
     // =========================================
 
     if (Number.isFinite(currentTemp)) {
-        temperatureValue = currentTemp;
+
+        temperatureValue =
+            currentTemp;
+
     }
+
+
+    // =========================================
+    // MINIMA DAL FETCH
+    // =========================================
 
     if (Number.isFinite(currentMin)) {
-        temperatureMin = currentMin;
+
+        temperatureMin =
+            currentMin;
+
     }
 
+
+    // =========================================
+    // MASSIMA DAL FETCH
+    // =========================================
+
     if (Number.isFinite(currentMax)) {
-        temperatureMax = currentMax;
+
+        temperatureMax =
+            currentMax;
+
     }
 
 
@@ -948,39 +960,54 @@ console.log("🟣 DOPO Number():", {
     // DEBUG
     // =========================================
 
-    console.log("UPDATE TEMPERATURE:", {
-        value: value,
-        minValue: minValue,
-        maxValue: maxValue,
-
-        temperatureValue: temperatureValue,
-        temperatureMin: temperatureMin,
-        temperatureMax: temperatureMax
+    console.log("🌡️ TEMPERATURE GLOBALI:", {
+        temperatureValue,
+        temperatureMin,
+        temperatureMax
     });
 
 
     // =========================================
-    // AGGIORNA SCALA
+    // RICALCOLA SCALA
     // =========================================
 
-    const oldTempMin = tempMin;
-    const oldTempMax = tempMax;
+    const oldTempMin =
+        tempMin;
+
+    const oldTempMax =
+        tempMax;
+
 
     updateTemperatureScale();
+
+
+    // =========================================
+    // AGGIORNA SCALA GAUGE
+    // =========================================
 
     if (
         oldTempMin !== tempMin ||
         oldTempMax !== tempMax
     ) {
 
-        temperatureGauge.setMinValue(tempMin);
-        temperatureGauge.setMaxValue(tempMax);
+        console.log("📏 NUOVA SCALA:", {
+            min: tempMin,
+            max: tempMax
+        });
+
+        temperatureGauge.setMinValue(
+            tempMin
+        );
+
+        temperatureGauge.setMaxValue(
+            tempMax
+        );
 
     }
 
 
     // =========================================
-    // CONO MIN → MAX
+    // AREA MIN → MAX
     // =========================================
 
     if (
@@ -989,7 +1016,7 @@ console.log("🟣 DOPO Number():", {
     ) {
 
         console.log(
-            "CONO:",
+            "🔴 CONO MIN/MAX:",
             temperatureMin,
             "→",
             temperatureMax
@@ -1009,18 +1036,24 @@ console.log("🟣 DOPO Number():", {
 
 
     // =========================================
-    // TEMPERATURA ATTUALE
+    // VALORE ATTUALE
     // =========================================
 
     if (
         Number.isFinite(temperatureValue)
     ) {
 
+        console.log(
+            "➡️ VALORE GAUGE:",
+            temperatureValue
+        );
+
         temperatureGauge.setValueAnimated(
             temperatureValue
         );
 
     }
+
 }
 if (
     source === "Wunderground" &&
@@ -1422,79 +1455,6 @@ const temperatureGauge = new steelseries.Radial(
 // =========================================
 // AGGIORNA GAUGE
 // =========================================
-
-function updateTemperatureGauge() {
-
-    // =========================================
-    // AGGIORNA SCALA
-    // =========================================
-
-    const oldTempMin = tempMin;
-    const oldTempMax = tempMax;
-
-    updateTemperatureScale();
-
-
-    if (
-        oldTempMin !== tempMin ||
-        oldTempMax !== tempMax
-    ) {
-
-        temperatureGauge.setMinValue(
-            tempMin
-        );
-
-        temperatureGauge.setMaxValue(
-            tempMax
-        );
-
-    }
-
-
-    // =========================================
-    // CONO MIN → MAX
-    // =========================================
-
-    if (
-        Number.isFinite(temperatureMin) &&
-        Number.isFinite(temperatureMax)
-    ) {
-
-        console.log(
-            "CONO:",
-            temperatureMin,
-            "→",
-            temperatureMax
-        );
-
-        temperatureGauge.setArea([
-
-            steelseries.Section(
-                temperatureMin,
-                temperatureMax,
-                "rgba(236, 45, 45, 0.17)"
-            )
-
-        ]);
-
-    }
-
-
-    // =========================================
-    // TEMPERATURA ATTUALE
-    // =========================================
-
-    if (
-        Number.isFinite(temperatureValue)
-    ) {
-
-        temperatureGauge.setValueAnimated(
-            temperatureValue
-        );
-
-    }
-
-}
 
 
 // =========================================
