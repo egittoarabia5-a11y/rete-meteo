@@ -887,6 +887,10 @@ function updateSelectedStation() {
     }
 
 }
+// =========================================
+// AGGIORNAMENTO GAUGE TEMPERATURA
+// =========================================
+
 function updateTemperatureGauge(
     value,
     minValue,
@@ -894,64 +898,134 @@ function updateTemperatureGauge(
 ) {
 
     // =========================================
-    // VALORE ATTUALE
+    // TEMPERATURA ATTUALE
     // =========================================
 
-    temperatureValue = value;
+    if (
+        value !== null &&
+        value !== undefined &&
+        isFinite(Number(value))
+    ) {
+
+        temperatureValue =
+            Number(value);
+
+    }
 
 
     // =========================================
-    // MINIMO
+    // MINIMA GIORNALIERA DAL FETCH
     // =========================================
 
     if (
         minValue !== null &&
-        minValue !== undefined
+        minValue !== undefined &&
+        isFinite(Number(minValue))
     ) {
 
-        temperatureMinRecorded =
-            minValue;
+        temperatureMin =
+            Number(minValue);
 
     }
 
 
     // =========================================
-    // MASSIMO
+    // MASSIMA GIORNALIERA DAL FETCH
     // =========================================
 
     if (
         maxValue !== null &&
-        maxValue !== undefined
+        maxValue !== undefined &&
+        isFinite(Number(maxValue))
     ) {
 
-        temperatureMaxRecorded =
-            maxValue;
+        temperatureMax =
+            Number(maxValue);
 
     }
 
 
     // =========================================
-    // AGGIORNA GAUGE
+    // DEBUG
     // =========================================
 
-    temperatureGauge.setValueAnimated(
-        temperatureValue
+    console.log(
+        "Aggiornamento temperatura:",
+        "attuale =", temperatureValue,
+        "min =", temperatureMin,
+        "max =", temperatureMax
     );
 
 
     // =========================================
-    // AGGIORNA CONO MIN / MAX
+    // RICALCOLA SCALA
     // =========================================
 
-    temperatureGauge.setArea([
+    const oldTempMin =
+        tempMin;
 
-        steelseries.Section(
-            temperatureMinRecorded,
-            temperatureMaxRecorded,
-            "rgba(236, 45, 45, 0.17)"
-        )
+    const oldTempMax =
+        tempMax;
 
-    ]);
+    updateTemperatureScale();
+
+
+    // =========================================
+    // AGGIORNA SCALA GAUGE
+    // =========================================
+
+    if (
+        oldTempMin !== tempMin ||
+        oldTempMax !== tempMax
+    ) {
+
+        temperatureGauge.setMinValue(
+            tempMin
+        );
+
+        temperatureGauge.setMaxValue(
+            tempMax
+        );
+
+    }
+
+
+    // =========================================
+    // CONO ROSSO MIN → MAX
+    // =========================================
+
+    if (
+        temperatureMin !== null &&
+        temperatureMax !== null
+    ) {
+
+        temperatureGauge.setArea([
+
+            steelseries.Section(
+                temperatureMin,
+                temperatureMax,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
+        ]);
+
+    }
+
+
+    // =========================================
+    // AGGIORNA VALORE ATTUALE
+    // =========================================
+
+    if (
+        temperatureValue !== null &&
+        isFinite(Number(temperatureValue))
+    ) {
+
+        temperatureGauge.setValueAnimated(
+            temperatureValue
+        );
+
+    }
 
 }
 if (
@@ -1544,16 +1618,6 @@ temperatureGaugeElement.addEventListener(
         );
 
     }
-);
-
-// =========================================
-// VALORE DI TEST
-// =========================================
-
-updateTemperatureGauge(
-    34.2,  // temperatura attuale
-    21.8,  // minima
-    40.5   // massima
 );
 /* =========================================
 GAUGE DEWPOINT
