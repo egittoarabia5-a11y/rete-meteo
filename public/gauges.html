@@ -577,8 +577,309 @@
 
         }
 
+const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
+async function fetchPws(id) {
+
+    try {
+
+        const urlCurrent =
+            `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${stations[id].api}&numericPrecision=decimal&format=json&units=m`;
+
+        const resCurrent =
+            await fetch(urlCurrent);
+
+        const dataCurrent =
+            await resCurrent.json();
+
+        const observation =
+            dataCurrent.observations[0];
+
+        const temp =
+            observation.metric.temp;
+
+        const dewp =
+            observation.metric.dewpt;
+
+        const heat =
+            observation.metric.heatIndex;
+
+        const hum =
+            observation.humidity;
+
+        const rainDaily =
+            observation.metric.precipTotal;
+
+        const rainRate =
+            observation.metric.precipRate;
+
+        const lat =
+            observation.lat;
+
+        const lon =
+            observation.lon;
+
+        const wind =
+            observation.metric.windSpeed;
+
+        const windGust =
+            observation.metric.windGust;
+
+        const altitude =
+            observation.metric.elev;
+
+        const windDir =
+            observation.winddir;
 
 
+        // =========================================
+        // DATI GIORNALIERI
+        // =========================================
+
+        const urlDaily =
+            `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${stations[id].api}&numericPrecision=decimal&format=json&units=m`;
+
+        const resDaily =
+            await fetch(urlDaily);
+
+        const dataDaily =
+            await resDaily.json();
+
+
+        const summary =
+            dataDaily.summaries &&
+            dataDaily.summaries.length > 0
+                ? dataDaily.summaries[0].metric
+                : null;
+
+
+        const tempHigh =
+            summary ? summary.tempHigh : null;
+
+        const tempLow =
+            summary ? summary.tempLow : null;
+
+        const dewpHigh =
+            summary ? summary.dewptHigh : null;
+
+        const dewpLow =
+            summary ? summary.dewptLow : null;
+
+        const heatHigh =
+            summary ? summary.heatindexHigh : null;
+
+        const heatLow =
+            summary ? summary.heatindexLow : null;
+
+        const humHigh =
+            summary
+                ? dataDaily.summaries[0].humidityHigh
+                : null;
+
+        const humLow =
+            summary
+                ? dataDaily.summaries[0].humidityLow
+                : null;
+
+        const windGustHigh =
+            summary ? summary.windgustHigh : null;
+
+
+        const source =
+            "Wunderground";
+
+
+        // =========================================
+        // SALVA DATI STAZIONE
+        // =========================================
+
+        latestData[id] = {
+
+            source,
+
+            temp,
+            tempHigh,
+            tempLow,
+
+            dewp,
+            dewpHigh,
+            dewpLow,
+
+            heat,
+            heatHigh,
+            heatLow,
+
+            hum,
+            humHigh,
+            humLow,
+
+            rainDaily,
+            rainRate,
+
+            wind,
+            windGust,
+            windGustHigh,
+
+            windDir,
+
+            lat,
+            lon,
+
+            altitude
+        };
+
+
+        // =========================================
+        // AGGIORNA MARKER
+        // =========================================
+
+        updateMarker(id);
+
+
+        // =========================================
+        // SE QUESTA È LA STAZIONE VISUALIZZATA
+        // AGGIORNA I GAUGE
+        // =========================================
+
+        updateSelectedStation();
+
+
+    } catch (err) {
+
+        console.error(
+            `Errore fetch dati ${id}:`,
+            err
+        );
+
+    }
+}
+// =========================================
+// AGGIORNA STAZIONE SELEZIONATA
+// =========================================
+
+function updateSelectedStation() {
+
+    // =========================================
+    // PRENDI IL TITOLO DELLA STAZIONE
+    // =========================================
+
+    const stationNameElement =
+        document.querySelector(".station-name");
+
+    if (!stationNameElement) {
+        return;
+    }
+
+
+    const stationId =
+        stationNameElement.textContent.trim();
+
+
+    // =========================================
+    // CERCA I DATI
+    // =========================================
+
+    const data =
+        latestData[stationId];
+
+
+    if (!data) {
+
+        console.warn(
+            "Nessun dato disponibile per:",
+            stationId
+        );
+
+        return;
+
+    }
+
+
+    // =========================================
+    // TEMPERATURA
+    // =========================================
+
+    if (
+        data.temp !== null &&
+        data.temp !== undefined &&
+        !isNaN(data.temp)
+    ) {
+
+        updateTemperatureGauge(
+            data.temp,
+            data.tempLow,
+            data.tempHigh
+        );
+
+    }
+
+}
+function updateTemperatureGauge(
+    value,
+    minValue,
+    maxValue
+) {
+
+    // =========================================
+    // VALORE ATTUALE
+    // =========================================
+
+    temperatureValue = value;
+
+
+    // =========================================
+    // MINIMO
+    // =========================================
+
+    if (
+        minValue !== null &&
+        minValue !== undefined
+    ) {
+
+        temperatureMinRecorded =
+            minValue;
+
+    }
+
+
+    // =========================================
+    // MASSIMO
+    // =========================================
+
+    if (
+        maxValue !== null &&
+        maxValue !== undefined
+    ) {
+
+        temperatureMaxRecorded =
+            maxValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA GAUGE
+    // =========================================
+
+    temperatureGauge.setValueAnimated(
+        temperatureValue
+    );
+
+
+    // =========================================
+    // AGGIORNA CONO MIN / MAX
+    // =========================================
+
+    temperatureGauge.setArea([
+
+        steelseries.Section(
+            temperatureMinRecorded,
+            temperatureMaxRecorded,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+}
         /* =========================================
            GAUGE TEMPERATURA
         ========================================= */
