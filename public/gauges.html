@@ -2405,99 +2405,160 @@ pressureGauge.setValueAnimated(1013.2);
 const windGauge = new steelseries.Radial(
     document.getElementById("windGauge"),
     {
-        gaugeType: gaugeGlobals.gaugeType,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        size: 240,
+        size:
+            240,
 
-        minValue: 0,
-        maxValue: 30,
+        minValue:
+            0,
 
-        threshold: 20,
+        maxValue:
+            30,
 
-        titleString: "Vento",
-        unitString: "km/h",
+        threshold:
+            20,
 
-        lcdDecimals: 1,
+        titleString:
+            "Vento",
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        unitString:
+            "km/h",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        lcdDecimals:
+            1,
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        frameDesign:
+            gaugeGlobals.frameDesign,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
+        backgroundColor:
+            gaugeGlobals.background,
 
-        // =========================================
-        // CONI FISSI DEL VENTO
-        // =========================================
+        foregroundType:
+            gaugeGlobals.foreground,
 
-        section: [
-            steelseries.Section(
-                0,
-                5,
-                "rgba(0, 255, 0, 0.17)"
-            ),
+        pointerType:
+            gaugeGlobals.pointer,
 
-            steelseries.Section(
-                5,
-                20,
-                "rgba(255, 0, 0, 0.17)"
-            )
-        ]
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED
     }
 );
 
-/* =========================================
-SCALA DINAMICA DEL VENTO
-0 → 30 → 50 → 100 → 200 → 500
-========================================= */
+
+// =========================================
+// SCALA DINAMICA DEL VENTO
+// 0 → 30 → 50 → 100 → 200 → 500
+// =========================================
 
 function updateWindGauge(value) {
 
     let newMax;
 
     if (value <= 30) {
+
         newMax = 30;
+
     }
     else if (value <= 50) {
+
         newMax = 50;
+
     }
     else if (value <= 100) {
+
         newMax = 100;
+
     }
     else if (value <= 200) {
+
         newMax = 200;
+
     }
     else if (value <= 500) {
+
         newMax = 500;
+
     }
     else {
-        // Oltre 500 continua a scalare a blocchi di 500
-        newMax = Math.ceil(value / 500) * 500;
+
+        newMax =
+            Math.ceil(value / 500) * 500;
+
     }
 
-    // Cambia la scala solo se necessario
-    if (windGauge.getMaxValue() !== newMax) {
 
-        windGauge.setMaxValue(newMax);
+    // =========================================
+    // AGGIORNA LA SCALA
+    // =========================================
 
-        // Riporta temporaneamente la lancetta a 0
-        // per evitare problemi durante il ridisegno
-        windGauge.setValue(0);
+    if (
+        windGauge.getMaxValue() !== newMax
+    ) {
+
+        windGauge.setMaxValue(
+            newMax
+        );
+
     }
 
-    windGauge.setValueAnimated(value);
+
+    // =========================================
+    // CONI FISSI
+    // =========================================
+
+    windGauge.setArea([
+
+        // VERDE: 0 → 5 km/h
+        steelseries.Section(
+            0,
+            5,
+            "rgba(0, 255, 0, 0.17)"
+        ),
+
+        // ROSSO: 5 → 20 km/h
+        steelseries.Section(
+            5,
+            20,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // =========================================
+    // AGGIORNA IL VALORE
+    // =========================================
+
+    windGauge.setValueAnimated(
+        value
+    );
+
 }
 
-/* =========================================
-VALORE DI TEST
-6.4 km/h
-========================================= */
+
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateWindGauge(6.4);
 const windGustGauge = new steelseries.Radial(
@@ -2568,7 +2629,7 @@ const windGustGauge = new steelseries.Radial(
 // =========================================
 
 let windGustMin = 0;
-let windGustMax = 30;
+let windGustMax = 50;
 
 
 // =========================================
