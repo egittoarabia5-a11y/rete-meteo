@@ -77,7 +77,7 @@
     background: rgb(160, 160, 160);
 
     border: 1px solid #d6d6d6;
-    color: #222;
+    color: #ffffff;
 
     padding: 10px 14px;
 
@@ -1520,6 +1520,132 @@ updateDewpointGauge(
     5.2,    // minima registrata
     27.6    // massima registrata
 );
+// =========================================
+// POPUP DEWPOINT
+// =========================================
+
+const dewpointGaugeElement =
+    document.getElementById("dewpointGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const dewpointTooltip =
+    document.createElement("div");
+
+dewpointTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    dewpointTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let dewpointTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+dewpointGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        // Posizione iniziale
+        dewpointTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        dewpointTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        // Annulla eventuale timer precedente
+        clearTimeout(
+            dewpointTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        dewpointTooltipTimer =
+            setTimeout(() => {
+
+                dewpointTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Dewpoint:
+                        <span class="gauge-tooltip-value">
+                            ${dewpointValue.toFixed(1)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${dewpointMaxRecorded.toFixed(1)}°
+                        -
+                        Minima:
+                        ${dewpointMinRecorded.toFixed(1)}°
+                    </div>
+
+                `;
+
+                dewpointTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+dewpointGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        dewpointTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        dewpointTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+dewpointGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        // Annulla il timer
+        clearTimeout(
+            dewpointTooltipTimer
+        );
+
+        dewpointTooltipTimer = null;
+
+
+        // Nasconde il popup
+        dewpointTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 /* =========================================
 GAUGE HEAT INDEX
 ========================================= */
@@ -1868,6 +1994,132 @@ updateHeatIndexGauge(
     34.2,   // Heat Index attuale
     21.8,   // minima registrata
     40.5    // massima registrata
+);
+// =========================================
+// POPUP HEAT INDEX
+// =========================================
+
+const heatIndexGaugeElement =
+    document.getElementById("heatIndexGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const heatIndexTooltip =
+    document.createElement("div");
+
+heatIndexTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    heatIndexTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let heatIndexTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+heatIndexGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        // Posizione iniziale
+        heatIndexTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        heatIndexTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        // Annulla eventuale timer precedente
+        clearTimeout(
+            heatIndexTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        heatIndexTooltipTimer =
+            setTimeout(() => {
+
+                heatIndexTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Heat Index:
+                        <span class="gauge-tooltip-value">
+                            ${heatIndexValue.toFixed(1)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${heatIndexMaxRecorded.toFixed(1)}°
+                        -
+                        Minima:
+                        ${heatIndexMinRecorded.toFixed(1)}°
+                    </div>
+
+                `;
+
+                heatIndexTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+heatIndexGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        heatIndexTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        heatIndexTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+heatIndexGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        // Annulla il timer
+        clearTimeout(
+            heatIndexTooltipTimer
+        );
+
+        heatIndexTooltipTimer = null;
+
+
+        // Nasconde il popup
+        heatIndexTooltip.classList.remove(
+            "visible"
+        );
+
+    }
 );
 /* =========================================
 GAUGE HUMIDEX
