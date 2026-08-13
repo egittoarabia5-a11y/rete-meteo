@@ -1208,52 +1208,58 @@ windGauge.setValueAnimated(6.4);
    GAUGE DIREZIONE DEL VENTO
 ================================= */
 
-const windDirectionGauge = new steelseries.Radial(
+const windDirectionGauge = new windDirection(
     document.getElementById("windDirectionGauge"),
     {
-        gaugeType: gaugeGlobals.gaugeType,
+        gaugeType: steelseries.GaugeType.TYPE4,
 
         size: 240,
 
-        minValue: 0,
-        maxValue: 360,
+        frameDesign: steelseries.FrameDesign.TILTED_GRAY,
 
-        titleString: "DIREZIONE",
-        unitString: "°",
+        backgroundColor: steelseries.BackgroundColor.BEIGE,
 
-        lcdDecimals: 0,
+        foregroundType: steelseries.ForegroundType.TYPE1,
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        pointerTypeLatest: steelseries.PointerType.TYPE1,
+        pointerTypeAverage: steelseries.PointerType.TYPE8,
 
-        // Indicatore principale = ROSSO
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        pointerColor: steelseries.ColorDef.RED,
+        pointerColorAverage: steelseries.ColorDef.BLUE,
 
-        // Secondo indicatore = BLU
-        // utilizzato per la direzione media
-        dirAvgPointer: gaugeGlobals.dirAvgPointer,
-        dirAvgPointerColor: gaugeGlobals.dirAvgPointerColour,
+        knobType: steelseries.KnobType.STANDARD_KNOB,
+        knobStyle: steelseries.KnobStyle.SILVER,
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        pointSymbols: [
+            "N", "NE", "E", "SE",
+            "S", "SW", "W", "NW"
+        ],
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        pointSymbolsVisible: true,
+
+        degreeScale: true,
+        degreeScaleHalf: false,
+
+        roseVisible: false,
+
+        lcdColor: steelseries.LcdColor.STANDARD,
+        lcdVisible: true,
+
+        lcdTitleStrings: [
+            "Latest",
+            "Average"
+        ],
+
+        titleString: "DIREZIONE VENTO",
+
+        useColorLabels: true,
+
+        fullScaleDeflectionTime: 2.5,
     }
+    
 );
-
-
-/* ================================
-   VALORI DI TEST
-================================= */
-
-// Direzione istantanea
-windDirectionGauge.setValueAnimated(135);
-
-// Direzione media
-windDirectionGauge.setAverage(120);
+windDirectionGauge.setValueAnimatedLatest(135);
+windDirectionGauge.setValueAnimatedAverage(110);
     </script>
 
 
