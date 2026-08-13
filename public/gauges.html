@@ -2592,7 +2592,7 @@ humidexGaugeElement.addEventListener(
     }
 );
 /* =========================================
-GAUGE TEMPERATURA APPARENTE
+   GAUGE TEMPERATURA APPARENTE
 ========================================= */
 
 // =========================================
@@ -2612,6 +2612,8 @@ const percepitaStep = 10;
 let percepitaMinRecorded = 21.8;
 let percepitaMaxRecorded = 45.5;
 
+let percepitaValue = 36.9;
+
 
 // =========================================
 // TEMPERATURA APPARENTE GAUGE
@@ -2622,6 +2624,7 @@ const percepitaGauge = new steelseries.Radial(
     document.getElementById("percepitaGauge"),
 
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -2770,8 +2773,6 @@ const percepitaGauge = new steelseries.Radial(
                 "rgba(253, 142, 42, 0.4)"
             ),
 
-            // ROSSO DELLA SCALA - OPACITÀ 17%
-
             steelseries.Section(
                 30,
                 40,
@@ -2785,7 +2786,9 @@ const percepitaGauge = new steelseries.Radial(
             )
 
         ]
+
     }
+
 );
 
 
@@ -2805,7 +2808,8 @@ function updatePercepitaGauge(
 
     if (minValue < percepitaMinRecorded) {
 
-        percepitaMinRecorded = minValue;
+        percepitaMinRecorded =
+            minValue;
 
     }
 
@@ -2816,9 +2820,18 @@ function updatePercepitaGauge(
 
     if (maxValue > percepitaMaxRecorded) {
 
-        percepitaMaxRecorded = maxValue;
+        percepitaMaxRecorded =
+            maxValue;
 
     }
+
+
+    // =========================================
+    // SALVA VALORE ATTUALE
+    // =========================================
+
+    percepitaValue =
+        value;
 
 
     // =========================================
@@ -2831,34 +2844,44 @@ function updatePercepitaGauge(
     // -10 → 60
     //   0 → 70
     //  10 → 80
-    // ecc.
     // =========================================
 
-    while (value > percepitaGaugeMax) {
+    while (
+        value > percepitaGaugeMax
+    ) {
 
-        percepitaGaugeMin += percepitaStep;
+        percepitaGaugeMin +=
+            percepitaStep;
 
-        percepitaGaugeMax += percepitaStep;
+        percepitaGaugeMax +=
+            percepitaStep;
 
     }
 
 
-    while (value < percepitaGaugeMin) {
+    while (
+        value < percepitaGaugeMin
+    ) {
 
-        percepitaGaugeMin -= percepitaStep;
+        percepitaGaugeMin -=
+            percepitaStep;
 
-        percepitaGaugeMax -= percepitaStep;
+        percepitaGaugeMax -=
+            percepitaStep;
 
     }
 
 
     // =========================================
-    // AGGIORNA LA SCALA SOLO SE CAMBIATA
+    // AGGIORNA LA SCALA
     // =========================================
 
     if (
-        percepitaGauge.getMinValue() !== percepitaGaugeMin ||
-        percepitaGauge.getMaxValue() !== percepitaGaugeMax
+        percepitaGauge.getMinValue()
+            !== percepitaGaugeMin ||
+
+        percepitaGauge.getMaxValue()
+            !== percepitaGaugeMax
     ) {
 
         percepitaGauge.setMinValue(
@@ -2873,15 +2896,19 @@ function updatePercepitaGauge(
 
 
     // =========================================
-    // CONO ROSSO MIN / MAX
+    // AGGIORNA CONO ROSSO MIN / MAX
     // =========================================
 
     percepitaGauge.setArea([
 
         steelseries.Section(
+
             percepitaMinRecorded,
+
             percepitaMaxRecorded,
+
             "rgba(236, 45, 45, 0.17)"
+
         )
 
     ]);
@@ -2892,7 +2919,7 @@ function updatePercepitaGauge(
     // =========================================
 
     percepitaGauge.setValueAnimated(
-        value
+        percepitaValue
     );
 
 }
@@ -2903,16 +2930,20 @@ function updatePercepitaGauge(
 // =========================================
 
 updatePercepitaGauge(
-    36.9,   // temperatura attuale
-    21.8,   // minima registrata
-    45.5    // massima registrata
+    36.9,
+    21.8,
+    45.5
 );
+
+
 // =========================================
 // POPUP TEMPERATURA APPARENTE
 // =========================================
 
 const percepitaGaugeElement =
-    document.getElementById("percepitaGauge");
+    document.getElementById(
+        "percepitaGauge"
+    );
 
 
 // =========================================
@@ -2920,10 +2951,25 @@ const percepitaGaugeElement =
 // =========================================
 
 const percepitaTooltip =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
 percepitaTooltip.className =
     "gauge-tooltip";
+
+
+// =========================================
+// FONT INTER
+// =========================================
+
+percepitaTooltip.style.fontFamily =
+    '"Inter", sans-serif';
+
+
+// =========================================
+// AGGIUNGI AL BODY
+// =========================================
 
 document.body.appendChild(
     percepitaTooltip
@@ -2931,19 +2977,26 @@ document.body.appendChild(
 
 
 // =========================================
-// TIMER POPUP
+// TIMER
 // =========================================
 
-let percepitaTooltipTimer = null;
+let percepitaTooltipTimer =
+    null;
 
 
 // =========================================
-// MOUSE SOPRA IL GAUGE
+// MOUSE ENTER
 // =========================================
 
 percepitaGaugeElement.addEventListener(
+
     "mouseenter",
+
     (event) => {
+
+        // -----------------------------
+        // POSIZIONE INIZIALE
+        // -----------------------------
 
         percepitaTooltip.style.left =
             (event.clientX + 15) + "px";
@@ -2952,41 +3005,79 @@ percepitaGaugeElement.addEventListener(
             (event.clientY + 15) + "px";
 
 
+        // -----------------------------
+        // CANCELLA TIMER PRECEDENTE
+        // -----------------------------
+
         clearTimeout(
             percepitaTooltipTimer
         );
 
 
-        // Attendi 1 secondo
+        // -----------------------------
+        // NASCONDI POPUP
+        // -----------------------------
+
+        percepitaTooltip.classList.remove(
+            "visible"
+        );
+
+
+        // -----------------------------
+        // ATTENDI 3 SECONDI
+        // -----------------------------
+
         percepitaTooltipTimer =
-            setTimeout(() => {
+            setTimeout(
 
-                percepitaTooltip.innerHTML = `
+                () => {
 
-                    <div class="gauge-tooltip-title">
-                        Temp. Apparente:
-                        <span class="gauge-tooltip-value">
-                            ${percepitaValue.toFixed(1)}°
-                        </span>
-                    </div>
+                    percepitaTooltip.innerHTML = `
 
-                    <div>
-                        Massima:
-                        ${percepitaMaxRecorded.toFixed(1)}°
-                        -
-                        Minima:
-                        ${percepitaMinRecorded.toFixed(1)}°
-                    </div>
+                        <div class="gauge-tooltip-title">
 
-                `;
+                            Temp. Apparente:
 
-                percepitaTooltip.classList.add(
-                    "visible"
-                );
+                            <span
+                                class="gauge-tooltip-value"
+                            >
+                                ${percepitaValue.toFixed(1)}°
+                            </span>
 
-            }, 1000);
+                        </div>
+
+
+                        <div>
+
+                            Massima:
+                            ${percepitaMaxRecorded.toFixed(1)}°
+
+                            -
+
+                            Minima:
+                            ${percepitaMinRecorded.toFixed(1)}°
+
+                        </div>
+
+                    `;
+
+
+                    // -----------------------------
+                    // MOSTRA POPUP
+                    // -----------------------------
+
+                    percepitaTooltip.classList.add(
+                        "visible"
+                    );
+
+                },
+
+                3000
+
+            );
 
     }
+
 );
 
 
@@ -2995,7 +3086,9 @@ percepitaGaugeElement.addEventListener(
 // =========================================
 
 percepitaGaugeElement.addEventListener(
+
     "mousemove",
+
     (event) => {
 
         percepitaTooltip.style.left =
@@ -3005,6 +3098,7 @@ percepitaGaugeElement.addEventListener(
             (event.clientY + 15) + "px";
 
     }
+
 );
 
 
@@ -3013,21 +3107,35 @@ percepitaGaugeElement.addEventListener(
 // =========================================
 
 percepitaGaugeElement.addEventListener(
+
     "mouseleave",
+
     () => {
+
+        // -----------------------------
+        // CANCELLA TIMER
+        // -----------------------------
 
         clearTimeout(
             percepitaTooltipTimer
         );
 
-        percepitaTooltipTimer = null;
+        percepitaTooltipTimer =
+            null;
+
+
+        // -----------------------------
+        // NASCONDI POPUP
+        // -----------------------------
 
         percepitaTooltip.classList.remove(
             "visible"
         );
 
     }
+
 );
+
 /* ================================
    GAUGE UMIDITÀ
 ================================= */
