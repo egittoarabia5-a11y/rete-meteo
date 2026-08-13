@@ -4096,335 +4096,651 @@ windGustGaugeElement.addEventListener(
    GAUGE DIREZIONE DEL VENTO
 ================================= */
 
-const windDirectionGauge = new steelseries.WindDirection(
-    document.getElementById("windDirectionGauge"),
-    {
-        size: 240,
+// =========================================
+// POPUP DIREZIONE VENTO
+// =========================================
 
-        frameDesign: steelseries.FrameDesign.TILTED_GRAY,
-        frameVisible: true,
+const windDirectionGaugeElement =
+    document.getElementById("windDirectionGauge");
 
-        backgroundColor: steelseries.BackgroundColor.BEIGE,
-        backgroundVisible: true,
+// =========================================
+// DATI DIREZIONE
+// =========================================
 
-        foregroundType: steelseries.ForegroundType.TYPE1,
-        foregroundVisible: true,
+let windDirectionLatest = 135;
+let windDirectionAverage = 110;
 
-        pointerTypeLatest: steelseries.PointerType.TYPE1,
-        pointerTypeAverage: steelseries.PointerType.TYPE8,
+// =========================================
+// CREA POPUP
+// =========================================
 
-        pointerColor: steelseries.ColorDef.RED,
-        pointerColorAverage: steelseries.ColorDef.BLUE,
+const windDirectionTooltip =
+    document.createElement("div");
 
-        knobType: steelseries.KnobType.STANDARD_KNOB,
-        knobStyle: steelseries.KnobStyle.SILVER,
+windDirectionTooltip.className =
+    "gauge-tooltip";
 
-        pointSymbols: [
-            "N",
-            "NE",
-            "E",
-            "SE",
-            "S",
-            "SW",
-            "W",
-            "NW"
-        ],
+document.body.appendChild(
+    windDirectionTooltip
+);
 
-        pointSymbolsVisible: true,
+// =========================================
+// TIMER POPUP
+// =========================================
 
-        degreeScale: true,
-        degreeScaleHalf: false,
+let windDirectionTooltipTimer = null;
 
-        roseVisible: false,
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
 
-        lcdColor: steelseries.LcdColor.STANDARD,
-        lcdVisible: true,
+windDirectionGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
 
-        lcdTitleStrings: [
-            "Latest",
-            "Average"
-        ],
+        windDirectionTooltip.style.left =
+            (event.clientX + 15) + "px";
 
-        titleString: "Direzione Vento",
+        windDirectionTooltip.style.top =
+            (event.clientY + 15) + "px";
 
-        useColorLabels: true,
 
-        fullScaleDeflectionTime: 2.5
+        clearTimeout(
+            windDirectionTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        windDirectionTooltipTimer =
+            setTimeout(() => {
+
+                windDirectionTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Direzione vento:
+                        <span class="gauge-tooltip-value">
+                            ${windDirectionLatest.toFixed(0)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Media:
+                        ${windDirectionAverage.toFixed(0)}°
+                    </div>
+
+                `;
+
+                windDirectionTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
     }
 );
 
-// Valori di test
-windDirectionGauge.setValueAnimatedLatest(135);
-windDirectionGauge.setValueAnimatedAverage(110);
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
 
-const uvGauge = new steelseries.RadialBargraph(
-    document.getElementById("UVGauge"),
-    {
-        gaugeType: steelseries.GaugeType.TYPE4,
+windDirectionGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
 
-        size: 240,
+        windDirectionTooltip.style.left =
+            (event.clientX + 15) + "px";
 
-        minValue: 0,
-        maxValue: 10,
+        windDirectionTooltip.style.top =
+            (event.clientY + 15) + "px";
 
-        frameDesign: steelseries.FrameDesign.TILTED_GRAY,
+    }
+);
 
-        backgroundColor: steelseries.BackgroundColor.BEIGE,
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
 
-        foregroundType: steelseries.ForegroundType.TYPE1,
+windDirectionGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
 
-        valueColor: steelseries.ColorDef.RED,
+        clearTimeout(
+            windDirectionTooltipTimer
+        );
 
-        lcdColor: steelseries.LcdColor.STANDARD,
-        lcdVisible: true,
-        lcdDecimals: 1,
+        windDirectionTooltipTimer = null;
 
-        titleString: "Indice UV",
-        unitString: "UV",
+        windDirectionTooltip.classList.remove(
+            "visible"
+        );
 
-        threshold: 8,
-        thresholdRising: true,
+    }
+);
 
-        ledColor: steelseries.LedColor.RED_LED,
-        ledVisible: false,
+// =========================================
+// POPUP INDICE UV
+// =========================================
 
-        useSectionColors: true,
+const uvGaugeElement =
+    document.getElementById("UVGauge");
 
-        section: [
-            {
-                start: 0,
-                stop: 2,
-                color: "green"
-            },
-            {
-                start: 2,
-                stop: 5,
-                color: "yellow"
-            },
-            {
-                start: 5,
-                stop: 7,
-                color: "orange"
-            },
-            {
-                start: 7,
-                stop: 10,
-                color: "red"
-            },
-            {
-                start: 10,
-                stop: 20,
-                color: "violet"
-            }
-        ],
+// =========================================
+// DATI UV
+// =========================================
 
-        fullScaleDeflectionTime: 2.5
+let uvValue = 14.2;
+let uvMaxRecorded = null;
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const uvTooltip =
+    document.createElement("div");
+
+uvTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    uvTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let uvTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+uvGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        uvTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        uvTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            uvTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        uvTooltipTimer =
+            setTimeout(() => {
+
+                uvTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Indice UV:
+                        <span class="gauge-tooltip-value">
+                            ${uvValue.toFixed(1)}
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${uvMaxRecorded === null
+                            ? "n.d."
+                            : uvMaxRecorded.toFixed(1)}
+                    </div>
+
+                `;
+
+                uvTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
     }
 );
 
 
-/* =========================================
-   SCALA DINAMICA UV
-   0 → 10 → 12 → 14 → 16 → 18 → 20
-========================================= */
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
 
-function updateUVGauge(value) {
+uvGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
 
-    let newMax;
+        uvTooltip.style.left =
+            (event.clientX + 15) + "px";
 
-    if (value <= 10) {
-        newMax = 10;
-    }
-    else if (value <= 12) {
-        newMax = 12;
-    }
-    else if (value <= 14) {
-        newMax = 14;
-    }
-    else if (value <= 16) {
-        newMax = 16;
-    }
-    else if (value <= 18) {
-        newMax = 18;
-    }
-    else if (value <= 20) {
-        newMax = 20;
-    }
-    else {
-        // Oltre 20 continua a salire di 2
-        newMax = Math.ceil(value / 2) * 2;
-    }
+        uvTooltip.style.top =
+            (event.clientY + 15) + "px";
 
-    if (uvGauge.getMaxValue() !== newMax) {
-        uvGauge.setMaxValue(newMax);
-        uvGauge.setValue(0);
     }
-
-    uvGauge.setValueAnimated(value);
-}
+);
 
 
-/* =========================================
-   VALORE DI TEST
-========================================= */
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
 
-updateUVGauge(14.2);
+uvGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            uvTooltipTimer
+        );
+
+        uvTooltipTimer = null;
+
+        uvTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
+
+// =========================================
+// DATI RADIAZIONE SOLARE
+// =========================================
+
+let radValue = 0;
+let radMaxRecorded = null;
+
+
+// =========================================
+// GAUGE RADIAZIONE SOLARE
+// =========================================
 
 const RadGauge = new steelseries.Radial(
     document.getElementById("RadGauge"),
     {
-        gaugeType: gaugeGlobals.gaugeType,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        size: 240,
+        size:
+            240,
 
-        minValue: 0,
-        maxValue: 500,
+        minValue:
+            0,
 
-        threshold: 450,
+        maxValue:
+            500,
 
-        titleString: "Radiazione Solare",
-        unitString: "W/m²",
+        threshold:
+            450,
 
-        lcdDecimals: 0,
+        titleString:
+            "Radiazione Solare",
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        unitString:
+            "W/m²",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        lcdDecimals:
+            0,
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        frameDesign:
+            gaugeGlobals.frameDesign,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
 
         section: [
-            steelseries.Section(0, 200, "rgba(0,255,0,0.3)"),
-            steelseries.Section(200, 500, "rgba(255,255,0,0.3)"),
-            steelseries.Section(500, 1900, "rgba(255,0,0,0.3)"),
+
+            steelseries.Section(
+                0,
+                200,
+                "rgba(0,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                200,
+                500,
+                "rgba(255,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                500,
+                1900,
+                "rgba(255,0,0,0.3)"
+            )
+
         ]
     }
 );
 
 
-/* =========================================
-   SCALA DINAMICA RADIAZIONE SOLARE
-   0 → 500 → 750 → 1000 → 1250 → 1500
-========================================= */
+// =========================================
+// SCALA DINAMICA RADIAZIONE SOLARE
+// 0 → 500 → 750 → 1000 → 1250 → 1500
+// =========================================
 
 function updateRadGauge(value) {
 
     let newMax;
 
     if (value <= 500) {
+
         newMax = 500;
+
     }
     else if (value <= 750) {
+
         newMax = 750;
+
     }
     else if (value <= 1000) {
+
         newMax = 1000;
+
     }
     else if (value <= 1250) {
+
         newMax = 1250;
+
     }
     else if (value <= 1500) {
+
         newMax = 1500;
+
     }
     else {
-        // Oltre 1500 continua a salire di 250
-        newMax = Math.ceil(value / 250) * 250;
+
+        newMax =
+            Math.ceil(value / 250) * 250;
+
     }
 
-    if (RadGauge.getMaxValue() !== newMax) {
-        RadGauge.setMaxValue(newMax);
+
+    if (
+        RadGauge.getMaxValue() !== newMax
+    ) {
+
+        RadGauge.setMaxValue(
+            newMax
+        );
+
         RadGauge.setValue(0);
+
     }
 
-    RadGauge.setValueAnimated(value);
+
+    // Salva il valore attuale
+    radValue = value;
+
+
+    RadGauge.setValueAnimated(
+        radValue
+    );
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateRadGauge(650);
+
+
+// =========================================
+// POPUP RADIAZIONE SOLARE
+// =========================================
+
+const radGaugeElement =
+    document.getElementById("RadGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const radTooltip =
+    document.createElement("div");
+
+radTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    radTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let radTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+radGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        radTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        radTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            radTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        radTooltipTimer =
+            setTimeout(() => {
+
+                radTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Radiazione Solare:
+                        <span class="gauge-tooltip-value">
+                            ${radValue.toFixed(0)} W/m²
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${radMaxRecorded === null
+                            ? "n.d."
+                            : radMaxRecorded.toFixed(0) + " W/m²"}
+                    </div>
+
+                `;
+
+                radTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+radGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        radTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        radTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+radGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            radTooltipTimer
+        );
+
+        radTooltipTimer = null;
+
+        radTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
+
+// =========================================
+// DATI PRECIPITAZIONI
+// =========================================
+
+let rainValue = 12.4;
+
+
+// =========================================
+// GAUGE PRECIPITAZIONI
+// =========================================
 
 const RainGauge = new steelseries.RadialBargraph(
     document.getElementById("RainGauge"),
     {
-        gaugeType: steelseries.GaugeType.TYPE4,
+        gaugeType:
+            steelseries.GaugeType.TYPE4,
 
-        size: 240,
+        size:
+            240,
 
-        minValue: 0,
-        maxValue: 10,
+        minValue:
+            0,
 
-        frameDesign: steelseries.FrameDesign.TILTED_GRAY,
+        maxValue:
+            10,
 
-        backgroundColor: steelseries.BackgroundColor.BEIGE,
+        frameDesign:
+            steelseries.FrameDesign.TILTED_GRAY,
 
-        foregroundType: steelseries.ForegroundType.TYPE1,
+        backgroundColor:
+            steelseries.BackgroundColor.BEIGE,
 
-        valueColor: steelseries.ColorDef.RED,
+        foregroundType:
+            steelseries.ForegroundType.TYPE1,
 
-        lcdColor: steelseries.LcdColor.STANDARD,
-        lcdVisible: true,
-        lcdDecimals: 1,
+        valueColor:
+            steelseries.ColorDef.RED,
 
-        titleString: "Precipitazioni",
-        unitString: "mm",
+        lcdColor:
+            steelseries.LcdColor.STANDARD,
 
-        threshold: 8,
-        thresholdRising: true,
+        lcdVisible:
+            true,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        ledVisible: false,
+        lcdDecimals:
+            1,
 
-        useSectionColors: true,
+        titleString:
+            "Precipitazioni",
+
+        unitString:
+            "mm",
+
+        threshold:
+            8,
+
+        thresholdRising:
+            true,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+        ledVisible:
+            false,
+
+        useSectionColors:
+            true,
 
         section: [
+
             {
                 start: 0,
                 stop: 25,
                 color: "green"
             },
+
             {
                 start: 25,
                 stop: 50,
                 color: "yellow"
             },
+
             {
                 start: 50,
                 stop: 75,
                 color: "orange"
             },
+
             {
                 start: 75,
                 stop: 100,
                 color: "red"
             },
+
             {
                 start: 100,
                 stop: 1500,
                 color: "violet"
             }
+
         ],
 
-        fullScaleDeflectionTime: 2.5
+        fullScaleDeflectionTime:
+            2.5
     }
 );
 
 
-/* =========================================
-   SCALA DINAMICA PRECIPITAZIONI
-   0 → 10 → 20 → 30 → 40 → 50 → 75
-   → 100 → 150 → 200 → 300 → 400
-   → 500 → 750 → 1000 → 1500
-========================================= */
+// =========================================
+// SCALA DINAMICA PRECIPITAZIONI
+// =========================================
 
 function updateRainGauge(value) {
 
@@ -4476,181 +4792,690 @@ function updateRainGauge(value) {
         newMax = 1500;
     }
     else {
-        // Oltre 1500 continua a salire a blocchi di 500
-        newMax = Math.ceil(value / 500) * 500;
+        newMax =
+            Math.ceil(value / 500) * 500;
     }
 
-    if (RainGauge.getMaxValue() !== newMax) {
-        RainGauge.setMaxValue(newMax);
+
+    if (
+        RainGauge.getMaxValue() !== newMax
+    ) {
+
+        RainGauge.setMaxValue(
+            newMax
+        );
+
         RainGauge.setValue(0);
+
     }
 
-    RainGauge.setValueAnimated(value);
+
+    // Salva il valore attuale
+    rainValue = value;
+
+
+    RainGauge.setValueAnimated(
+        rainValue
+    );
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateRainGauge(12.4);
+
+
+// =========================================
+// POPUP PRECIPITAZIONI
+// =========================================
+
+const rainGaugeElement =
+    document.getElementById("RainGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const rainTooltip =
+    document.createElement("div");
+
+rainTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    rainTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let rainTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+rainGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        rainTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        rainTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            rainTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        rainTooltipTimer =
+            setTimeout(() => {
+
+                rainTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Precipitazioni:
+                        <span class="gauge-tooltip-value">
+                            ${rainValue.toFixed(1)} mm
+                        </span>
+                    </div>
+
+                `;
+
+                rainTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+rainGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        rainTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        rainTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+rainGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            rainTooltipTimer
+        );
+
+        rainTooltipTimer = null;
+
+        rainTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
+
+// =========================================
+// DATI RAIN RATE
+// =========================================
+
+let rainRateValue = 6.4;
+
+
+// =========================================
+// GAUGE RAIN RATE
+// =========================================
 
 const RainRateGauge = new steelseries.Radial(
     document.getElementById("RainRateGauge"),
     {
-        gaugeType: gaugeGlobals.gaugeType,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        size: 240,
+        size:
+            240,
 
-        minValue: 0,
-        maxValue: 30,
+        minValue:
+            0,
 
-        threshold: 20,
+        maxValue:
+            30,
 
-        titleString: "Rain Rate",
-        unitString: "mm/h",
+        threshold:
+            20,
 
-        lcdDecimals: 1,
+        titleString:
+            "Rain Rate",
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        unitString:
+            "mm/h",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        lcdDecimals:
+            1,
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        frameDesign:
+            gaugeGlobals.frameDesign,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
 
         section: [
-            steelseries.Section(0, 10, "rgba(0,255,0,0.3)"),
-            steelseries.Section(10, 30, "rgba(255,255,0,0.3)"),
-            steelseries.Section(30, 500, "rgba(255,0,0,0.3)"),
+
+            steelseries.Section(
+                0,
+                10,
+                "rgba(0,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                10,
+                30,
+                "rgba(255,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                30,
+                500,
+                "rgba(255,0,0,0.3)"
+            )
+
         ]
     }
 );
 
 
-/* =========================================
-   SCALA DINAMICA RAIN RATE
-   0 → 30 → 50 → 100 → 200 → 500
-========================================= */
+// =========================================
+// SCALA DINAMICA RAIN RATE
+// 0 → 30 → 50 → 100 → 200 → 500
+// =========================================
 
 function updateRainRateGauge(value) {
 
     let newMax;
 
     if (value <= 30) {
+
         newMax = 30;
+
     }
     else if (value <= 50) {
+
         newMax = 50;
+
     }
     else if (value <= 100) {
+
         newMax = 100;
+
     }
     else if (value <= 200) {
+
         newMax = 200;
+
     }
     else if (value <= 500) {
+
         newMax = 500;
+
     }
     else {
-        // Oltre 500 continua a scalare a blocchi di 500
-        newMax = Math.ceil(value / 500) * 500;
+
+        newMax =
+            Math.ceil(value / 500) * 500;
+
     }
 
-    if (RainRateGauge.getMaxValue() !== newMax) {
-        RainRateGauge.setMaxValue(newMax);
+
+    if (
+        RainRateGauge.getMaxValue() !== newMax
+    ) {
+
+        RainRateGauge.setMaxValue(
+            newMax
+        );
+
         RainRateGauge.setValue(0);
+
     }
 
-    RainRateGauge.setValueAnimated(value);
+
+    // Salva il valore attuale
+    rainRateValue = value;
+
+
+    RainRateGauge.setValueAnimated(
+        rainRateValue
+    );
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-   Esempio: 6.4 mm/h
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateRainRateGauge(6.4);
 
 
+// =========================================
+// POPUP RAIN RATE
+// =========================================
+
+const rainRateGaugeElement =
+    document.getElementById("RainRateGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const rainRateTooltip =
+    document.createElement("div");
+
+rainRateTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    rainRateTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let rainRateTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+rainRateGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        rainRateTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        rainRateTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            rainRateTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        rainRateTooltipTimer =
+            setTimeout(() => {
+
+                rainRateTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Rain Rate:
+                        <span class="gauge-tooltip-value">
+                            ${rainRateValue.toFixed(1)} mm/h
+                        </span>
+                    </div>
+
+                `;
+
+                rainRateTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+rainRateGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        rainRateTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        rainRateTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+rainRateGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            rainRateTooltipTimer
+        );
+
+        rainRateTooltipTimer = null;
+
+        rainRateTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
+
+
+// =========================================
+// DATI BASE NUVLOSA
+// =========================================
+
+let cloudBaseValue = 1500;
+
+
+// =========================================
+// GAUGE BASE NUVLOSA
+// =========================================
+
 const CloudBaseGauge = new steelseries.Radial(
     document.getElementById("CloudBaseGauge"),
     {
-        gaugeType: gaugeGlobals.gaugeType,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        size: 240,
+        size:
+            240,
 
-        minValue: 0,
-        maxValue: 1000,
+        minValue:
+            0,
 
-        threshold: 75,
+        maxValue:
+            1000,
 
-        titleString: "Base Nuvolosa",
-        unitString: "m",
+        threshold:
+            75,
 
-        lcdDecimals: 0,
+        titleString:
+            "Base Nuvolosa",
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        unitString:
+            "m",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        lcdDecimals:
+            0,
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        frameDesign:
+            gaugeGlobals.frameDesign,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
 
         section: [
-            steelseries.Section(0, 200, "rgba(0,255,0,0.3)"),
-            steelseries.Section(200, 1000, "rgba(255,255,0,0.3)"),
-            steelseries.Section(1000, 7000, "rgba(255,0,0,0.3)"),
+
+            steelseries.Section(
+                0,
+                200,
+                "rgba(0,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                200,
+                1000,
+                "rgba(255,255,0,0.3)"
+            ),
+
+            steelseries.Section(
+                1000,
+                7000,
+                "rgba(255,0,0,0.3)"
+            )
+
         ]
     }
 );
 
 
-/* =========================================
-   SCALA DINAMICA BASE NUVLOSA
-   0 → 1000 → 2000 → 3000 → 4000 → ...
-========================================= */
+// =========================================
+// SCALA DINAMICA BASE NUVLOSA
+// 0 → 1000 → 2000 → 3000 → 4000 → ...
+// =========================================
 
 function updateCloudBaseGauge(value) {
 
     let newMax;
 
     if (value <= 1000) {
+
         newMax = 1000;
+
     }
     else {
-        // Aumenta a blocchi di 1000
-        newMax = Math.ceil(value / 1000) * 1000;
+
+        newMax =
+            Math.ceil(value / 1000) * 1000;
+
     }
 
-    if (CloudBaseGauge.getMaxValue() !== newMax) {
-        CloudBaseGauge.setMaxValue(newMax);
+
+    if (
+        CloudBaseGauge.getMaxValue() !== newMax
+    ) {
+
+        CloudBaseGauge.setMaxValue(
+            newMax
+        );
+
         CloudBaseGauge.setValue(0);
+
     }
 
-    CloudBaseGauge.setValueAnimated(value);
+
+    // Salva il valore attuale
+    cloudBaseValue = value;
+
+
+    CloudBaseGauge.setValueAnimated(
+        cloudBaseValue
+    );
+
 }
 
 
-/* =========================================
-   VALORE DI TEST
-   1500 m
-========================================= */
+// =========================================
+// VALORE DI TEST
+// =========================================
 
 updateCloudBaseGauge(1500);
+
+
+// =========================================
+// POPUP BASE NUVLOSA
+// =========================================
+
+const cloudBaseGaugeElement =
+    document.getElementById("CloudBaseGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const cloudBaseTooltip =
+    document.createElement("div");
+
+cloudBaseTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    cloudBaseTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let cloudBaseTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+cloudBaseGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        cloudBaseTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        cloudBaseTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            cloudBaseTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        cloudBaseTooltipTimer =
+            setTimeout(() => {
+
+                cloudBaseTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Base Nuvolosa:
+                        <span class="gauge-tooltip-value">
+                            ${cloudBaseValue.toFixed(0)} m
+                        </span>
+                    </div>
+
+                `;
+
+                cloudBaseTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+cloudBaseGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        cloudBaseTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        cloudBaseTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+cloudBaseGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            cloudBaseTooltipTimer
+        );
+
+        cloudBaseTooltipTimer = null;
+
+        cloudBaseTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 // =========================================
 // TOOLTIP DEI GAUGE
 // =========================================
