@@ -3999,116 +3999,123 @@ updateWindGustGauge(
 
 
 // =========================================
-// POPUP RAFFICA
+// GAUGE DIREZIONE DEL VENTO
 // =========================================
 
-const windGustGaugeElement =
-    document.getElementById("windGustGauge");
+let windDirectionLatest = 135;
+let windDirectionAverage = 110;
 
-const windGustTooltip =
-    document.createElement("div");
 
-windGustTooltip.className =
-    "gauge-tooltip";
+const windDirectionGauge =
+    new steelseries.WindDirection(
+        document.getElementById("windDirectionGauge"),
+        {
+            size: 240,
 
-document.body.appendChild(
-    windGustTooltip
+            frameDesign:
+                steelseries.FrameDesign.TILTED_GRAY,
+
+            frameVisible:
+                true,
+
+            backgroundColor:
+                steelseries.BackgroundColor.BEIGE,
+
+            backgroundVisible:
+                true,
+
+            foregroundType:
+                steelseries.ForegroundType.TYPE1,
+
+            foregroundVisible:
+                true,
+
+            pointerTypeLatest:
+                steelseries.PointerType.TYPE1,
+
+            pointerTypeAverage:
+                steelseries.PointerType.TYPE8,
+
+            pointerColor:
+                steelseries.ColorDef.RED,
+
+            pointerColorAverage:
+                steelseries.ColorDef.BLUE,
+
+            knobType:
+                steelseries.KnobType.STANDARD_KNOB,
+
+            knobStyle:
+                steelseries.KnobStyle.SILVER,
+
+            pointSymbols: [
+                "N",
+                "NE",
+                "E",
+                "SE",
+                "S",
+                "SW",
+                "W",
+                "NW"
+            ],
+
+            pointSymbolsVisible:
+                true,
+
+            degreeScale:
+                true,
+
+            degreeScaleHalf:
+                false,
+
+            roseVisible:
+                false,
+
+            lcdColor:
+                steelseries.LcdColor.STANDARD,
+
+            lcdVisible:
+                true,
+
+            lcdTitleStrings: [
+                "Latest",
+                "Average"
+            ],
+
+            titleString:
+                "Direzione Vento",
+
+            useColorLabels:
+                true,
+
+            fullScaleDeflectionTime:
+                2.5
+        }
+    );
+
+
+// =========================================
+// VALORI DI TEST
+// =========================================
+
+windDirectionGauge.setValueAnimatedLatest(
+    windDirectionLatest
 );
 
-let windGustTooltipTimer = null;
-
-
-windGustGaugeElement.addEventListener(
-    "mouseenter",
-    (event) => {
-
-        windGustTooltip.style.left =
-            (event.clientX + 15) + "px";
-
-        windGustTooltip.style.top =
-            (event.clientY + 15) + "px";
-
-
-        clearTimeout(
-            windGustTooltipTimer
-        );
-
-
-        windGustTooltipTimer =
-            setTimeout(() => {
-
-                windGustTooltip.innerHTML = `
-
-                    <div class="gauge-tooltip-title">
-                        Raffica:
-                        <span class="gauge-tooltip-value">
-                            ${windGustValue.toFixed(1)} km/h
-                        </span>
-                    </div>
-
-                    <div>
-                        Raffica massima: n.d.
-                    </div>
-
-                `;
-
-                windGustTooltip.classList.add(
-                    "visible"
-                );
-
-            }, 1000);
-
-    }
+windDirectionGauge.setValueAnimatedAverage(
+    windDirectionAverage
 );
 
-
-windGustGaugeElement.addEventListener(
-    "mousemove",
-    (event) => {
-
-        windGustTooltip.style.left =
-            (event.clientX + 15) + "px";
-
-        windGustTooltip.style.top =
-            (event.clientY + 15) + "px";
-
-    }
-);
-
-
-windGustGaugeElement.addEventListener(
-    "mouseleave",
-    () => {
-
-        clearTimeout(
-            windGustTooltipTimer
-        );
-
-        windGustTooltipTimer = null;
-
-        windGustTooltip.classList.remove(
-            "visible"
-        );
-
-    }
-);
-/* ================================
-   GAUGE DIREZIONE DEL VENTO
-================================= */
 
 // =========================================
 // POPUP DIREZIONE VENTO
 // =========================================
 
 const windDirectionGaugeElement =
-    document.getElementById("windDirectionGauge");
+    document.getElementById(
+        "windDirectionGauge"
+    );
 
-// =========================================
-// DATI DIREZIONE
-// =========================================
-
-let windDirectionLatest = 135;
-let windDirectionAverage = 110;
 
 // =========================================
 // CREA POPUP
@@ -4124,11 +4131,13 @@ document.body.appendChild(
     windDirectionTooltip
 );
 
+
 // =========================================
 // TIMER POPUP
 // =========================================
 
 let windDirectionTooltipTimer = null;
+
 
 // =========================================
 // MOUSE SOPRA IL GAUGE
@@ -4179,6 +4188,7 @@ windDirectionGaugeElement.addEventListener(
     }
 );
 
+
 // =========================================
 // MOVIMENTO DEL MOUSE
 // =========================================
@@ -4195,6 +4205,7 @@ windDirectionGaugeElement.addEventListener(
 
     }
 );
+
 
 // =========================================
 // USCITA DAL GAUGE
