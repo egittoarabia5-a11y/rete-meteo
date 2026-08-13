@@ -63,7 +63,7 @@ var steelseries = (function () {
             digitalFont = (undefined === parameters.digitalFont ? false : parameters.digitalFont),
             fractionalScaleDecimals = (undefined === parameters.fractionalScaleDecimals ? 1 : parameters.fractionalScaleDecimals),
             ledColor = (undefined === parameters.ledColor ? steelseries.LedColor.RED_LED : parameters.ledColor),
-            ledVisible = (undefined === parameters.ledVisible ? true : parameters.ledVisible),
+            ledVisible = (undefined === parameters.ledVisible ? false : parameters.ledVisible),
             userLedColor = (undefined === parameters.userLedColor ? steelseries.LedColor.GREEN_LED : parameters.userLedColor),
             userLedVisible = (undefined === parameters.userLedVisible ? false : parameters.userLedVisible),
             thresholdVisible = (undefined === parameters.thresholdVisible ? true : parameters.thresholdVisible),
