@@ -593,7 +593,10 @@ let temperatureMax = null;
 let temperatureValue = null;
 let dewpointMinRecorded = null;    // minima registrata
 let dewpointMaxRecorded = null;   // massima registrata
-let dewpointValue = null;         // valore attuale
+let dewpointValue = null;  
+let heatIndexMinRecorded = null;
+let heatIndexMaxRecorded = null;
+let heatIndexValue = null;       // valore attuale
 
 async function fetchPws(id) {
 
@@ -898,6 +901,30 @@ if (
         data.dewp,
         data.dewpLow,
         data.dewpHigh
+    );
+
+}
+// =========================================
+// HEAT INDEX
+// =========================================
+
+if (
+    data.heat !== null &&
+    data.heat !== undefined &&
+    !isNaN(data.heat)
+) {
+
+    console.log(
+        "🟡 PASSO A updateHeatIndexGauge:",
+        data.heat,
+        data.heatLow,
+        data.heatHigh
+    );
+
+    updateHeatIndexGauge(
+        data.heat,
+        data.heatLow,
+        data.heatHigh
     );
 
 }
@@ -2170,9 +2197,6 @@ GAUGE HEAT INDEX
 // DATI MIN / MAX REGISTRATI
 // =========================================
 
-let heatIndexMinRecorded = 21.8;   // minima registrata
-let heatIndexMaxRecorded = 40.5;   // massima registrata
-let heatIndexValue = 34.2;         // valore attuale
 
 
 // =========================================
@@ -2403,27 +2427,66 @@ function updateHeatIndexGauge(
     maxValue
 ) {
 
+    // =========================================
+    // CONVERSIONE NUMERICA
+    // =========================================
+
+    const currentValue = Number(value);
+    const currentMin = Number(minValue);
+    const currentMax = Number(maxValue);
+
+
+    console.log(
+        "🔵 HEAT INDEX RICEVUTO:",
+        {
+            attuale: value,
+            minima: minValue,
+            massima: maxValue
+        }
+    );
+
 
     // =========================================
-    // AGGIORNA MINIMO REGISTRATO
+    // VALORE ATTUALE
     // =========================================
 
-    if (minValue < heatIndexMinRecorded) {
+    if (Number.isFinite(currentValue)) {
 
-        heatIndexMinRecorded = minValue;
+        heatIndexValue = currentValue;
 
     }
 
 
     // =========================================
-    // AGGIORNA MASSIMO REGISTRATO
+    // MINIMA
     // =========================================
 
-    if (maxValue > heatIndexMaxRecorded) {
+    if (Number.isFinite(currentMin)) {
 
-        heatIndexMaxRecorded = maxValue;
+        heatIndexMinRecorded = currentMin;
 
     }
+
+
+    // =========================================
+    // MASSIMA
+    // =========================================
+
+    if (Number.isFinite(currentMax)) {
+
+        heatIndexMaxRecorded = currentMax;
+
+    }
+
+
+    console.log(
+        "🟢 HEAT INDEX SALVATO:",
+        {
+            attuale: heatIndexValue,
+            minima: heatIndexMinRecorded,
+            massima: heatIndexMaxRecorded
+        }
+    );
 
 
     // =========================================
@@ -2431,10 +2494,11 @@ function updateHeatIndexGauge(
     // SPOSTA LA SCALA DI 10 °C
     // =========================================
 
-    while (value > heatIndexGaugeMax) {
+    while (
+        heatIndexValue > heatIndexGaugeMax
+    ) {
 
         heatIndexGaugeMin += heatIndexStep;
-
         heatIndexGaugeMax += heatIndexStep;
 
     }
@@ -2445,17 +2509,18 @@ function updateHeatIndexGauge(
     // SPOSTA LA SCALA DI 10 °C
     // =========================================
 
-    while (value < heatIndexGaugeMin) {
+    while (
+        heatIndexValue < heatIndexGaugeMin
+    ) {
 
         heatIndexGaugeMin -= heatIndexStep;
-
         heatIndexGaugeMax -= heatIndexStep;
 
     }
 
 
     // =========================================
-    // AGGIORNA LA SCALA SOLO SE CAMBIATA
+    // AGGIORNA LA SCALA
     // =========================================
 
     if (
@@ -2475,42 +2540,54 @@ function updateHeatIndexGauge(
 
 
     // =========================================
-    // AGGIORNA IL CONO ROSSO MIN / MAX
+    // CONO MIN → MAX
     // =========================================
 
-    heatIndexGauge.setArea([
+    if (
+        Number.isFinite(heatIndexMinRecorded) &&
+        Number.isFinite(heatIndexMaxRecorded)
+    ) {
 
-        steelseries.Section(
+        console.log(
+            "🔴 HEAT INDEX CONO:",
             heatIndexMinRecorded,
-            heatIndexMaxRecorded,
-            "rgba(236, 45, 45, 0.17)"
-        )
+            "→",
+            heatIndexMaxRecorded
+        );
 
-    ]);
+        heatIndexGauge.setArea([
+
+            steelseries.Section(
+                heatIndexMinRecorded,
+                heatIndexMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
+        ]);
+
+    }
 
 
     // =========================================
-    // AGGIORNA IL VALORE ATTUALE
+    // AGGIORNA VALORE
     // =========================================
 
-    heatIndexValue = value;
+    if (
+        Number.isFinite(heatIndexValue)
+    ) {
 
-    heatIndexGauge.setValueAnimated(
-        heatIndexValue
-    );
+        heatIndexGauge.setValueAnimated(
+            heatIndexValue
+        );
+
+    }
 
 }
-
 
 // =========================================
 // VALORE DI TEST
 // =========================================
 
-updateHeatIndexGauge(
-    34.2,   // Heat Index attuale
-    21.8,   // minima registrata
-    40.5    // massima registrata
-);
 // =========================================
 // POPUP HEAT INDEX
 // =========================================
