@@ -1230,7 +1230,22 @@ const pressureGauge = new steelseries.Radial(
         knobStyle: gaugeGlobals.knobStyle,
 
         ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        lcdColor: gaugeGlobals.lcdColour,
+                    section : [
+          steelseries.Section(900, 970, "rgba(62, 66, 185, 0.4)"),
+          steelseries.Section(970, 980, "rgba(42, 84, 194, 0.4)"),
+          steelseries.Section(980, 990, "rgba(25, 112, 210, 0.4)"),
+          steelseries.Section(990, 995, "rgba(9, 150, 224, 0.4)"),
+          steelseries.Section(995, 1000, "rgba(2, 170, 209, 0.4)"),
+          steelseries.Section(1000, 1005, "rgba(0, 162, 145, 0.4)"),
+          steelseries.Section(1005, 1010, "rgba(0, 158, 122, 0.4)"),
+          steelseries.Section(1010, 1015, "rgba(54, 177, 56, 0.4)"),
+          steelseries.Section(1015, 1020, "rgba(111, 202, 56, 0.4)"),
+          steelseries.Section(1020, 1025, "rgba(248, 233, 45, 0.4)"),
+          steelseries.Section(1025, 1030, "rgba(253, 142, 42, 0.4)"),
+          steelseries.Section(1030, 1040, "rgba(236, 45, 45, 0.4)"),
+          steelseries.Section(1040, 1050, "rgba(245, 109, 205, 0.4)"),
+        ]
     }
 );
 
@@ -1420,11 +1435,31 @@ const uvGauge = new steelseries.RadialBargraph(
         useSectionColors: true,
 
         section: [
-          steelseries.Section(0, 2.9, "#289500"),
-          steelseries.Section(2.9, 5.8, "#f7e400"),
-          steelseries.Section(5.8, 7.8, "#f85900"),
-          steelseries.Section(7.8, 10.9, "#d8001d"),
-          steelseries.Section(10.9, 20, "#6b49c8"),
+            {
+                start: 0,
+                stop: 2,
+                color: "green"
+            },
+            {
+                start: 2,
+                stop: 5,
+                color: "yellow"
+            },
+            {
+                start: 5,
+                stop: 7,
+                color: "orange"
+            },
+            {
+                start: 7,
+                stop: 10,
+                color: "red"
+            },
+            {
+                start: 10,
+                stop: 12,
+                color: "violet"
+            }
         ],
 
         fullScaleDeflectionTime: 2.5
