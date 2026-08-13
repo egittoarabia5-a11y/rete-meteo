@@ -905,36 +905,38 @@ function updateTemperatureGauge(
 ) {
 
     // =========================================
-    // CONVERSIONE DATI FETCH
+    // TEMPERATURA ATTUALE
     // =========================================
 
     const currentTemp = Number(value);
-    const currentMin = Number(minValue);
-    const currentMax = Number(maxValue);
-
-
-    // =========================================
-    // SALVA VALORI REALI
-    // =========================================
 
     if (Number.isFinite(currentTemp)) {
-
-        temperatureValue =
-            currentTemp;
-
+        temperatureValue = currentTemp;
     }
+
+
+    // =========================================
+    // MINIMA DAL FETCH
+    // =========================================
+
+    const currentMin = Number(minValue);
 
     if (Number.isFinite(currentMin)) {
 
-        temperatureMin =
-            currentMin;
+        temperatureMin = currentMin;
 
     }
 
+
+    // =========================================
+    // MASSIMA DAL FETCH
+    // =========================================
+
+    const currentMax = Number(maxValue);
+
     if (Number.isFinite(currentMax)) {
 
-        temperatureMax =
-            currentMax;
+        temperatureMax = currentMax;
 
     }
 
@@ -944,7 +946,7 @@ function updateTemperatureGauge(
     // =========================================
 
     console.log(
-        "TEMPERATURA GAUGE:",
+        "TEMPERATURE GAUGE:",
         {
             attuale: temperatureValue,
             minima: temperatureMin,
@@ -954,34 +956,22 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // RICALCOLA SCALA
+    // SCALA
     // =========================================
 
-    const oldTempMin =
-        tempMin;
-
-    const oldTempMax =
-        tempMax;
+    const oldTempMin = tempMin;
+    const oldTempMax = tempMax;
 
     updateTemperatureScale();
 
-
-    // =========================================
-    // AGGIORNA SCALA
-    // =========================================
 
     if (
         oldTempMin !== tempMin ||
         oldTempMax !== tempMax
     ) {
 
-        temperatureGauge.setMinValue(
-            tempMin
-        );
-
-        temperatureGauge.setMaxValue(
-            tempMax
-        );
+        temperatureGauge.setMinValue(tempMin);
+        temperatureGauge.setMaxValue(tempMax);
 
     }
 
@@ -995,17 +985,9 @@ function updateTemperatureGauge(
         Number.isFinite(temperatureMax)
     ) {
 
-        console.log(
-            "CONO:",
-            temperatureMin,
-            "→",
-            temperatureMax
-        );
-
-
         temperatureGauge.setArea([
 
-            new steelseries.Section(
+            steelseries.Section(
                 temperatureMin,
                 temperatureMax,
                 "rgba(236, 45, 45, 0.17)"
@@ -1017,7 +999,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // TEMPERATURA ATTUALE
+    // VALORE ATTUALE
     // =========================================
 
     if (
