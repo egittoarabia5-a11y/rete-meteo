@@ -2335,25 +2335,42 @@ const humidityGauge = new steelseries.Radial(
                 100,
                 "rgba(255,0,0,0.3)"
             )
-        ],
-
-        // =========================================
-        // CONO ROSSO MIN / MAX
-        // =========================================
-
-        valueGradient: false,
-
-        minMeasuredValue: 0,
-        maxMeasuredValue: 100
+        ]
     }
 );
 
-/* =========================================
-VALORE DI TEST
-64.2 %
-========================================= */
 
-humidityGauge.setValueAnimated(64.2);
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let humidityMin = 39.8;
+let humidityMax = 83.4;
+let humidityValue = 64.2;
+
+
+// =========================================
+// CONO ROSSO MIN / MAX
+// =========================================
+
+humidityGauge.setArea([
+
+    steelseries.Section(
+        humidityMin,
+        humidityMax,
+        "rgba(236, 45, 45, 0.17)"
+    )
+
+]);
+
+
+// =========================================
+// VALORE ATTUALE
+// =========================================
+
+humidityGauge.setValueAnimated(
+    humidityValue
+);
 const pressureGauge = new steelseries.Radial(
     document.getElementById("pressureGauge"),
     {
