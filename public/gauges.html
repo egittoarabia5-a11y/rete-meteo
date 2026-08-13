@@ -588,6 +588,9 @@
 const latestData = {};
 const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
 
+let temperatureMin = null;
+let temperatureMax = null;
+let temperatureValue = null;
 
 async function fetchPws(id) {
 
@@ -825,9 +828,6 @@ async function fetchPws(id) {
     }
 
 }
-let temperatureMin = null;
-let temperatureMax = null;
-let temperatureValue = null;
 // =========================================
 // AGGIORNA STAZIONE SELEZIONATA
 // =========================================
@@ -894,6 +894,10 @@ function updateSelectedStation() {
 // AGGIORNAMENTO GAUGE TEMPERATURA
 // =========================================
 
+// =========================================
+// AGGIORNAMENTO GAUGE TEMPERATURA
+// =========================================
+
 function updateTemperatureGauge(
     value,
     minValue,
@@ -901,21 +905,21 @@ function updateTemperatureGauge(
 ) {
 
     // =========================================
-    // DATI DAL FETCH
+    // CONVERTI I DATI
     // =========================================
 
-    const currentTemp = Number(value);
-    const currentMin = Number(minValue);
-    const currentMax = Number(maxValue);
+    const newValue = Number(value);
+    const newMin = Number(minValue);
+    const newMax = Number(maxValue);
 
 
     // =========================================
     // TEMPERATURA ATTUALE
     // =========================================
 
-    if (isFinite(currentTemp)) {
+    if (isFinite(newValue)) {
 
-        temperatureValue = currentTemp;
+        temperatureValue = newValue;
 
     }
 
@@ -924,9 +928,9 @@ function updateTemperatureGauge(
     // MINIMA DAL FETCH
     // =========================================
 
-    if (isFinite(currentMin)) {
+    if (isFinite(newMin)) {
 
-        temperatureMin = currentMin;
+        temperatureMin = newMin;
 
     }
 
@@ -935,9 +939,9 @@ function updateTemperatureGauge(
     // MASSIMA DAL FETCH
     // =========================================
 
-    if (isFinite(currentMax)) {
+    if (isFinite(newMax)) {
 
-        temperatureMax = currentMax;
+        temperatureMax = newMax;
 
     }
 
@@ -947,8 +951,8 @@ function updateTemperatureGauge(
     // =========================================
 
     console.log(
-        "GAUGE TEMPERATURA:",
-        "temp =", temperatureValue,
+        "GAUGE:",
+        "attuale =", temperatureValue,
         "min =", temperatureMin,
         "max =", temperatureMax
     );
@@ -965,7 +969,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // AGGIORNA SCALA DEL GAUGE
+    // AGGIORNA SCALA
     // =========================================
 
     if (
@@ -1007,7 +1011,7 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // AGGIORNA TEMPERATURA
+    // AGGIORNA VALORE ATTUALE
     // =========================================
 
     if (
@@ -1190,18 +1194,42 @@ const gaugeGlobals = {
 // FUNZIONE PER CALCOLARE LA SCALA
 // =========================================
 
+// =========================================
+// SCALA TEMPERATURA
+// =========================================
+
 function updateTemperatureScale() {
 
-    // Il massimo della scala è sempre
-    // il multiplo di 10 superiore al record massimo
+    // Se non abbiamo ancora ricevuto il massimo
+    if (
+        temperatureMax === null ||
+        !isFinite(Number(temperatureMax))
+    ) {
+
+        tempMax = 40;
+        tempMin = -20;
+
+        return;
+    }
+
+
+    // =========================================
+    // MASSIMO SCALA
+    // =========================================
 
     tempMax =
-        Math.ceil(temperatureMax / 10) * 10;
+        Math.ceil(
+            Number(temperatureMax) / 10
+        ) * 10;
 
-    // La scala deve essere SEMPRE di 60°C
+
+    // =========================================
+    // MINIMO SCALA
+    // =========================================
 
     tempMin =
         tempMax - 60;
+
 }
 
 
