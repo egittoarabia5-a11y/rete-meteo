@@ -996,54 +996,37 @@ updateTemperatureGauge(
     40.5   // massima
 );
 /* =========================================
-   GAUGE DEWPOINT
-========================================= */
-
-/* =========================================
 GAUGE DEWPOINT
 ========================================= */
 
 // =========================================
-// DATI MIN / MAX
+// DATI MIN / MAX REGISTRATI
 // =========================================
 
-let dewpointMinRecorded = 5.2;   // minima registrata
-let dewpointMaxRecorded = 27.6;  // massima registrata
-let dewpointValue = 15.9;        // valore attuale
+let dewpointMinRecorded = 5.2;    // minima registrata
+let dewpointMaxRecorded = 27.6;   // massima registrata
+let dewpointValue = 15.9;         // valore attuale
+
 
 // =========================================
 // CONFIGURAZIONE SCALA
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
 // =========================================
 
 const dewpointRange = 60;
 const dewpointStep = 10;
 
-// =========================================
-// FUNZIONI PER ARROTONDARE LA SCALA
-// =========================================
-
-function getDewpointGaugeMin(value) {
-
-    return Math.floor(value / 10) * 10;
-
-}
-
-function getDewpointGaugeMax(value) {
-
-    return getDewpointGaugeMin(value) + dewpointRange;
-
-}
 
 // =========================================
 // SCALA INIZIALE
-// Basata sui valori min/max registrati
+//
+// Base: -20 / 40
 // =========================================
 
-let dewpointGaugeMin =
-    getDewpointGaugeMin(dewpointMinRecorded);
-
-let dewpointGaugeMax =
-    getDewpointGaugeMax(dewpointMaxRecorded);
+let dewpointGaugeMin = -20;
+let dewpointGaugeMax = 40;
 
 
 // =========================================
@@ -1204,7 +1187,8 @@ const dewpointGauge = new steelseries.Radial(
                 "rgba(253, 142, 42, 0.4)"
             ),
 
-            // ROSSO PIÙ CHIARO - OPACITÀ 17%
+            // ROSSO DELLA SCALA - OPACITÀ 17%
+
             steelseries.Section(
                 30,
                 40,
@@ -1219,8 +1203,9 @@ const dewpointGauge = new steelseries.Radial(
 
         ],
 
+
         // =========================================
-        // CONO ROSSO MIN / MAX
+        // CONO ROSSO MIN / MAX REGISTRATI
         // =========================================
 
         area: [
@@ -1239,56 +1224,92 @@ const dewpointGauge = new steelseries.Radial(
 
 
 // =========================================
-// SCALA DINAMICA
-// Scala sempre di 60 °C
-// Step di 10 °C
+// SCALA DINAMICA DEWPOINT
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
 // =========================================
 
-function updateDewpointGauge(value) {
+function updateDewpointGauge(
+    value,
+    minValue,
+    maxValue
+) {
 
-    // -----------------------------------------
-    // Se supera il massimo della scala
-    // -----------------------------------------
+
+    // =========================================
+    // AGGIORNA MINIMO REGISTRATO
+    // =========================================
+
+    if (minValue < dewpointMinRecorded) {
+
+        dewpointMinRecorded = minValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MASSIMO REGISTRATO
+    // =========================================
+
+    if (maxValue > dewpointMaxRecorded) {
+
+        dewpointMaxRecorded = maxValue;
+
+    }
+
+
+    // =========================================
+    // SE SUPERA IL MASSIMO
+    // SPOSTA LA SCALA DI 10 °C
+    // =========================================
 
     while (value > dewpointGaugeMax) {
 
         dewpointGaugeMin += dewpointStep;
+
         dewpointGaugeMax += dewpointStep;
 
     }
 
 
-    // -----------------------------------------
-    // Se scende sotto il minimo della scala
-    // -----------------------------------------
+    // =========================================
+    // SE SCENDE SOTTO IL MINIMO
+    // SPOSTA LA SCALA DI 10 °C
+    // =========================================
 
     while (value < dewpointGaugeMin) {
 
         dewpointGaugeMin -= dewpointStep;
+
         dewpointGaugeMax -= dewpointStep;
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna la scala solamente se cambiata
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA LA SCALA SOLO SE CAMBIATA
+    // =========================================
 
     if (
         dewpointGauge.getMinValue() !== dewpointGaugeMin ||
         dewpointGauge.getMaxValue() !== dewpointGaugeMax
     ) {
 
-        dewpointGauge.setMinValue(dewpointGaugeMin);
+        dewpointGauge.setMinValue(
+            dewpointGaugeMin
+        );
 
-        dewpointGauge.setMaxValue(dewpointGaugeMax);
+        dewpointGauge.setMaxValue(
+            dewpointGaugeMax
+        );
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna il cono min/max
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA IL CONO ROSSO MIN / MAX
+    // =========================================
 
     dewpointGauge.setArea([
 
@@ -1301,11 +1322,15 @@ function updateDewpointGauge(value) {
     ]);
 
 
-    // -----------------------------------------
-    // Aggiorna il valore
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA IL VALORE ATTUALE
+    // =========================================
 
-    dewpointGauge.setValueAnimated(value);
+    dewpointValue = value;
+
+    dewpointGauge.setValueAnimated(
+        dewpointValue
+    );
 
 }
 
@@ -1314,26 +1339,29 @@ function updateDewpointGauge(value) {
 // VALORE DI TEST
 // =========================================
 
-updateDewpointGauge(15.9);
-/* =========================================
-   GAUGE HEAT INDEX
-========================================= */
-
+updateDewpointGauge(
+    15.9,   // Dewpoint attuale
+    5.2,    // minima registrata
+    27.6    // massima registrata
+);
 /* =========================================
 GAUGE HEAT INDEX
 ========================================= */
 
 // =========================================
-// DATI MIN / MAX
+// DATI MIN / MAX REGISTRATI
 // =========================================
 
 let heatIndexMinRecorded = 21.8;   // minima registrata
-let heatIndexMaxRecorded = 40.5;  // massima registrata
+let heatIndexMaxRecorded = 40.5;   // massima registrata
 let heatIndexValue = 34.2;         // valore attuale
 
 
 // =========================================
 // CONFIGURAZIONE SCALA
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
 // =========================================
 
 const heatIndexRange = 60;
@@ -1341,31 +1369,13 @@ const heatIndexStep = 10;
 
 
 // =========================================
-// FUNZIONI PER ARROTONDARE LA SCALA
-// =========================================
-
-function getHeatIndexGaugeMin(value) {
-
-    return Math.floor(value / 10) * 10;
-
-}
-
-function getHeatIndexGaugeMax(value) {
-
-    return getHeatIndexGaugeMin(value) + heatIndexRange;
-
-}
-
-
-// =========================================
 // SCALA INIZIALE
+//
+// Base: -20 / 40
 // =========================================
 
-let heatIndexGaugeMin =
-    getHeatIndexGaugeMin(heatIndexMinRecorded);
-
-let heatIndexGaugeMax =
-    getHeatIndexGaugeMax(heatIndexMaxRecorded);
+let heatIndexGaugeMin = -20;
+let heatIndexGaugeMax = 40;
 
 
 // =========================================
@@ -1526,7 +1536,8 @@ const heatIndexGauge = new steelseries.Radial(
                 "rgba(253, 142, 42, 0.4)"
             ),
 
-            // ROSSO DELLA SCALA
+            // ROSSO DELLA SCALA - OPACITÀ 17%
+
             steelseries.Section(
                 30,
                 40,
@@ -1543,7 +1554,7 @@ const heatIndexGauge = new steelseries.Radial(
 
 
         // =========================================
-        // CONO ROSSO MIN / MAX
+        // CONO ROSSO MIN / MAX REGISTRATI
         // =========================================
 
         area: [
@@ -1568,51 +1579,86 @@ const heatIndexGauge = new steelseries.Radial(
 // Spostamento di 10 °C
 // =========================================
 
-function updateHeatIndexGauge(value) {
+function updateHeatIndexGauge(
+    value,
+    minValue,
+    maxValue
+) {
 
-    // -----------------------------------------
-    // Se supera il massimo della scala
-    // -----------------------------------------
+
+    // =========================================
+    // AGGIORNA MINIMO REGISTRATO
+    // =========================================
+
+    if (minValue < heatIndexMinRecorded) {
+
+        heatIndexMinRecorded = minValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MASSIMO REGISTRATO
+    // =========================================
+
+    if (maxValue > heatIndexMaxRecorded) {
+
+        heatIndexMaxRecorded = maxValue;
+
+    }
+
+
+    // =========================================
+    // SE SUPERA IL MASSIMO DELLA SCALA
+    // SPOSTA LA SCALA DI 10 °C
+    // =========================================
 
     while (value > heatIndexGaugeMax) {
 
         heatIndexGaugeMin += heatIndexStep;
+
         heatIndexGaugeMax += heatIndexStep;
 
     }
 
 
-    // -----------------------------------------
-    // Se scende sotto il minimo della scala
-    // -----------------------------------------
+    // =========================================
+    // SE SCENDE SOTTO IL MINIMO DELLA SCALA
+    // SPOSTA LA SCALA DI 10 °C
+    // =========================================
 
     while (value < heatIndexGaugeMin) {
 
         heatIndexGaugeMin -= heatIndexStep;
+
         heatIndexGaugeMax -= heatIndexStep;
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna la scala solamente se cambiata
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA LA SCALA SOLO SE CAMBIATA
+    // =========================================
 
     if (
         heatIndexGauge.getMinValue() !== heatIndexGaugeMin ||
         heatIndexGauge.getMaxValue() !== heatIndexGaugeMax
     ) {
 
-        heatIndexGauge.setMinValue(heatIndexGaugeMin);
+        heatIndexGauge.setMinValue(
+            heatIndexGaugeMin
+        );
 
-        heatIndexGauge.setMaxValue(heatIndexGaugeMax);
+        heatIndexGauge.setMaxValue(
+            heatIndexGaugeMax
+        );
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna il cono rosso
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA IL CONO ROSSO MIN / MAX
+    // =========================================
 
     heatIndexGauge.setArea([
 
@@ -1625,11 +1671,15 @@ function updateHeatIndexGauge(value) {
     ]);
 
 
-    // -----------------------------------------
-    // Aggiorna il valore
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA IL VALORE ATTUALE
+    // =========================================
 
-    heatIndexGauge.setValueAnimated(value);
+    heatIndexValue = value;
+
+    heatIndexGauge.setValueAnimated(
+        heatIndexValue
+    );
 
 }
 
@@ -1638,26 +1688,29 @@ function updateHeatIndexGauge(value) {
 // VALORE DI TEST
 // =========================================
 
-updateHeatIndexGauge(34.2);
-/* =========================================
-   GAUGE HUMIDEX
-========================================= */
-
+updateHeatIndexGauge(
+    34.2,   // Heat Index attuale
+    21.8,   // minima registrata
+    40.5    // massima registrata
+);
 /* =========================================
 GAUGE HUMIDEX
 ========================================= */
 
 // =========================================
-// DATI MIN / MAX
+// DATI MIN / MAX REGISTRATI
 // =========================================
 
 let humidexMinRecorded = 21.8;   // minima registrata
-let humidexMaxRecorded = 40.5;  // massima registrata
+let humidexMaxRecorded = 40.5;   // massima registrata
 let humidexValue = 38.4;         // valore attuale
 
 
 // =========================================
 // CONFIGURAZIONE SCALA
+//
+// Range sempre di 60 °C
+// Spostamento di 10 °C
 // =========================================
 
 const humidexRange = 60;
@@ -1665,31 +1718,13 @@ const humidexStep = 10;
 
 
 // =========================================
-// FUNZIONI PER ARROTONDARE LA SCALA
-// =========================================
-
-function getHumidexGaugeMin(value) {
-
-    return Math.floor(value / 10) * 10;
-
-}
-
-function getHumidexGaugeMax(value) {
-
-    return getHumidexGaugeMin(value) + humidexRange;
-
-}
-
-
-// =========================================
 // SCALA INIZIALE
+//
+// Base: -20 / 40
 // =========================================
 
-let humidexGaugeMin =
-    getHumidexGaugeMin(humidexMinRecorded);
-
-let humidexGaugeMax =
-    getHumidexGaugeMax(humidexMaxRecorded);
+let humidexGaugeMin = -20;
+let humidexGaugeMax = 40;
 
 
 // =========================================
@@ -1850,7 +1885,8 @@ const humidexGauge = new steelseries.Radial(
                 "rgba(253, 142, 42, 0.4)"
             ),
 
-            // ROSSO DELLA SCALA
+            // ROSSO DELLA SCALA - OPACITÀ 17%
+
             steelseries.Section(
                 30,
                 40,
@@ -1867,7 +1903,7 @@ const humidexGauge = new steelseries.Radial(
 
 
         // =========================================
-        // CONO ROSSO MIN / MAX
+        // CONO ROSSO MIN / MAX REGISTRATI
         // =========================================
 
         area: [
@@ -1892,51 +1928,81 @@ const humidexGauge = new steelseries.Radial(
 // Spostamento di 10 °C
 // =========================================
 
-function updateHumidexGauge(value) {
+function updateHumidexGauge(
+    value,
+    minValue,
+    maxValue
+) {
 
-    // -----------------------------------------
-    // Se supera il massimo della scala
-    // -----------------------------------------
+
+    // =========================================
+    // AGGIORNA MINIMO REGISTRATO
+    // =========================================
+
+    if (minValue < humidexMinRecorded) {
+
+        humidexMinRecorded = minValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MASSIMO REGISTRATO
+    // =========================================
+
+    if (maxValue > humidexMaxRecorded) {
+
+        humidexMaxRecorded = maxValue;
+
+    }
+
+
+    // =========================================
+    // SE IL VALORE ESCE DALLA SCALA
+    // SPOSTA TUTTA LA SCALA DI 10 °C
+    // =========================================
 
     while (value > humidexGaugeMax) {
 
         humidexGaugeMin += humidexStep;
+
         humidexGaugeMax += humidexStep;
 
     }
 
 
-    // -----------------------------------------
-    // Se scende sotto il minimo della scala
-    // -----------------------------------------
-
     while (value < humidexGaugeMin) {
 
         humidexGaugeMin -= humidexStep;
+
         humidexGaugeMax -= humidexStep;
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna la scala solamente se cambiata
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA LA SCALA
+    // =========================================
 
     if (
         humidexGauge.getMinValue() !== humidexGaugeMin ||
         humidexGauge.getMaxValue() !== humidexGaugeMax
     ) {
 
-        humidexGauge.setMinValue(humidexGaugeMin);
+        humidexGauge.setMinValue(
+            humidexGaugeMin
+        );
 
-        humidexGauge.setMaxValue(humidexGaugeMax);
+        humidexGauge.setMaxValue(
+            humidexGaugeMax
+        );
 
     }
 
 
-    // -----------------------------------------
-    // Aggiorna il cono rosso
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA IL CONO ROSSO
+    // =========================================
 
     humidexGauge.setArea([
 
@@ -1949,11 +2015,15 @@ function updateHumidexGauge(value) {
     ]);
 
 
-    // -----------------------------------------
-    // Aggiorna il valore
-    // -----------------------------------------
+    // =========================================
+    // AGGIORNA IL VALORE ATTUALE
+    // =========================================
 
-    humidexGauge.setValueAnimated(value);
+    humidexValue = value;
+
+    humidexGauge.setValueAnimated(
+        humidexValue
+    );
 
 }
 
@@ -1962,7 +2032,11 @@ function updateHumidexGauge(value) {
 // VALORE DI TEST
 // =========================================
 
-updateHumidexGauge(38.4);
+updateHumidexGauge(
+    38.4,   // Humidex attuale
+    21.8,   // minima registrata
+    40.5    // massima registrata
+);
 /* =========================================
 GAUGE TEMPERATURA APPARENTE
 ========================================= */
