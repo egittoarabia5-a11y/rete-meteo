@@ -1188,11 +1188,8 @@ const gaugeGlobals = {
 
 function updateTemperatureScale() {
 
-    // Se non abbiamo ancora ricevuto il massimo
-    if (
-        temperatureMax === null ||
-        !isFinite(Number(temperatureMax))
-    ) {
+    // Se non abbiamo ancora il massimo
+    if (!Number.isFinite(temperatureMax)) {
 
         tempMax = 40;
         tempMin = -20;
@@ -1201,32 +1198,29 @@ function updateTemperatureScale() {
     }
 
 
-    // =========================================
-    // MASSIMO SCALA
-    // =========================================
-
+    // Massimo = multiplo di 10 superiore
     tempMax =
-        Math.ceil(
-            Number(temperatureMax) / 10
-        ) * 10;
+        Math.ceil(temperatureMax / 10) * 10;
 
 
-    // =========================================
-    // MINIMO SCALA
-    // =========================================
-
+    // Scala larga sempre 60°C
     tempMin =
         tempMax - 60;
-
 }
+
 
 
 // =========================================
 // SCALA INIZIALE
 // =========================================
 
-let tempMin;
-let tempMax;
+let tempMin = -20;
+let tempMax = 40;
+
+
+// =========================================
+// SCALA INIZIALE
+// =========================================
 
 updateTemperatureScale();
 
@@ -1298,10 +1292,6 @@ const temperatureGauge = new steelseries.Radial(
         ledColor:
             steelseries.LedColor.RED_LED,
 
-
-        // =========================================
-        // COLORI DELLA SCALA
-        // =========================================
 
         section: [
 
@@ -1408,40 +1398,15 @@ const temperatureGauge = new steelseries.Radial(
 );
 
 
+
 // =========================================
-// FUNZIONE AGGIORNAMENTO
+// AGGIORNA GAUGE
 // =========================================
 
-function updateTemperatureGauge(
-    value,
-    minValue,
-    maxValue
-) {
+function updateTemperatureGauge() {
 
     // =========================================
-    // AGGIORNA MINIMO REALE
-    // =========================================
-
-    if (minValue < temperatureMin) {
-
-        temperatureMin = minValue;
-
-    }
-
-
-    // =========================================
-    // AGGIORNA MASSIMO REALE
-    // =========================================
-
-    if (maxValue > temperatureMax) {
-
-        temperatureMax = maxValue;
-
-    }
-
-
-    // =========================================
-    // RICALCOLA LA SCALA
+    // AGGIORNA SCALA
     // =========================================
 
     const oldTempMin = tempMin;
@@ -1449,10 +1414,6 @@ function updateTemperatureGauge(
 
     updateTemperatureScale();
 
-
-    // =========================================
-    // AGGIORNA LA SCALA SOLO SE NECESSARIO
-    // =========================================
 
     if (
         oldTempMin !== tempMin ||
@@ -1471,29 +1432,47 @@ function updateTemperatureGauge(
 
 
     // =========================================
-    // CONO ROSSO MIN / MAX
+    // CONO MIN → MAX
     // =========================================
 
-    temperatureGauge.setArea([
+    if (
+        Number.isFinite(temperatureMin) &&
+        Number.isFinite(temperatureMax)
+    ) {
 
-        steelseries.Section(
+        console.log(
+            "CONO:",
             temperatureMin,
-            temperatureMax,
-            "rgba(236, 45, 45, 0.17)"
-        )
+            "→",
+            temperatureMax
+        );
 
-    ]);
+        temperatureGauge.setArea([
+
+            steelseries.Section(
+                temperatureMin,
+                temperatureMax,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
+        ]);
+
+    }
 
 
     // =========================================
-    // AGGIORNA VALORE ATTUALE
+    // TEMPERATURA ATTUALE
     // =========================================
 
-    temperatureValue = value;
+    if (
+        Number.isFinite(temperatureValue)
+    ) {
 
-    temperatureGauge.setValueAnimated(
-        temperatureValue
-    );
+        temperatureGauge.setValueAnimated(
+            temperatureValue
+        );
+
+    }
 
 }
 
@@ -1552,95 +1531,64 @@ temperatureGaugeElement.addEventListener(
         );
 
 
-        temperatureTooltipTimer =
-            setTimeout(() => {
+temperatureTooltipTimer =
+    setTimeout(() => {
 
-                // =========================================
-                // CONTROLLA CHE I DATI SIANO DISPONIBILI
-                // =========================================
+        const temp =
+            Number(temperatureValue);
 
-                const hasTemp =
-                    Number.isFinite(
-                        Number(temperatureValue)
-                    );
+        const min =
+            Number(temperatureMin);
 
-                const hasMin =
-                    Number.isFinite(
-                        Number(temperatureMin)
-                    );
-
-                const hasMax =
-                    Number.isFinite(
-                        Number(temperatureMax)
-                    );
+        const max =
+            Number(temperatureMax);
 
 
-                // =========================================
-                // SE NON CI SONO ANCORA DATI
-                // =========================================
+        temperatureTooltip.innerHTML = `
 
-                if (
-                    !hasTemp ||
-                    !hasMin ||
-                    !hasMax
-                ) {
+            <div class="gauge-tooltip-title">
 
-                    temperatureTooltip.innerHTML = `
+                Temperatura:
 
-                        <div class="gauge-tooltip-title">
-                            Temperatura
-                        </div>
+                <span class="gauge-tooltip-value">
+                    ${
+                        Number.isFinite(temp)
+                            ? temp.toFixed(1)
+                            : "--"
+                    }°
+                </span>
 
-                        <div>
-                            Dati non ancora disponibili
-                        </div>
+            </div>
 
-                    `;
+            <div>
 
-                }
+                Massima:
 
+                ${
+                    Number.isFinite(max)
+                        ? max.toFixed(1)
+                        : "--"
+                }°
 
-                // =========================================
-                // DATI DISPONIBILI
-                // =========================================
+                -
 
-                else {
+                Minima:
 
-                    temperatureTooltip.innerHTML = `
+                ${
+                    Number.isFinite(min)
+                        ? min.toFixed(1)
+                        : "--"
+                }°
 
-                        <div class="gauge-tooltip-title">
+            </div>
 
-                            Temperatura:
-                            
-                            <span class="gauge-tooltip-value">
-                                ${Number(temperatureValue).toFixed(1)}°
-                            </span>
+        `;
 
-                        </div>
+        temperatureTooltip.classList.add(
+            "visible"
+        );
 
-                        <div>
-
-                            Massima:
-                            ${Number(temperatureMax).toFixed(1)}°
-
-                            -
-
-                            Minima:
-                            ${Number(temperatureMin).toFixed(1)}°
-
-                        </div>
-
-                    `;
-
-                }
-
-
-                temperatureTooltip.classList.add(
-                    "visible"
-                );
-
-
-            }, 1000);
+    }, 1000);
 
     }
 );
