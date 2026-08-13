@@ -2465,6 +2465,132 @@ updateHumidexGauge(
     21.8,   // minima registrata
     40.5    // massima registrata
 );
+// =========================================
+// POPUP HUMIDEX
+// =========================================
+
+const humidexGaugeElement =
+    document.getElementById("humidexGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const humidexTooltip =
+    document.createElement("div");
+
+humidexTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    humidexTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let humidexTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+humidexGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        // Posizione iniziale
+        humidexTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        humidexTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        // Annulla eventuale timer precedente
+        clearTimeout(
+            humidexTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        humidexTooltipTimer =
+            setTimeout(() => {
+
+                humidexTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Humidex:
+                        <span class="gauge-tooltip-value">
+                            ${humidexValue.toFixed(1)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${humidexMaxRecorded.toFixed(1)}°
+                        -
+                        Minima:
+                        ${humidexMinRecorded.toFixed(1)}°
+                    </div>
+
+                `;
+
+                humidexTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+humidexGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        humidexTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        humidexTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+humidexGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        // Annulla il timer
+        clearTimeout(
+            humidexTooltipTimer
+        );
+
+        humidexTooltipTimer = null;
+
+
+        // Nasconde il popup
+        humidexTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 /* =========================================
 GAUGE TEMPERATURA APPARENTE
 ========================================= */
@@ -2781,6 +2907,127 @@ updatePercepitaGauge(
     21.8,   // minima registrata
     45.5    // massima registrata
 );
+// =========================================
+// POPUP TEMPERATURA APPARENTE
+// =========================================
+
+const percepitaGaugeElement =
+    document.getElementById("percepitaGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const percepitaTooltip =
+    document.createElement("div");
+
+percepitaTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    percepitaTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let percepitaTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+percepitaGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        percepitaTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        percepitaTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            percepitaTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        percepitaTooltipTimer =
+            setTimeout(() => {
+
+                percepitaTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Temp. Apparente:
+                        <span class="gauge-tooltip-value">
+                            ${percepitaValue.toFixed(1)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${percepitaMaxRecorded.toFixed(1)}°
+                        -
+                        Minima:
+                        ${percepitaMinRecorded.toFixed(1)}°
+                    </div>
+
+                `;
+
+                percepitaTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+percepitaGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        percepitaTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        percepitaTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+percepitaGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            percepitaTooltipTimer
+        );
+
+        percepitaTooltipTimer = null;
+
+        percepitaTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 /* ================================
    GAUGE UMIDITÀ
 ================================= */
@@ -2869,6 +3116,127 @@ humidityGauge.setArea([
 humidityGauge.setValueAnimated(
     humidityValue
 );
+// =========================================
+// POPUP UMIDITÀ
+// =========================================
+
+const humidityGaugeElement =
+    document.getElementById("humidityGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const humidityTooltip =
+    document.createElement("div");
+
+humidityTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    humidityTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let humidityTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+humidityGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        humidityTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        humidityTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            humidityTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        humidityTooltipTimer =
+            setTimeout(() => {
+
+                humidityTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Umidità:
+                        <span class="gauge-tooltip-value">
+                            ${humidityValue.toFixed(1)}%
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${humidityMaxRecorded.toFixed(1)}%
+                        -
+                        Minima:
+                        ${humidityMinRecorded.toFixed(1)}%
+                    </div>
+
+                `;
+
+                humidityTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+humidityGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        humidityTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        humidityTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+humidityGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            humidityTooltipTimer
+        );
+
+        humidityTooltipTimer = null;
+
+        humidityTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 const pressureGauge = new steelseries.Radial(
     document.getElementById("pressureGauge"),
     {
@@ -2937,7 +3305,127 @@ VALORE DI TEST
 ================================= */
 
 pressureGauge.setValueAnimated(1013.2);
+// =========================================
+// POPUP PRESSIONE
+// =========================================
 
+const pressureGaugeElement =
+    document.getElementById("pressureGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const pressureTooltip =
+    document.createElement("div");
+
+pressureTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    pressureTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let pressureTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+pressureGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        pressureTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        pressureTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            pressureTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        pressureTooltipTimer =
+            setTimeout(() => {
+
+                pressureTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Pressione:
+                        <span class="gauge-tooltip-value">
+                            ${pressureValue.toFixed(1)} hPa
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${pressureMaxRecorded.toFixed(1)} hPa
+                        -
+                        Minima:
+                        ${pressureMinRecorded.toFixed(1)} hPa
+                    </div>
+
+                `;
+
+                pressureTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+pressureGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        pressureTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        pressureTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+pressureGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            pressureTooltipTimer
+        );
+
+        pressureTooltipTimer = null;
+
+        pressureTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 const windGauge = new steelseries.Radial(
     document.getElementById("windGauge"),
     {
@@ -3097,6 +3585,124 @@ function updateWindGauge(value) {
 // =========================================
 
 updateWindGauge(6.4);
+// =========================================
+// POPUP VENTO
+// =========================================
+
+const windGaugeElement =
+    document.getElementById("windGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const windTooltip =
+    document.createElement("div");
+
+windTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    windTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let windTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+windGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        windTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        windTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            windTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        windTooltipTimer =
+            setTimeout(() => {
+
+                windTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Velocità del vento:
+                        <span class="gauge-tooltip-value">
+                            ${windValue.toFixed(1)} km/h
+                        </span>
+                    </div>
+
+                    <div>
+                        Raffica:
+                        ${windGustValue.toFixed(1)} km/h
+                    </div>
+
+                `;
+
+                windTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+windGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        windTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        windTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+windGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            windTooltipTimer
+        );
+
+        windTooltipTimer = null;
+
+        windTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 const windGustGauge = new steelseries.Radial(
     document.getElementById("windGustGauge"),
     {
@@ -3278,6 +3884,123 @@ function updateWindGustGauge(value) {
 
 updateWindGustGauge(
     9.6
+);
+// =========================================
+// POPUP RAFFICA
+// =========================================
+
+const windGustGaugeElement =
+    document.getElementById("windGustGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const windGustTooltip =
+    document.createElement("div");
+
+windGustTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    windGustTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let windGustTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+windGustGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        windGustTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        windGustTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            windGustTooltipTimer
+        );
+
+
+        // Attendi 1 secondo
+        windGustTooltipTimer =
+            setTimeout(() => {
+
+                windGustTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Raffica:
+                        <span class="gauge-tooltip-value">
+                            ${windGustValue.toFixed(1)} km/h
+                        </span>
+                    </div>
+
+                    <div>
+                        Raffica massima: n.d.
+                    </div>
+
+                `;
+
+                windGustTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+windGustGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        windGustTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        windGustTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+windGustGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        clearTimeout(
+            windGustTooltipTimer
+        );
+
+        windGustTooltipTimer = null;
+
+        windGustTooltip.classList.remove(
+            "visible"
+        );
+
+    }
 );
 /* ================================
    GAUGE DIREZIONE DEL VENTO
