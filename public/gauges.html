@@ -678,6 +678,12 @@ const gaugeGlobals = {
    GAUGE TEMPERATURA
 ========================================= */
 
+let tempMin = gaugeGlobals.tempScaleDefMinC;
+let tempMax = gaugeGlobals.tempScaleDefMaxC;
+
+const tempRange = 60;
+const tempStep = 10;
+
 const temperatureGauge = new steelseries.Radial(
 
     document.getElementById("temperatureGauge"),
@@ -691,10 +697,10 @@ const temperatureGauge = new steelseries.Radial(
             240,
 
         minValue:
-            gaugeGlobals.tempScaleDefMinC,
+            tempMin,
 
         maxValue:
-            gaugeGlobals.tempScaleDefMaxC,
+            tempMax,
 
         threshold:
             35,
@@ -738,26 +744,43 @@ const temperatureGauge = new steelseries.Radial(
         tickLabelOrientation:
             gaugeGlobals.tickLabelOrientation,
 
-ledColor:
-    steelseries.LedColor.RED_LED,
+        ledColor:
+            steelseries.LedColor.RED_LED,
 
-section : [
-          steelseries.Section(-100, -35, "rgba(195, 92, 211, 0.4)"),
-          steelseries.Section(-35, -30, "rgba(139, 74, 197, 0.4)"),
-          steelseries.Section(-30, -25, "rgba(98, 65, 188, 0.4)"),
-          steelseries.Section(-25, -20, "rgba(62, 66, 185, 0.4)"),
-          steelseries.Section(-20, -15, "rgba(42, 84, 194, 0.4)"),
-          steelseries.Section(-15, -10, "rgba(25, 112, 210, 0.4)"),
-          steelseries.Section(-10, -5, "rgba(9, 150, 224, 0.4)"),
-          steelseries.Section(-5, 0, "rgba(2, 170, 209, 0.4)"),
-          steelseries.Section(0, 5, "rgba(0, 162, 145, 0.4)"),
-          steelseries.Section(5, 10, "rgba(0, 158, 122, 0.4)"),
-          steelseries.Section(10, 15, "rgba(54, 177, 56, 0.4)"),
-          steelseries.Section(15, 20, "rgba(111, 202, 56, 0.4)"),
-          steelseries.Section(20, 25, "rgba(248, 233, 45, 0.4)"),
-          steelseries.Section(25, 30, "rgba(253, 142, 42, 0.4)"),
-          steelseries.Section(30, 40, "rgba(236, 45, 45, 0.4)"),
-          steelseries.Section(40, 100, "rgba(245, 109, 205, 0.4)"),
+        section: [
+
+            steelseries.Section(-100, -35, "rgba(195, 92, 211, 0.4)"),
+
+            steelseries.Section(-35, -30, "rgba(139, 74, 197, 0.4)"),
+
+            steelseries.Section(-30, -25, "rgba(98, 65, 188, 0.4)"),
+
+            steelseries.Section(-25, -20, "rgba(62, 66, 185, 0.4)"),
+
+            steelseries.Section(-20, -15, "rgba(42, 84, 194, 0.4)"),
+
+            steelseries.Section(-15, -10, "rgba(25, 112, 210, 0.4)"),
+
+            steelseries.Section(-10, -5, "rgba(9, 150, 224, 0.4)"),
+
+            steelseries.Section(-5, 0, "rgba(2, 170, 209, 0.4)"),
+
+            steelseries.Section(0, 5, "rgba(0, 162, 145, 0.4)"),
+
+            steelseries.Section(5, 10, "rgba(0, 158, 122, 0.4)"),
+
+            steelseries.Section(10, 15, "rgba(54, 177, 56, 0.4)"),
+
+            steelseries.Section(15, 20, "rgba(111, 202, 56, 0.4)"),
+
+            steelseries.Section(20, 25, "rgba(248, 233, 45, 0.4)"),
+
+            steelseries.Section(25, 30, "rgba(253, 142, 42, 0.4)"),
+
+            steelseries.Section(30, 40, "rgba(236, 45, 45, 0.4)"),
+
+            steelseries.Section(40, 100, "rgba(245, 109, 205, 0.4)")
+
         ]
 
     }
@@ -766,11 +789,48 @@ section : [
 
 
 /* =========================================
-   VALORE DI TEST
-   20.0 °C
-========================================= */
+   SCALA DINAMICA
+   ========================================= */
 
-temperatureGauge.setValueAnimated(44.2);
+function updateTemperatureGauge(value) {
+
+    // Se il valore supera il massimo
+    while (value > tempMax) {
+
+        tempMax += tempStep;
+        tempMin += tempStep;
+
+    }
+
+    // Se il valore scende sotto il minimo
+    while (value < tempMin) {
+
+        tempMax -= tempStep;
+        tempMin -= tempStep;
+
+    }
+
+    // Aggiorna la scala solo se è cambiata
+    if (
+        temperatureGauge.getMinValue() !== tempMin ||
+        temperatureGauge.getMaxValue() !== tempMax
+    ) {
+
+        temperatureGauge.setMinValue(tempMin);
+        temperatureGauge.setMaxValue(tempMax);
+
+    }
+
+    // Aggiorna il valore
+    temperatureGauge.setValueAnimated(value);
+}
+
+
+/* =========================================
+   VALORE DI TEST
+   ========================================= */
+
+updateTemperatureGauge(44.2);
 /* =========================================
    GAUGE DEWPOINT
 ========================================= */
