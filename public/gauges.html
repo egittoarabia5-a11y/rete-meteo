@@ -67,7 +67,49 @@
         /* =========================================
            BARRA SUPERIORE
         ========================================= */
+/* =========================================
+   POPUP GAUGE
+========================================= */
 
+.gauge-tooltip {
+    position: fixed;
+
+    background: white;
+    color: #222;
+
+    padding: 10px 14px;
+
+    border-radius: 8px;
+
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.18);
+
+    pointer-events: none;
+
+    z-index: 99999;
+
+    opacity: 0;
+
+    transition: opacity 0.12s ease;
+
+    white-space: nowrap;
+}
+
+.gauge-tooltip.visible {
+    opacity: 1;
+}
+
+.gauge-tooltip-title {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.gauge-tooltip-value {
+    font-weight: 700;
+}
 .top-bar {
     position: fixed;
 
@@ -678,17 +720,13 @@ const gaugeGlobals = {
    GAUGE TEMPERATURA
 ========================================= */
 
-/* =========================================
-GAUGE TEMPERATURA
-========================================= */
-
 // =========================================
 // DATI MIN / MAX
 // =========================================
 
-let temperatureMin = 21.8; // minima registrata
-let temperatureMax = 40.5; // massima registrata
-let temperatureValue = 34.2; // valore attuale
+let temperatureMin = 21.8;      // minima registrata
+let temperatureMax = 40.5;      // massima registrata
+let temperatureValue = 34.2;    // valore attuale
 
 
 // =========================================
@@ -700,12 +738,13 @@ function updateTemperatureScale() {
     // Il massimo della scala è sempre
     // il multiplo di 10 superiore al record massimo
 
-    tempMax = Math.ceil(temperatureMax / 10) * 10;
+    tempMax =
+        Math.ceil(temperatureMax / 10) * 10;
 
     // La scala deve essere SEMPRE di 60°C
 
-    tempMin = tempMax - 60;
-
+    tempMin =
+        tempMax - 60;
 }
 
 
@@ -984,6 +1023,98 @@ function updateTemperatureGauge(
     );
 
 }
+
+
+// =========================================
+// TOOLTIP TEMPERATURA
+// =========================================
+
+const temperatureGaugeElement =
+    document.getElementById("temperatureGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const temperatureTooltip =
+    document.createElement("div");
+
+temperatureTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    temperatureTooltip
+);
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+temperatureGaugeElement.addEventListener(
+    "mouseenter",
+    () => {
+
+        temperatureTooltip.innerHTML = `
+
+            <div class="gauge-tooltip-title">
+                Temperatura:
+                <span class="gauge-tooltip-value">
+                    ${temperatureValue.toFixed(1)}°
+                </span>
+            </div>
+
+            <div>
+                Massima:
+                ${temperatureMax.toFixed(1)}°
+                -
+                Minima:
+                ${temperatureMin.toFixed(1)}°
+            </div>
+
+        `;
+
+        temperatureTooltip.classList.add(
+            "visible"
+        );
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+temperatureGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        temperatureTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        temperatureTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+temperatureGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        temperatureTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
 
 
 // =========================================
@@ -3410,6 +3541,66 @@ function updateCloudBaseGauge(value) {
 ========================================= */
 
 updateCloudBaseGauge(1500);
+// =========================================
+// TOOLTIP DEI GAUGE
+// =========================================
+
+const gaugeTooltip = document.createElement("div");
+
+gaugeTooltip.className = "gauge-tooltip";
+
+document.body.appendChild(gaugeTooltip);
+
+
+// =========================================
+// MOSTRA TOOLTIP
+// =========================================
+
+function showGaugeTooltip(
+    gaugeElement,
+    title,
+    value,
+    max,
+    min,
+    unit = "°"
+) {
+
+    gaugeElement.addEventListener("mouseenter", () => {
+
+        gaugeTooltip.innerHTML = `
+            <div class="gauge-tooltip-title">
+                ${title}: <span class="gauge-tooltip-value">${Number(value).toFixed(1)}${unit}</span>
+            </div>
+
+            <div>
+                Massima: ${Number(max).toFixed(1)}${unit}
+                - Minima: ${Number(min).toFixed(1)}${unit}
+            </div>
+        `;
+
+        gaugeTooltip.classList.add("visible");
+
+    });
+
+
+    gaugeElement.addEventListener("mousemove", (event) => {
+
+        gaugeTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        gaugeTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    });
+
+
+    gaugeElement.addEventListener("mouseleave", () => {
+
+        gaugeTooltip.classList.remove("visible");
+
+    });
+
+}
     </script>
 
 
