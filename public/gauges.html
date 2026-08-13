@@ -1420,31 +1420,11 @@ const uvGauge = new steelseries.RadialBargraph(
         useSectionColors: true,
 
         section: [
-            {
-                start: 0,
-                stop: 2,
-                color: "green"
-            },
-            {
-                start: 2,
-                stop: 5,
-                color: "yellow"
-            },
-            {
-                start: 5,
-                stop: 7,
-                color: "orange"
-            },
-            {
-                start: 7,
-                stop: 10,
-                color: "red"
-            },
-            {
-                start: 10,
-                stop: 12,
-                color: "violet"
-            }
+          steelseries.Section(0, 2.9, "#289500"),
+          steelseries.Section(2.9, 5.8, "#f7e400"),
+          steelseries.Section(5.8, 7.8, "#f85900"),
+          steelseries.Section(7.8, 10.9, "#d8001d"),
+          steelseries.Section(10.9, 20, "#6b49c8"),
         ],
 
         fullScaleDeflectionTime: 2.5
