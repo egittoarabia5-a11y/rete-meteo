@@ -2503,98 +2503,189 @@ updateWindGauge(6.4);
 const windGustGauge = new steelseries.Radial(
     document.getElementById("windGustGauge"),
     {
-        gaugeType: gaugeGlobals.gaugeType,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        size: 240,
+        size:
+            240,
 
-        minValue: 0,
-        maxValue: 30,
+        minValue:
+            0,
 
-        threshold: 20,
+        maxValue:
+            30,
 
-        titleString: "Raffica",
-        unitString: "km/h",
+        threshold:
+            20,
 
-        lcdDecimals: 1,
+        titleString:
+            "Raffica",
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        unitString:
+            "km/h",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        lcdDecimals:
+            1,
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        frameDesign:
+            gaugeGlobals.frameDesign,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
+        backgroundColor:
+            gaugeGlobals.background,
 
-        // =========================================
-        // CONI FISSI DELLE RAFFICHE
-        // =========================================
+        foregroundType:
+            gaugeGlobals.foreground,
 
-        section: [
-            steelseries.Section(
-                0,
-                15,
-                "rgba(0, 255, 0, 0.17)"
-            ),
+        pointerType:
+            gaugeGlobals.pointer,
 
-            steelseries.Section(
-                15,
-                30,
-                "rgba(255, 0, 0, 0.17)"
-            )
-        ]
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED
     }
 );
 
-/* =========================================
-SCALA DINAMICA DELLE RAFFICHE
-0 → 30 → 50 → 100 → 200 → 500
-========================================= */
 
-function updateWindGustGauge(value) {
+// =========================================
+// DATI DELLE RAFFICHE
+// =========================================
+
+let windGustMin = 0;
+let windGustMax = 30;
+
+
+// =========================================
+// FUNZIONE SCALA DINAMICA
+// =========================================
+
+function updateWindGustScale(value) {
 
     let newMax;
 
     if (value <= 30) {
+
         newMax = 30;
+
     }
     else if (value <= 50) {
+
         newMax = 50;
+
     }
     else if (value <= 100) {
+
         newMax = 100;
+
     }
     else if (value <= 200) {
+
         newMax = 200;
+
     }
     else if (value <= 500) {
+
         newMax = 500;
+
     }
     else {
-        // Oltre 500 continua a scalare a blocchi di 500
-        newMax = Math.ceil(value / 500) * 500;
+
+        newMax =
+            Math.ceil(value / 500) * 500;
+
     }
 
-    if (windGustGauge.getMaxValue() !== newMax) {
 
-        windGustGauge.setMaxValue(newMax);
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
 
-        windGustGauge.setValue(0);
+    if (
+        windGustGauge.getMaxValue() !== newMax
+    ) {
+
+        windGustGauge.setMaxValue(
+            newMax
+        );
+
     }
 
-    windGustGauge.setValueAnimated(value);
 }
 
-/* =========================================
-VALORE DI TEST
-9.6 km/h
-========================================= */
 
-updateWindGustGauge(9.6);
+// =========================================
+// FUNZIONE AGGIORNAMENTO
+// =========================================
+
+function updateWindGustGauge(value) {
+
+
+    // =========================================
+    // RICALCOLA LA SCALA
+    // =========================================
+
+    updateWindGustScale(
+        value
+    );
+
+
+    // =========================================
+    // CONI
+    // =========================================
+
+    windGustGauge.setArea([
+
+        // VERDE 0 → 15
+        steelseries.Section(
+            0,
+            15,
+            "rgba(0, 255, 0, 0.17)"
+        ),
+
+        // ROSSO 15 → 30
+        steelseries.Section(
+            15,
+            30,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // =========================================
+    // AGGIORNA VALORE
+    // =========================================
+
+    windGustGauge.setValueAnimated(
+        value
+    );
+
+}
+
+
+// =========================================
+// VALORE DI TEST
+// =========================================
+
+updateWindGustGauge(
+    9.6
+);
 /* ================================
    GAUGE DIREZIONE DEL VENTO
 ================================= */
