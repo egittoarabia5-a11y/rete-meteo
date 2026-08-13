@@ -207,10 +207,27 @@
            CANVAS GAUGE
         ========================================= */
 
-.gauge-canvas {
-    display: block;
+.gauges-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    isolation: isolate;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
 }
 
+.gauge-canvas {
+    position: relative;
+    display: block;
+
+    width: 240px;
+    height: 240px;
+
+    flex: 0 0 240px;
+}
     </style>
 
 </head>
@@ -248,7 +265,10 @@
     <!-- =========================================
          15 RIQUADRI
     ========================================= -->
-
+<div class="gauges-container">
+    <canvas id="windDirectionGauge" class="gauge-canvas"></canvas>
+    <canvas id="uvGauge" class="gauge-canvas"></canvas>
+</div>
     <div class="boxes">
 
 
