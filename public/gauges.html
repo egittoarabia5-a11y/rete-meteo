@@ -591,6 +591,9 @@ const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
 let temperatureMin = null;
 let temperatureMax = null;
 let temperatureValue = null;
+let dewpointMinRecorded = null;    // minima registrata
+let dewpointMaxRecorded = null;   // massima registrata
+let dewpointValue = null;         // valore attuale
 
 async function fetchPws(id) {
 
@@ -861,15 +864,6 @@ function updateSelectedStation() {
     // TEMPERATURA
     // =========================================
 
-    console.log("🟡 updateSelectedStation DATA:", data);
-
-console.log(
-    "🟡 PASSO A updateTemperatureGauge:",
-    data.temp,
-    data.tempLow,
-    data.tempHigh
-);
-
 if (
     data.temp !== null &&
     data.temp !== undefined &&
@@ -880,6 +874,30 @@ if (
         data.temp,
         data.tempLow,
         data.tempHigh
+    );
+
+}
+// =========================================
+// DEWPOINT
+// =========================================
+
+if (
+    data.dewp !== null &&
+    data.dewp !== undefined &&
+    !isNaN(data.dewp)
+) {
+
+    console.log(
+        "🟡 PASSO A updateDewpointGauge:",
+        data.dewp,
+        data.dewpLow,
+        data.dewpHigh
+    );
+
+    updateDewpointGauge(
+        data.dewp,
+        data.dewpLow,
+        data.dewpHigh
     );
 
 }
@@ -1632,9 +1650,6 @@ GAUGE DEWPOINT
 // DATI MIN / MAX REGISTRATI
 // =========================================
 
-let dewpointMinRecorded = 5.2;    // minima registrata
-let dewpointMaxRecorded = 27.6;   // massima registrata
-let dewpointValue = 15.9;         // valore attuale
 
 
 // =========================================
@@ -1865,59 +1880,94 @@ function updateDewpointGauge(
     maxValue
 ) {
 
+    // =========================================
+    // CONVERSIONE NUMERICA
+    // =========================================
+
+    const currentValue = Number(value);
+    const currentMin = Number(minValue);
+    const currentMax = Number(maxValue);
+
+
+    console.log(
+        "🔵 DEWPOINT RICEVUTO:",
+        {
+            attuale: value,
+            minima: minValue,
+            massima: maxValue
+        }
+    );
+
 
     // =========================================
-    // AGGIORNA MINIMO REGISTRATO
+    // VALORE ATTUALE
     // =========================================
 
-    if (minValue < dewpointMinRecorded) {
+    if (Number.isFinite(currentValue)) {
 
-        dewpointMinRecorded = minValue;
+        dewpointValue = currentValue;
 
     }
 
 
     // =========================================
-    // AGGIORNA MASSIMO REGISTRATO
+    // MINIMA
     // =========================================
 
-    if (maxValue > dewpointMaxRecorded) {
+    if (Number.isFinite(currentMin)) {
 
-        dewpointMaxRecorded = maxValue;
+        dewpointMinRecorded = currentMin;
 
     }
 
 
     // =========================================
-    // SE SUPERA IL MASSIMO
-    // SPOSTA LA SCALA DI 10 °C
+    // MASSIMA
     // =========================================
 
-    while (value > dewpointGaugeMax) {
+    if (Number.isFinite(currentMax)) {
+
+        dewpointMaxRecorded = currentMax;
+
+    }
+
+
+    console.log(
+        "🟢 DEWPOINT SALVATO:",
+        {
+            attuale: dewpointValue,
+            minima: dewpointMinRecorded,
+            massima: dewpointMaxRecorded
+        }
+    );
+
+
+    // =========================================
+    // SCALA
+    // =========================================
+
+    while (
+        dewpointValue > dewpointGaugeMax
+    ) {
 
         dewpointGaugeMin += dewpointStep;
-
         dewpointGaugeMax += dewpointStep;
 
     }
 
 
-    // =========================================
-    // SE SCENDE SOTTO IL MINIMO
-    // SPOSTA LA SCALA DI 10 °C
-    // =========================================
-
-    while (value < dewpointGaugeMin) {
+    while (
+        dewpointValue < dewpointGaugeMin
+    ) {
 
         dewpointGaugeMin -= dewpointStep;
-
         dewpointGaugeMax -= dewpointStep;
 
     }
 
 
     // =========================================
-    // AGGIORNA LA SCALA SOLO SE CAMBIATA
+    // AGGIORNA SCALA
     // =========================================
 
     if (
@@ -1937,29 +1987,47 @@ function updateDewpointGauge(
 
 
     // =========================================
-    // AGGIORNA IL CONO ROSSO MIN / MAX
+    // CONO MIN → MAX
     // =========================================
 
-    dewpointGauge.setArea([
+    if (
+        Number.isFinite(dewpointMinRecorded) &&
+        Number.isFinite(dewpointMaxRecorded)
+    ) {
 
-        steelseries.Section(
+        console.log(
+            "🔴 DEWPOINT CONO:",
             dewpointMinRecorded,
-            dewpointMaxRecorded,
-            "rgba(236, 45, 45, 0.17)"
-        )
+            "→",
+            dewpointMaxRecorded
+        );
 
-    ]);
+        dewpointGauge.setArea([
+
+            steelseries.Section(
+                dewpointMinRecorded,
+                dewpointMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
+        ]);
+
+    }
 
 
     // =========================================
-    // AGGIORNA IL VALORE ATTUALE
+    // AGGIORNA VALORE
     // =========================================
 
-    dewpointValue = value;
+    if (
+        Number.isFinite(dewpointValue)
+    ) {
 
-    dewpointGauge.setValueAnimated(
-        dewpointValue
-    );
+        dewpointGauge.setValueAnimated(
+            dewpointValue
+        );
+
+    }
 
 }
 
@@ -1968,11 +2036,6 @@ function updateDewpointGauge(
 // VALORE DI TEST
 // =========================================
 
-updateDewpointGauge(
-    15.9,   // Dewpoint attuale
-    5.2,    // minima registrata
-    27.6    // massima registrata
-);
 // =========================================
 // POPUP DEWPOINT
 // =========================================
