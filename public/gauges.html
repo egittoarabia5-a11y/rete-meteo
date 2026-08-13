@@ -317,9 +317,10 @@
 
         <!-- 6 - UMIDITA' -->
 
-        <div class="glass-box">
-
-        </div>
+<!-- 6 - UMIDITÀ -->
+<div class="glass-box">
+    <canvas id="humidityGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 7 - PRESSIONE -->
@@ -1079,7 +1080,50 @@ const percepitaGauge = new steelseries.Radial(
    25.0 °C
 ========================================= */
 
-percepitaGauge.setValueAnimated(38.4);
+percepitaGauge.setValueAnimated(33.9);
+/* ================================
+   GAUGE UMIDITÀ
+================================= */
+
+const humidityGauge = new steelseries.Radial(
+    document.getElementById("humidityGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 100,
+
+        threshold: 80,
+
+        titleString: "UMIDITÀ",
+        unitString: "%",
+
+        lcdDecimals: 1,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORE DI TEST
+   60.0 %
+================================= */
+
+humidityGauge.setValueAnimated(64.2);
     </script>
 
 
