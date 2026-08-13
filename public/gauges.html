@@ -339,9 +339,9 @@
 
         <!-- 9 - DIREZIONE -->
 
-        <div class="glass-box">
-
-        </div>
+<div class="glass-box">
+    <canvas id="directionGauge" class="gauge-canvas"></canvas>
+</div>
 
 
         <!-- 10 - ROSA DEI VENTI -->
@@ -1203,6 +1203,57 @@ const windGauge = new steelseries.Radial(
 ================================= */
 
 windGauge.setValueAnimated(6.4);
+
+/* ================================
+   GAUGE DIREZIONE DEL VENTO
+================================= */
+
+const windDirectionGauge = new steelseries.Radial(
+    document.getElementById("windDirectionGauge"),
+    {
+        gaugeType: gaugeGlobals.gaugeType,
+
+        size: 240,
+
+        minValue: 0,
+        maxValue: 360,
+
+        titleString: "DIREZIONE",
+        unitString: "°",
+
+        lcdDecimals: 0,
+
+        frameDesign: gaugeGlobals.frameDesign,
+        backgroundColor: gaugeGlobals.background,
+        foregroundType: gaugeGlobals.foreground,
+
+        // Indicatore principale = ROSSO
+        pointerType: gaugeGlobals.pointer,
+        pointerColor: gaugeGlobals.pointerColour,
+
+        // Secondo indicatore = BLU
+        // utilizzato per la direzione media
+        dirAvgPointer: gaugeGlobals.dirAvgPointer,
+        dirAvgPointerColor: gaugeGlobals.dirAvgPointerColour,
+
+        knobType: gaugeGlobals.knob,
+        knobStyle: gaugeGlobals.knobStyle,
+
+        ledColor: steelseries.LedColor.RED_LED,
+        lcdColor: gaugeGlobals.lcdColour
+    }
+);
+
+
+/* ================================
+   VALORI DI TEST
+================================= */
+
+// Direzione istantanea
+windDirectionGauge.setValueAnimated(135);
+
+// Direzione media
+windDirectionGauge.setAverage(120);
     </script>
 
 
