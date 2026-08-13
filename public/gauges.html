@@ -2382,18 +2382,39 @@ const pressureGauge = new steelseries.Radial(
         knobStyle: gaugeGlobals.knobStyle,
 
         ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
-
-        // =========================================
-        // CONO ROSSO MIN / MAX
-        // =========================================
-
-        minMeasuredValue: 960,
-        maxMeasuredValue: 1050,
-
-        valueGradient: false
+        lcdColor: gaugeGlobals.lcdColour
     }
 );
+
+
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let pressureMin = 985.2;
+let pressureMax = 1034.8;
+
+
+// =========================================
+// CONO ROSSO MIN / MAX
+// =========================================
+
+pressureGauge.setArea([
+
+    steelseries.Section(
+        pressureMin,
+        pressureMax,
+        "rgba(236, 45, 45, 0.17)"
+    )
+
+]);
+
+
+// =========================================
+// VALORE DI TEST
+// =========================================
+
+pressureGauge.setValueAnimated(1013.2);
 
 /* ================================
 VALORE DI TEST
@@ -2538,7 +2559,7 @@ function updateWindGauge(value) {
         // ROSSO: 5 → 20 km/h
         steelseries.Section(
             5,
-            20,
+            10,
             "rgba(236, 45, 45, 0.17)"
         )
 
@@ -2640,12 +2661,8 @@ function updateWindGustScale(value) {
 
     let newMax;
 
-    if (value <= 30) {
 
-        newMax = 30;
-
-    }
-    else if (value <= 50) {
+    if (value <= 50) {
 
         newMax = 50;
 
