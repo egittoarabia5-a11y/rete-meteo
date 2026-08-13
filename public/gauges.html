@@ -586,6 +586,7 @@
 
         }
 const latestData = {};
+const apiKey="e1f10a1e78da46f5b10a1e78da96f525";
 
 
 async function fetchPws(id) {
@@ -825,683 +826,13 @@ async function fetchPws(id) {
 
 }
 // =========================================
-// WUNDERGROUND + GAUGE TEMPERATURA
-// =========================================
-
-// =========================================
-// API KEY WUNDERGROUND
-// =========================================
-
-const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
-
-
-// =========================================
-// DATI TEMPERATURA
-// =========================================
-
-let temperatureValue = null;
-let temperatureMin = null;
-let temperatureMax = null;
-
-
-// =========================================
-// SCALA TEMPERATURA
-// =========================================
-
-let tempMin = -20;
-let tempMax = 40;
-
-
-// =========================================
-// CALCOLO SCALA DINAMICA
-// =========================================
-
-function updateTemperatureScale() {
-
-    // Se non abbiamo ancora il massimo
-    if (
-        temperatureMax === null ||
-        !isFinite(Number(temperatureMax))
-    ) {
-
-        tempMin = -20;
-        tempMax = 40;
-
-        return;
-    }
-
-
-    // Arrotonda il massimo al multiplo
-    // di 10 superiore
-
-    tempMax =
-        Math.ceil(
-            Number(temperatureMax) / 10
-        ) * 10;
-
-
-    // La scala rimane sempre larga 60°C
-
-    tempMin =
-        tempMax - 60;
-}
-
-
-// =========================================
-// CREA GAUGE TEMPERATURA
-// =========================================
-
-updateTemperatureScale();
-
-
-const temperatureGauge =
-    new steelseries.Radial(
-
-        document.getElementById(
-            "temperatureGauge"
-        ),
-
-        {
-
-            gaugeType:
-                gaugeGlobals.gaugeType,
-
-            size:
-                240,
-
-            minValue:
-                tempMin,
-
-            maxValue:
-                tempMax,
-
-            threshold:
-                35,
-
-            titleString:
-                "Temperatura",
-
-            unitString:
-                "°C",
-
-            lcdDecimals:
-                1,
-
-            frameDesign:
-                gaugeGlobals.frameDesign,
-
-            backgroundColor:
-                gaugeGlobals.background,
-
-            foregroundType:
-                gaugeGlobals.foreground,
-
-            pointerType:
-                gaugeGlobals.pointer,
-
-            pointerColor:
-                gaugeGlobals.pointerColour,
-
-            lcdColor:
-                gaugeGlobals.lcdColour,
-
-            knobType:
-                gaugeGlobals.knob,
-
-            knobStyle:
-                gaugeGlobals.knobStyle,
-
-            labelNumberFormat:
-                gaugeGlobals.labelFormat,
-
-            tickLabelOrientation:
-                gaugeGlobals.tickLabelOrientation,
-
-            ledColor:
-                steelseries.LedColor.RED_LED,
-
-
-            // =====================================
-            // COLORI TEMPERATURA
-            // =====================================
-
-            section: [
-
-                steelseries.Section(
-                    -100,
-                    -35,
-                    "rgba(195, 92, 211, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -35,
-                    -30,
-                    "rgba(139, 74, 197, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -30,
-                    -25,
-                    "rgba(98, 65, 188, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -25,
-                    -20,
-                    "rgba(62, 66, 185, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -20,
-                    -15,
-                    "rgba(42, 84, 194, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -15,
-                    -10,
-                    "rgba(25, 112, 210, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -10,
-                    -5,
-                    "rgba(9, 150, 224, 0.4)"
-                ),
-
-                steelseries.Section(
-                    -5,
-                    0,
-                    "rgba(2, 170, 209, 0.4)"
-                ),
-
-                steelseries.Section(
-                    0,
-                    5,
-                    "rgba(0, 162, 145, 0.4)"
-                ),
-
-                steelseries.Section(
-                    5,
-                    10,
-                    "rgba(0, 158, 122, 0.4)"
-                ),
-
-                steelseries.Section(
-                    10,
-                    15,
-                    "rgba(54, 177, 56, 0.4)"
-                ),
-
-                steelseries.Section(
-                    15,
-                    20,
-                    "rgba(111, 202, 56, 0.4)"
-                ),
-
-                steelseries.Section(
-                    20,
-                    25,
-                    "rgba(248, 233, 45, 0.4)"
-                ),
-
-                steelseries.Section(
-                    25,
-                    30,
-                    "rgba(253, 142, 42, 0.4)"
-                ),
-
-                steelseries.Section(
-                    30,
-                    40,
-                    "rgba(236, 45, 45, 0.4)"
-                ),
-
-                steelseries.Section(
-                    40,
-                    100,
-                    "rgba(245, 109, 205, 0.4)"
-                )
-
-            ]
-
-        }
-
-    );
-
-
-// =========================================
-// AGGIORNA GAUGE TEMPERATURA
-// =========================================
-
-function updateTemperatureGauge(
-    value,
-    minValue,
-    maxValue
-) {
-
-    // =========================================
-    // CONVERSIONE NUMERICA
-    // =========================================
-
-    const current =
-        Number(value);
-
-    const dailyMin =
-        Number(minValue);
-
-    const dailyMax =
-        Number(maxValue);
-
-
-    // =========================================
-    // TEMPERATURA ATTUALE
-    // =========================================
-
-    if (
-        isFinite(current)
-    ) {
-
-        temperatureValue =
-            current;
-
-    }
-
-
-    // =========================================
-    // MINIMA GIORNALIERA
-    // =========================================
-
-    if (
-        isFinite(dailyMin)
-    ) {
-
-        temperatureMin =
-            dailyMin;
-
-    }
-
-
-    // =========================================
-    // MASSIMA GIORNALIERA
-    // =========================================
-
-    if (
-        isFinite(dailyMax)
-    ) {
-
-        temperatureMax =
-            dailyMax;
-
-    }
-
-
-    // =========================================
-    // RICALCOLA SCALA
-    // =========================================
-
-    const oldMin =
-        tempMin;
-
-    const oldMax =
-        tempMax;
-
-
-    updateTemperatureScale();
-
-
-    // =========================================
-    // CAMBIA SCALA SOLO SE NECESSARIO
-    // =========================================
-
-    if (
-        oldMin !== tempMin ||
-        oldMax !== tempMax
-    ) {
-
-        temperatureGauge.setMinValue(
-            tempMin
-        );
-
-        temperatureGauge.setMaxValue(
-            tempMax
-        );
-
-    }
-
-
-    // =========================================
-    // CONO MIN → MAX
-    // =========================================
-
-    if (
-        isFinite(temperatureMin) &&
-        isFinite(temperatureMax)
-    ) {
-
-        temperatureGauge.setArea([
-
-            steelseries.Section(
-                temperatureMin,
-                temperatureMax,
-                "rgba(236, 45, 45, 0.17)"
-            )
-
-        ]);
-
-    }
-
-
-    // =========================================
-    // VALORE ATTUALE
-    // =========================================
-
-    if (
-        isFinite(temperatureValue)
-    ) {
-
-        temperatureGauge.setValueAnimated(
-            temperatureValue
-        );
-
-    }
-
-
-    // =========================================
-    // DEBUG
-    // =========================================
-
-    console.log(
-        "Temperatura gauge aggiornata:",
-        {
-            attuale: temperatureValue,
-            minima: temperatureMin,
-            massima: temperatureMax,
-            scalaMin: tempMin,
-            scalaMax: tempMax
-        }
-    );
-}
-
-
-// =========================================
-// FETCH WUNDERGROUND
-// =========================================
-
-async function fetchPws(stationId) {
-
-    try {
-
-        console.log(
-            "Fetch Wunderground:",
-            stationId
-        );
-
-
-        // =====================================
-        // CURRENT OBSERVATION
-        // =====================================
-
-        const urlCurrent =
-            `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${stationId}&numericPrecision=decimal&format=json&units=m`;
-
-
-        const resCurrent =
-            await fetch(urlCurrent);
-
-
-        if (!resCurrent.ok) {
-
-            throw new Error(
-                `HTTP current: ${resCurrent.status}`
-            );
-
-        }
-
-
-        const dataCurrent =
-            await resCurrent.json();
-
-
-        if (
-            !dataCurrent.observations ||
-            !dataCurrent.observations.length
-        ) {
-
-            throw new Error(
-                "Nessuna osservazione Wunderground"
-            );
-
-        }
-
-
-        const observation =
-            dataCurrent.observations[0];
-
-
-        const temp =
-            observation.metric.temp;
-
-
-        const dewp =
-            observation.metric.dewpt;
-
-
-        const heat =
-            observation.metric.heatIndex;
-
-
-        const hum =
-            observation.humidity;
-
-
-        const rainDaily =
-            observation.metric.precipTotal;
-
-
-        const rainRate =
-            observation.metric.precipRate;
-
-
-        const lat =
-            observation.lat;
-
-
-        const lon =
-            observation.lon;
-
-
-        const wind =
-            observation.metric.windSpeed;
-
-
-        const windGust =
-            observation.metric.windGust;
-
-
-        const altitude =
-            observation.metric.elev;
-
-
-        const windDir =
-            observation.winddir;
-
-
-        // =====================================
-        // DAILY SUMMARY
-        // =====================================
-
-        const urlDaily =
-            `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${stationId}&numericPrecision=decimal&format=json&units=m`;
-
-
-        const resDaily =
-            await fetch(urlDaily);
-
-
-        if (!resDaily.ok) {
-
-            throw new Error(
-                `HTTP daily: ${resDaily.status}`
-            );
-
-        }
-
-
-        const dataDaily =
-            await resDaily.json();
-
-
-        // =====================================
-        // SUMMARY
-        // =====================================
-
-        const summary =
-            dataDaily.summaries &&
-            dataDaily.summaries.length > 0
-                ? dataDaily.summaries[0].metric
-                : null;
-
-
-        const tempHigh =
-            summary
-                ? Number(summary.tempHigh)
-                : null;
-
-
-        const tempLow =
-            summary
-                ? Number(summary.tempLow)
-                : null;
-
-
-        const dewpHigh =
-            summary
-                ? summary.dewptHigh
-                : null;
-
-
-        const dewpLow =
-            summary
-                ? summary.dewptLow
-                : null;
-
-
-        const heatHigh =
-            summary
-                ? summary.heatindexHigh
-                : null;
-
-
-        const heatLow =
-            summary
-                ? summary.heatindexLow
-                : null;
-
-
-        const humHigh =
-            summary
-                ? dataDaily.summaries[0].humidityHigh
-                : null;
-
-
-        const humLow =
-            summary
-                ? dataDaily.summaries[0].humidityLow
-                : null;
-
-
-        const windGustHigh =
-            summary
-                ? summary.windgustHigh
-                : null;
-
-
-        // =====================================
-        // CREA OGGETTO DATI
-        // =====================================
-
-        const source =
-            "Wunderground";
-
-
-        latestData[stationId] = {
-
-            source,
-
-            temp,
-
-            tempHigh,
-            tempLow,
-
-            dewp,
-            dewpHigh,
-            dewpLow,
-
-            heat,
-            heatHigh,
-            heatLow,
-
-            hum,
-            humHigh,
-            humLow,
-
-            rainDaily,
-            rainRate,
-
-            wind,
-            windGust,
-            windGustHigh,
-
-            windDir,
-
-            lat,
-            lon,
-
-            altitude
-        };
-
-
-        // =====================================
-        // DEBUG
-        // =====================================
-
-        console.log(
-            "Dati Wunderground ricevuti:",
-            stationId,
-            latestData[stationId]
-        );
-
-
-        // =====================================
-        // AGGIORNA GAUGE
-        // =====================================
-
-        updateSelectedStation();
-
-
-    }
-
-    catch (err) {
-
-        console.error(
-            `Errore fetch Wunderground ${stationId}:`,
-            err
-        );
-
-    }
-
-}
-
-
-// =========================================
 // AGGIORNA STAZIONE SELEZIONATA
 // =========================================
 
 function updateSelectedStation() {
 
     // =========================================
-    // ID DALL'URL
+    // USA L'ID DELLA STAZIONE DALL'URL
     // =========================================
 
     const stationId =
@@ -1511,16 +842,15 @@ function updateSelectedStation() {
     if (!stationId) {
 
         console.warn(
-            "Nessun ID stazione nell'URL"
+            "Nessun ID stazione trovato"
         );
 
         return;
-
     }
 
 
     // =========================================
-    // PRENDI DATI
+    // PRENDI I DATI
     // =========================================
 
     const data =
@@ -1535,7 +865,6 @@ function updateSelectedStation() {
         );
 
         return;
-
     }
 
 
@@ -1546,179 +875,85 @@ function updateSelectedStation() {
     if (
         data.temp !== null &&
         data.temp !== undefined &&
-        isFinite(Number(data.temp))
+        !isNaN(data.temp)
     ) {
 
         updateTemperatureGauge(
-
             data.temp,
-
             data.tempLow,
-
             data.tempHigh
-
         );
 
     }
 
 }
+function updateTemperatureGauge(
+    value,
+    minValue,
+    maxValue
+) {
+
+    // =========================================
+    // VALORE ATTUALE
+    // =========================================
+
+    temperatureValue = value;
 
 
-// =========================================
-// TOOLTIP TEMPERATURA
-// =========================================
+    // =========================================
+    // MINIMO
+    // =========================================
 
-const temperatureGaugeElement =
-    document.getElementById(
-        "temperatureGauge"
+    if (
+        minValue !== null &&
+        minValue !== undefined
+    ) {
+
+        temperatureMinRecorded =
+            minValue;
+
+    }
+
+
+    // =========================================
+    // MASSIMO
+    // =========================================
+
+    if (
+        maxValue !== null &&
+        maxValue !== undefined
+    ) {
+
+        temperatureMaxRecorded =
+            maxValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA GAUGE
+    // =========================================
+
+    temperatureGauge.setValueAnimated(
+        temperatureValue
     );
 
 
-const temperatureTooltip =
-    document.createElement("div");
+    // =========================================
+    // AGGIORNA CONO MIN / MAX
+    // =========================================
 
+    temperatureGauge.setArea([
 
-temperatureTooltip.className =
-    "gauge-tooltip";
+        steelseries.Section(
+            temperatureMinRecorded,
+            temperatureMaxRecorded,
+            "rgba(236, 45, 45, 0.17)"
+        )
 
+    ]);
 
-document.body.appendChild(
-    temperatureTooltip
-);
-
-
-let temperatureTooltipTimer =
-    null;
-
-
-// =========================================
-// MOUSE ENTER
-// =========================================
-
-temperatureGaugeElement.addEventListener(
-    "mouseenter",
-    (event) => {
-
-        temperatureTooltip.style.left =
-            event.clientX + "px";
-
-        temperatureTooltip.style.top =
-            event.clientY + "px";
-
-
-        clearTimeout(
-            temperatureTooltipTimer
-        );
-
-
-        temperatureTooltipTimer =
-            setTimeout(() => {
-
-                const currentText =
-                    isFinite(temperatureValue)
-                        ? temperatureValue.toFixed(1)
-                        : "n.d.";
-
-
-                const maxText =
-                    isFinite(temperatureMax)
-                        ? temperatureMax.toFixed(1)
-                        : "n.d.";
-
-
-                const minText =
-                    isFinite(temperatureMin)
-                        ? temperatureMin.toFixed(1)
-                        : "n.d.";
-
-
-                temperatureTooltip.innerHTML = `
-
-                    <div class="gauge-tooltip-title">
-
-                        Temperatura:
-
-                        <span class="gauge-tooltip-value">
-
-                            ${currentText}°
-
-                        </span>
-
-                    </div>
-
-
-                    <div>
-
-                        Massima:
-                        ${maxText}°
-
-                        -
-
-                        Minima:
-                        ${minText}°
-
-                    </div>
-
-                `;
-
-
-                temperatureTooltip.classList.add(
-                    "visible"
-                );
-
-
-            }, 1000);
-
-    }
-);
-
-
-// =========================================
-// MOVIMENTO MOUSE
-// =========================================
-
-temperatureGaugeElement.addEventListener(
-    "mousemove",
-    (event) => {
-
-        temperatureTooltip.style.left =
-            event.clientX + "px";
-
-        temperatureTooltip.style.top =
-            event.clientY + "px";
-
-    }
-);
-
-
-// =========================================
-// USCITA
-// =========================================
-
-temperatureGaugeElement.addEventListener(
-    "mouseleave",
-    () => {
-
-        clearTimeout(
-            temperatureTooltipTimer
-        );
-
-        temperatureTooltipTimer =
-            null;
-
-
-        temperatureTooltip.classList.remove(
-            "visible"
-        );
-
-    }
-);
-
-
-// =========================================
-// AVVIO FETCH
-// =========================================
-
+}
 if (
     source === "Wunderground" &&
     stazione &&
@@ -1728,6 +963,598 @@ if (
     fetchPws(station);
 
 }
+        /* =========================================
+           GAUGE TEMPERATURA
+        ========================================= */
+
+        /* =========================================
+   IMPOSTAZIONI GLOBALI GAUGES
+========================================= */
+
+const gaugeGlobals = {
+
+    minMaxArea: "rgba(212,132,134,0.3)",
+
+    windAvgArea: "rgba(132,212,134,0.3)",
+
+    windVariationSector: "rgba(120,200,120,0.7)",
+
+    frameDesign:
+        steelseries.FrameDesign.TILTED_GRAY,
+
+    background:
+        steelseries.BackgroundColor.BEIGE,
+
+    foreground:
+        steelseries.ForegroundType.TYPE1,
+
+    pointer:
+        steelseries.PointerType.TYPE8,
+
+    pointerColour:
+        steelseries.ColorDef.RED,
+
+    dirAvgPointer:
+        steelseries.PointerType.TYPE8,
+
+    dirAvgPointerColour:
+        steelseries.ColorDef.BLUE,
+
+    gaugeType:
+        steelseries.GaugeType.TYPE4,
+
+    lcdColour:
+        steelseries.LcdColor.STANDARD,
+
+    knob:
+        steelseries.KnobType.STANDARD_KNOB,
+
+    knobStyle:
+        steelseries.KnobStyle.SILVER,
+
+    labelFormat:
+        steelseries.LabelNumberFormat.STANDARD,
+
+    tickLabelOrientation:
+        steelseries.TickLabelOrientation.HORIZONTAL,
+
+    rainUseSectionColours:
+        false,
+
+    rainUseGradientColours:
+        false,
+
+    tempTrendVisible:
+        true,
+
+    pressureTrendVisible:
+        true,
+
+    uvLcdDecimals:
+        1,
+
+    sunshineThreshold:
+        50,
+
+    sunshineThresholdPct:
+        75,
+
+    tempScaleDefMinC:
+        -20,
+
+    tempScaleDefMaxC:
+        40,
+
+    tempScaleDefMinF:
+        0,
+
+    tempScaleDefMaxF:
+        100,
+
+    baroScaleDefMinhPa:
+        990,
+
+    baroScaleDefMaxhPa:
+        1030,
+
+    baroScaleDefMinkPa:
+        99,
+
+    baroScaleDefMaxkPa:
+        103,
+
+    baroScaleDefMininHg:
+        29.2,
+
+    baroScaleDefMaxinHg:
+        30.4,
+
+    windScaleDefMaxMph:
+        20,
+
+    windScaleDefMaxKts:
+        20,
+
+    windScaleDefMaxMs:
+        10,
+
+    windScaleDefMaxKmh:
+        30,
+
+    rainScaleDefMaxmm:
+        10,
+
+    rainScaleDefMaxIn:
+        0.5,
+
+    rainRateScaleDefMaxmm:
+        10,
+
+    rainRateScaleDefMaxIn:
+        0.5,
+
+    uvScaleDefMax:
+        10,
+
+    solarGaugeScaleMax:
+        1000,
+
+    cloudScaleDefMaxft:
+        3000,
+
+    cloudScaleDefMaxm:
+        1000,
+
+    shadowColour:
+        "rgba(0,0,0,0.3)"
+};
+
+
+/* =========================================
+   GAUGE TEMPERATURA
+========================================= */
+
+// =========================================
+// DATI MIN / MAX
+// =========================================
+
+let temperatureMin = 21.8;      // minima registrata
+let temperatureMax = 40.5;      // massima registrata
+let temperatureValue = 34.2;    // valore attuale
+
+
+// =========================================
+// FUNZIONE PER CALCOLARE LA SCALA
+// =========================================
+
+function updateTemperatureScale() {
+
+    // Il massimo della scala è sempre
+    // il multiplo di 10 superiore al record massimo
+
+    tempMax =
+        Math.ceil(temperatureMax / 10) * 10;
+
+    // La scala deve essere SEMPRE di 60°C
+
+    tempMin =
+        tempMax - 60;
+}
+
+
+// =========================================
+// SCALA INIZIALE
+// =========================================
+
+let tempMin;
+let tempMax;
+
+updateTemperatureScale();
+
+
+// =========================================
+// TEMPERATURE GAUGE
+// =========================================
+
+const temperatureGauge = new steelseries.Radial(
+
+    document.getElementById("temperatureGauge"),
+
+    {
+
+        gaugeType:
+            gaugeGlobals.gaugeType,
+
+        size:
+            240,
+
+        minValue:
+            tempMin,
+
+        maxValue:
+            tempMax,
+
+        threshold:
+            35,
+
+        titleString:
+            "Temperatura",
+
+        unitString:
+            "°C",
+
+        lcdDecimals:
+            1,
+
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+
+        // =========================================
+        // COLORI DELLA SCALA
+        // =========================================
+
+        section: [
+
+            steelseries.Section(
+                -100,
+                -35,
+                "rgba(195, 92, 211, 0.4)"
+            ),
+
+            steelseries.Section(
+                -35,
+                -30,
+                "rgba(139, 74, 197, 0.4)"
+            ),
+
+            steelseries.Section(
+                -30,
+                -25,
+                "rgba(98, 65, 188, 0.4)"
+            ),
+
+            steelseries.Section(
+                -25,
+                -20,
+                "rgba(62, 66, 185, 0.4)"
+            ),
+
+            steelseries.Section(
+                -20,
+                -15,
+                "rgba(42, 84, 194, 0.4)"
+            ),
+
+            steelseries.Section(
+                -15,
+                -10,
+                "rgba(25, 112, 210, 0.4)"
+            ),
+
+            steelseries.Section(
+                -10,
+                -5,
+                "rgba(9, 150, 224, 0.4)"
+            ),
+
+            steelseries.Section(
+                -5,
+                0,
+                "rgba(2, 170, 209, 0.4)"
+            ),
+
+            steelseries.Section(
+                0,
+                5,
+                "rgba(0, 162, 145, 0.4)"
+            ),
+
+            steelseries.Section(
+                5,
+                10,
+                "rgba(0, 158, 122, 0.4)"
+            ),
+
+            steelseries.Section(
+                10,
+                15,
+                "rgba(54, 177, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                15,
+                20,
+                "rgba(111, 202, 56, 0.4)"
+            ),
+
+            steelseries.Section(
+                20,
+                25,
+                "rgba(248, 233, 45, 0.4)"
+            ),
+
+            steelseries.Section(
+                25,
+                30,
+                "rgba(253, 142, 42, 0.4)"
+            ),
+
+            steelseries.Section(
+                30,
+                40,
+                "rgba(236, 45, 45, 0.4)"
+            ),
+
+            steelseries.Section(
+                40,
+                100,
+                "rgba(245, 109, 205, 0.4)"
+            )
+
+        ]
+
+    }
+
+);
+
+
+// =========================================
+// FUNZIONE AGGIORNAMENTO
+// =========================================
+
+function updateTemperatureGauge(
+    value,
+    minValue,
+    maxValue
+) {
+
+    // =========================================
+    // AGGIORNA MINIMO REALE
+    // =========================================
+
+    if (minValue < temperatureMin) {
+
+        temperatureMin = minValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MASSIMO REALE
+    // =========================================
+
+    if (maxValue > temperatureMax) {
+
+        temperatureMax = maxValue;
+
+    }
+
+
+    // =========================================
+    // RICALCOLA LA SCALA
+    // =========================================
+
+    const oldTempMin = tempMin;
+    const oldTempMax = tempMax;
+
+    updateTemperatureScale();
+
+
+    // =========================================
+    // AGGIORNA LA SCALA SOLO SE NECESSARIO
+    // =========================================
+
+    if (
+        oldTempMin !== tempMin ||
+        oldTempMax !== tempMax
+    ) {
+
+        temperatureGauge.setMinValue(
+            tempMin
+        );
+
+        temperatureGauge.setMaxValue(
+            tempMax
+        );
+
+    }
+
+
+    // =========================================
+    // CONO ROSSO MIN / MAX
+    // =========================================
+
+    temperatureGauge.setArea([
+
+        steelseries.Section(
+            temperatureMin,
+            temperatureMax,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+
+    // =========================================
+    // AGGIORNA VALORE ATTUALE
+    // =========================================
+
+    temperatureValue = value;
+
+    temperatureGauge.setValueAnimated(
+        temperatureValue
+    );
+
+}
+
+
+// =========================================
+// TOOLTIP TEMPERATURA
+// =========================================
+
+const temperatureGaugeElement =
+    document.getElementById("temperatureGauge");
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const temperatureTooltip =
+    document.createElement("div");
+
+temperatureTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    temperatureTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let temperatureTooltipTimer = null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+temperatureGaugeElement.addEventListener(
+    "mouseenter",
+    (event) => {
+
+        // Posizione iniziale
+        temperatureTooltip.style.left =
+            (event.clientX + 0) + "px";
+
+        temperatureTooltip.style.top =
+            (event.clientY + 0) + "px";
+
+
+        // Annulla eventuale timer precedente
+        clearTimeout(
+            temperatureTooltipTimer
+        );
+
+
+        // Aspetta 3 secondi
+        temperatureTooltipTimer =
+            setTimeout(() => {
+
+                temperatureTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+                        Temperatura:
+                        <span class="gauge-tooltip-value">
+                            ${temperatureValue.toFixed(1)}°
+                        </span>
+                    </div>
+
+                    <div>
+                        Massima:
+                        ${temperatureMax.toFixed(1)}°
+                        -
+                        Minima:
+                        ${temperatureMin.toFixed(1)}°
+                    </div>
+
+                `;
+
+                temperatureTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+temperatureGaugeElement.addEventListener(
+    "mousemove",
+    (event) => {
+
+        temperatureTooltip.style.left =
+            (event.clientX + 0) + "px";
+
+        temperatureTooltip.style.top =
+            (event.clientY + 0) + "px";
+
+    }
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+temperatureGaugeElement.addEventListener(
+    "mouseleave",
+    () => {
+
+        // Annulla il timer dei 3 secondi
+        clearTimeout(
+            temperatureTooltipTimer
+        );
+
+        temperatureTooltipTimer = null;
+
+
+        // Nasconde il popup
+        temperatureTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+);
+
+// =========================================
+// VALORE DI TEST
+// =========================================
+
+updateTemperatureGauge(
+    34.2,  // temperatura attuale
+    21.8,  // minima
+    40.5   // massima
+);
 /* =========================================
 GAUGE DEWPOINT
 ========================================= */
