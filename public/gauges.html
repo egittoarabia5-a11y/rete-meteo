@@ -953,15 +953,16 @@ async function fetchPws(id) {
 
     }
 
-    catch (err) {
+catch (err) {
 
-        console.error(
-            `🔴 Errore fetch Wunderground ${id}:`,
-            err
-        );
+    console.error(
+        `🔴 Errore fetch Wunderground ${id}:`,
+        err
+    );
 
-    }
+    throw err;
 
+}
 }
 // =========================================
 // AGGIORNA STAZIONE SELEZIONATA
@@ -8285,6 +8286,349 @@ function showGaugeTooltip(
     });
 
 }
+// =========================================
+// STATO STAZIONE
+// =========================================
+
+let stationOnline = false;
+let stationRefreshTimer = null;
+let stationCountdownTimer = null;
+
+let stationSecondsRemaining = 10;
+
+
+// =========================================
+// CREA INDICATORE STATO IN ALTO
+// =========================================
+
+function createStationStatus() {
+
+    // Se esiste già non ricrearlo
+    if (document.getElementById("stationStatus")) {
+        return;
+    }
+
+
+    // Cerca il titolo principale della pagina
+    const titleElement =
+        document.querySelector("h1");
+
+
+    if (!titleElement) {
+
+        console.warn(
+            "⚠️ Titolo h1 non trovato per lo stato stazione"
+        );
+
+        return;
+    }
+
+
+    const statusElement =
+        document.createElement("span");
+
+    statusElement.id =
+        "stationStatus";
+
+    statusElement.style.marginLeft =
+        "15px";
+
+    statusElement.style.fontSize =
+        "0.55em";
+
+    statusElement.style.fontWeight =
+        "normal";
+
+    statusElement.style.whiteSpace =
+        "nowrap";
+
+
+    titleElement.appendChild(
+        statusElement
+    );
+
+
+    updateStationStatus(
+        false
+    );
+
+}
+
+
+// =========================================
+// AGGIORNA STATO STAZIONE
+// =========================================
+
+function updateStationStatus(
+    online
+) {
+
+    const statusElement =
+        document.getElementById(
+            "stationStatus"
+        );
+
+
+    if (!statusElement) {
+        return;
+    }
+
+
+    stationOnline =
+        online;
+
+
+    if (online) {
+
+        statusElement.innerHTML = `
+
+            <span style="color:#22c55e;">
+                ● Online
+            </span>
+
+            <span style="
+                margin-left:10px;
+                color:#888;
+            ">
+                Aggiorna in:
+                <strong id="stationCountdown">
+                    ${stationSecondsRemaining}
+                </strong>
+                sec.
+            </span>
+
+        `;
+
+    }
+    else {
+
+        statusElement.innerHTML = `
+
+            <span style="color:#ef4444;">
+                ● Offline
+            </span>
+
+            <span style="
+                margin-left:10px;
+                color:#888;
+            ">
+                Riprovo tra:
+                <strong id="stationCountdown">
+                    ${stationSecondsRemaining}
+                </strong>
+                sec.
+            </span>
+
+        `;
+
+    }
+
+}
+
+
+// =========================================
+// COUNTDOWN
+// =========================================
+
+function startStationCountdown() {
+
+    clearInterval(
+        stationCountdownTimer
+    );
+
+
+    stationSecondsRemaining =
+        10;
+
+
+    updateStationStatus(
+        stationOnline
+    );
+
+
+    stationCountdownTimer =
+        setInterval(() => {
+
+            stationSecondsRemaining--;
+
+
+            const countdownElement =
+                document.getElementById(
+                    "stationCountdown"
+                );
+
+
+            if (countdownElement) {
+
+                countdownElement.textContent =
+                    stationSecondsRemaining;
+
+            }
+
+
+            if (
+                stationSecondsRemaining <= 0
+            ) {
+
+                clearInterval(
+                    stationCountdownTimer
+                );
+
+            }
+
+        }, 1000);
+
+}
+
+
+// =========================================
+// AGGIORNAMENTO AUTOMATICO
+// =========================================
+
+async function refreshStationData() {
+
+    console.log(
+        "🔄 AGGIORNAMENTO AUTOMATICO STAZIONE:",
+        station
+    );
+
+
+    try {
+
+        if (!station) {
+
+            console.warn(
+                "⚠️ Nessuna stazione selezionata"
+            );
+
+            updateStationStatus(
+                false
+            );
+
+            return;
+
+        }
+
+
+        // =====================================
+        // RIFAI IL FETCH
+        // =====================================
+
+        await fetchPws(
+            station
+        );
+
+
+        // =====================================
+        // FETCH RIUSCITO
+        // =====================================
+
+        console.log(
+            "🟢 AGGIORNAMENTO RIUSCITO:",
+            station
+        );
+
+
+        updateStationStatus(
+            true
+        );
+
+
+    }
+    catch (error) {
+
+        console.error(
+            "🔴 ERRORE AGGIORNAMENTO AUTOMATICO:",
+            error
+        );
+
+
+        updateStationStatus(
+            false
+        );
+
+    }
+
+
+    // =====================================
+    // RIPARTE IL COUNTDOWN
+    // =====================================
+
+    startStationCountdown();
+
+
+    // =====================================
+    // PROSSIMO AGGIORNAMENTO
+    // =====================================
+
+    clearTimeout(
+        stationRefreshTimer
+    );
+
+
+    stationRefreshTimer =
+        setTimeout(
+            refreshStationData,
+            10000
+        );
+
+}
+
+
+// =========================================
+// AVVIO SISTEMA
+// =========================================
+
+function startStationAutoRefresh() {
+
+    console.log(
+        "🚀 SISTEMA AUTO-REFRESH AVVIATO"
+    );
+
+
+    clearTimeout(
+        stationRefreshTimer
+    );
+
+
+    clearInterval(
+        stationCountdownTimer
+    );
+
+
+    stationSecondsRemaining =
+        10;
+
+
+    updateStationStatus(
+        true
+    );
+
+
+    startStationCountdown();
+
+
+    stationRefreshTimer =
+        setTimeout(
+            refreshStationData,
+            10000
+        );
+
+}
+
+
+// =========================================
+// CREA INDICATORE
+// =========================================
+
+createStationStatus();
+
+
+// =========================================
+// AVVIA AUTO-REFRESH
+// =========================================
+
+startStationAutoRefresh();
     </script>
 
 
