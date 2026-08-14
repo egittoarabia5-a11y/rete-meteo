@@ -996,42 +996,58 @@ if (
 // PRESSIONE
 // =========================================
 
-const pressure = Number(data.pressure);
-const pressHigh = Number(data.pressHigh);
-const pressLow = Number(data.pressLow);
-
-
 // =========================================
-// AGGIORNA PRESSIONE SOLO SE VALIDA
+// PRESSIONE
 // =========================================
 
-if (Number.isFinite(pressure)) {
+console.log("🟣 updateSelectedStation PRESSIONE:", {
+    id,
+    latestData: latestData[id],
+    pressure: latestData[id]?.pressure,
+    pressHigh: latestData[id]?.pressHigh,
+    pressLow: latestData[id]?.pressLow
+});
 
-    pressureGauge.setValueAnimated(
-        pressure
-    );
 
-}
+if (latestData[id]) {
+
+    const pressureData =
+        latestData[id];
 
 
-// =========================================
-// AGGIORNA MIN / MAX REGISTRATI
-// =========================================
+    const pressure =
+        Number(pressureData.pressure);
 
-if (
-    Number.isFinite(pressLow) &&
-    Number.isFinite(pressHigh)
-) {
+    const pressHigh =
+        Number(pressureData.pressHigh);
 
-    pressureGauge.setArea([
+    const pressLow =
+        Number(pressureData.pressLow);
 
-        steelseries.Section(
+
+    console.log("🟣 PRESSIONE ESTRATTA:", {
+        pressure,
+        pressHigh,
+        pressLow
+    });
+
+
+    if (Number.isFinite(pressure)) {
+
+        updatePressureGauge(
+            pressure,
             pressLow,
-            pressHigh,
-            "rgba(236, 45, 45, 0.17)"
-        )
+            pressHigh
+        );
 
-    ]);
+    } else {
+
+        console.warn(
+            "🔴 PRESSURE: valore pressure non valido",
+            pressureData.pressure
+        );
+
+    }
 
 }
 
@@ -4417,45 +4433,235 @@ humidityGaugeElement.addEventListener(
    GAUGE PRESSIONE
 ========================================= */
 
+/* =========================================
+   GAUGE PRESSIONE
+========================================= */
+
+// =========================================
+// SCALA
+// =========================================
+
+let pressureGaugeMin = 960;
+let pressureGaugeMax = 1050;
+
+
+// =========================================
+// DATI PRESSIONE
+// =========================================
+
+let pressureMin = null;
+let pressureMax = null;
+let pressureValue = null;
+
+
+// =========================================
+// PRESSURE GAUGE
+// =========================================
+
 const pressureGauge = new steelseries.Radial(
+
     document.getElementById("pressureGauge"),
+
     {
-        gaugeType: gaugeGlobals.gaugeType,
 
-        size: 240,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        minValue: 960,
-        maxValue: 1050,
+        size:
+            240,
 
-        threshold: 1040,
+        minValue:
+            pressureGaugeMin,
 
-        titleString: "Pressione",
-        unitString: "hPa",
+        maxValue:
+            pressureGaugeMax,
 
-        lcdDecimals: 1,
+        threshold:
+            1040,
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        titleString:
+            "Pressione",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        unitString:
+            "hPa",
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        lcdDecimals:
+            1,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        labelNumberFormat:
+            gaugeGlobals.labelFormat,
+
+        tickLabelOrientation:
+            gaugeGlobals.tickLabelOrientation,
+
+        ledColor:
+            steelseries.LedColor.RED_LED
+
     }
+
 );
 
 
 // =========================================
-// TOOLTIP PRESSIONE
+// AGGIORNA GAUGE PRESSIONE
+// =========================================
+
+function updatePressureGauge(
+    value,
+    minValue,
+    maxValue
+) {
+
+    console.log("🔵 updatePressureGauge CHIAMATA:", {
+        value,
+        minValue,
+        maxValue
+    });
+
+
+    // =========================================
+    // CONVERSIONE NUMERICA
+    // =========================================
+
+    const pressure =
+        Number(value);
+
+    const pressureMinNumber =
+        Number(minValue);
+
+    const pressureMaxNumber =
+        Number(maxValue);
+
+
+    console.log("🔵 PRESSIONE CONVERTITA:", {
+        pressure,
+        pressureMinNumber,
+        pressureMaxNumber
+    });
+
+
+    // =========================================
+    // CONTROLLO VALORI
+    // =========================================
+
+    if (!Number.isFinite(pressure)) {
+
+        console.warn(
+            "🔴 PRESSIONE NON VALIDA:",
+            value
+        );
+
+        return;
+
+    }
+
+
+    // =========================================
+    // SALVA VALORE ATTUALE
+    // =========================================
+
+    pressureValue =
+        pressure;
+
+
+    // =========================================
+    // SALVA MINIMO
+    // =========================================
+
+    pressureMin =
+        Number.isFinite(pressureMinNumber)
+            ? pressureMinNumber
+            : pressure;
+
+
+    // =========================================
+    // SALVA MASSIMO
+    // =========================================
+
+    pressureMax =
+        Number.isFinite(pressureMaxNumber)
+            ? pressureMaxNumber
+            : pressure;
+
+
+    console.log("🟢 DATI PRESSIONE SALVATI:", {
+        pressureValue,
+        pressureMin,
+        pressureMax
+    });
+
+
+    // =========================================
+    // AGGIORNA CONO ROSSO MIN / MAX
+    // =========================================
+
+    if (
+        Number.isFinite(pressureMin) &&
+        Number.isFinite(pressureMax)
+    ) {
+
+        pressureGauge.setArea([
+
+            steelseries.Section(
+                pressureMin,
+                pressureMax,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
+        ]);
+
+    }
+
+
+    // =========================================
+    // AGGIORNA VALORE
+    // =========================================
+
+    pressureGauge.setValueAnimated(
+        pressureValue
+    );
+
+
+    console.log(
+        "🟢 PRESSURE GAUGE AGGIORNATO:",
+        pressureValue
+    );
+
+}
+
+
+// =========================================
+// POPUP PRESSIONE
 // =========================================
 
 const pressureGaugeElement =
-    document.getElementById("pressureGauge");
+    document.getElementById(
+        "pressureGauge"
+    );
 
 
 // =========================================
@@ -4477,7 +4683,8 @@ document.body.appendChild(
 // TIMER POPUP
 // =========================================
 
-let pressureTooltipTimer = null;
+let pressureTooltipTimer =
+    null;
 
 
 // =========================================
@@ -4485,14 +4692,16 @@ let pressureTooltipTimer = null;
 // =========================================
 
 pressureGaugeElement.addEventListener(
+
     "mouseenter",
+
     (event) => {
 
         pressureTooltip.style.left =
-            event.clientX + "px";
+            (event.clientX + 15) + "px";
 
         pressureTooltip.style.top =
-            event.clientY + "px";
+            (event.clientY + 15) + "px";
 
 
         clearTimeout(
@@ -4500,21 +4709,32 @@ pressureGaugeElement.addEventListener(
         );
 
 
+        pressureTooltip.classList.remove(
+            "visible"
+        );
+
+
         pressureTooltipTimer =
             setTimeout(() => {
 
-                const data =
-                    latestData[selectedStationId];
-
-
                 const pressure =
-                    Number(data?.pressure);
+                    Number(pressureValue);
 
                 const min =
-                    Number(data?.pressLow);
+                    Number(pressureMin);
 
                 const max =
-                    Number(data?.pressHigh);
+                    Number(pressureMax);
+
+
+                console.log(
+                    "🟡 TOOLTIP PRESSIONE:",
+                    {
+                        pressure,
+                        min,
+                        max
+                    }
+                );
 
 
                 pressureTooltip.innerHTML = `
@@ -4568,6 +4788,7 @@ pressureGaugeElement.addEventListener(
             }, 1000);
 
     }
+
 );
 
 
@@ -4576,16 +4797,19 @@ pressureGaugeElement.addEventListener(
 // =========================================
 
 pressureGaugeElement.addEventListener(
+
     "mousemove",
+
     (event) => {
 
         pressureTooltip.style.left =
-            event.clientX + "px";
+            (event.clientX + 15) + "px";
 
         pressureTooltip.style.top =
-            event.clientY + "px";
+            (event.clientY + 15) + "px";
 
     }
+
 );
 
 
@@ -4594,20 +4818,24 @@ pressureGaugeElement.addEventListener(
 // =========================================
 
 pressureGaugeElement.addEventListener(
+
     "mouseleave",
+
     () => {
 
         clearTimeout(
             pressureTooltipTimer
         );
 
-        pressureTooltipTimer = null;
+        pressureTooltipTimer =
+            null;
 
         pressureTooltip.classList.remove(
             "visible"
         );
 
     }
+
 );
 
 const windGauge = new steelseries.Radial(
