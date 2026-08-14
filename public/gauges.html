@@ -701,6 +701,9 @@ async function fetchPws(id) {
         const windDir =
             observation.winddir;
 
+        const pressure =
+            observation.pressure;
+
 
         // =========================================
         // FETCH DATI GIORNALIERI
@@ -765,6 +768,14 @@ console.log("🔵 tempLow RAW:", tempLow, typeof tempLow);
             summary
                 ? dataDaily.summaries[0].humidityLow
                 : null;
+                        const pressHigh =
+            summary
+                ? dataDaily.summaries[0].pressureMax
+                : null;
+                        const pressLow =
+            summary
+                ? dataDaily.summaries[0].pressureMin
+                : null;
 
         const windGustHigh =
             summary
@@ -804,6 +815,10 @@ console.log("🔵 tempLow RAW:", tempLow, typeof tempLow);
     windGustHigh,
 
     windDir,
+
+    pressure,
+    pressHigh,
+    pressLow,
 
     lat,
     lon,
@@ -977,6 +992,49 @@ if (
     );
 
 }
+// =========================================
+// PRESSIONE
+// =========================================
+
+const pressure = Number(data.pressure);
+const pressHigh = Number(data.pressHigh);
+const pressLow = Number(data.pressLow);
+
+
+// =========================================
+// AGGIORNA PRESSIONE SOLO SE VALIDA
+// =========================================
+
+if (Number.isFinite(pressure)) {
+
+    pressureGauge.setValueAnimated(
+        pressure
+    );
+
+}
+
+
+// =========================================
+// AGGIORNA MIN / MAX REGISTRATI
+// =========================================
+
+if (
+    Number.isFinite(pressLow) &&
+    Number.isFinite(pressHigh)
+) {
+
+    pressureGauge.setArea([
+
+        steelseries.Section(
+            pressLow,
+            pressHigh,
+            "rgba(236, 45, 45, 0.17)"
+        )
+
+    ]);
+
+}
+
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -4355,6 +4413,10 @@ humidityGaugeElement.addEventListener(
     }
 
 );
+/* =========================================
+   GAUGE PRESSIONE
+========================================= */
+
 const pressureGauge = new steelseries.Radial(
     document.getElementById("pressureGauge"),
     {
@@ -4389,40 +4451,7 @@ const pressureGauge = new steelseries.Radial(
 
 
 // =========================================
-// DATI MIN / MAX
-// =========================================
-
-let pressureMin = 985.2;
-let pressureMax = 1034.8;
-let pressureValue = 1013.2;
-
-
-// =========================================
-// CONO ROSSO MIN / MAX
-// =========================================
-
-pressureGauge.setArea([
-
-    steelseries.Section(
-        pressureMin,
-        pressureMax,
-        "rgba(236, 45, 45, 0.17)"
-    )
-
-]);
-
-
-// =========================================
-// VALORE DI TEST
-// =========================================
-
-pressureGauge.setValueAnimated(
-    pressureValue
-);
-
-
-// =========================================
-// POPUP PRESSIONE
+// TOOLTIP PRESSIONE
 // =========================================
 
 const pressureGaugeElement =
@@ -4460,10 +4489,10 @@ pressureGaugeElement.addEventListener(
     (event) => {
 
         pressureTooltip.style.left =
-            (event.clientX + 15) + "px";
+            event.clientX + "px";
 
         pressureTooltip.style.top =
-            (event.clientY + 15) + "px";
+            event.clientY + "px";
 
 
         clearTimeout(
@@ -4471,28 +4500,66 @@ pressureGaugeElement.addEventListener(
         );
 
 
-        // Attendi 1 secondo
         pressureTooltipTimer =
             setTimeout(() => {
+
+                const data =
+                    latestData[selectedStationId];
+
+
+                const pressure =
+                    Number(data?.pressure);
+
+                const min =
+                    Number(data?.pressLow);
+
+                const max =
+                    Number(data?.pressHigh);
+
 
                 pressureTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Pressione:
+
                         <span class="gauge-tooltip-value">
-                            ${pressureValue.toFixed(1)} hPa
+
+                            ${
+                                Number.isFinite(pressure)
+                                    ? pressure.toFixed(1)
+                                    : "--"
+                            } hPa
+
                         </span>
+
                     </div>
 
+
                     <div>
+
                         Massima:
-                        ${pressureMax.toFixed(1)} hPa
+
+                        ${
+                            Number.isFinite(max)
+                                ? max.toFixed(1)
+                                : "--"
+                        } hPa
+
                         -
+
                         Minima:
-                        ${pressureMin.toFixed(1)} hPa
+
+                        ${
+                            Number.isFinite(min)
+                                ? min.toFixed(1)
+                                : "--"
+                        } hPa
+
                     </div>
 
                 `;
+
 
                 pressureTooltip.classList.add(
                     "visible"
@@ -4513,10 +4580,10 @@ pressureGaugeElement.addEventListener(
     (event) => {
 
         pressureTooltip.style.left =
-            (event.clientX + 15) + "px";
+            event.clientX + "px";
 
         pressureTooltip.style.top =
-            (event.clientY + 15) + "px";
+            event.clientY + "px";
 
     }
 );
@@ -4542,6 +4609,7 @@ pressureGaugeElement.addEventListener(
 
     }
 );
+
 const windGauge = new steelseries.Radial(
     document.getElementById("windGauge"),
     {
