@@ -928,6 +928,21 @@ if (
     );
 
 }
+// =========================================
+// HUMIDEX
+// =========================================
+
+if (
+    Number.isFinite(Number(data.temp)) &&
+    Number.isFinite(Number(data.dewp))
+) {
+
+    updateHumidexGauge(
+        data.temp,
+        data.dewp
+    );
+
+}
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -2949,65 +2964,166 @@ const humidexGauge = new steelseries.Radial(
 // Spostamento di 10 °C
 // =========================================
 
+// =========================================
+// CALCOLO HUMIDEX
+// =========================================
+
+function calculateHumidex(
+    temperature,
+    dewpoint
+) {
+
+    const T =
+        Number(temperature);
+
+    const Td =
+        Number(dewpoint);
+
+
+    if (
+        !Number.isFinite(T) ||
+        !Number.isFinite(Td)
+    ) {
+
+        console.warn(
+            "❌ Humidex: dati non validi",
+            {
+                temperature,
+                dewpoint
+            }
+        );
+
+        return null;
+
+    }
+
+
+    // =====================================
+    // PRESSIONE DI VAPORE
+    // =====================================
+
+    const e =
+        6.11 *
+        Math.exp(
+            5417.753 *
+            (
+                (1 / 273.16) -
+                (1 / (273.15 + Td))
+            )
+        );
+
+
+    // =====================================
+    // FORMULA HUMIDEX
+    // =====================================
+
+    const humidex =
+        T +
+        0.5555 *
+        (e - 10);
+
+
+    return humidex;
+
+}
+
+
+// =========================================
+// AGGIORNAMENTO GAUGE HUMIDEX
+// =========================================
+
 function updateHumidexGauge(
-    value,
-    minValue,
-    maxValue
+    temperature,
+    dewpoint
 ) {
 
 
     // =========================================
-    // AGGIORNA MINIMO REGISTRATO
+    // CALCOLA HUMIDEX
     // =========================================
 
-    if (minValue < humidexMinRecorded) {
+    const value =
+        calculateHumidex(
+            temperature,
+            dewpoint
+        );
 
-        humidexMinRecorded = minValue;
+
+    if (
+        !Number.isFinite(value)
+    ) {
+
+        console.warn(
+            "❌ Humidex non aggiornato"
+        );
+
+        return;
 
     }
 
 
     // =========================================
-    // AGGIORNA MASSIMO REGISTRATO
+    // VALORE ATTUALE
     // =========================================
 
-    if (maxValue > humidexMaxRecorded) {
+    humidexValue =
+        value;
 
-        humidexMaxRecorded = maxValue;
+
+    // =========================================
+    // MINIMA = VALORE ATTUALE
+    // MASSIMA = VALORE ATTUALE
+    // =========================================
+
+    humidexMinRecorded =
+        value;
+
+    humidexMaxRecorded =
+        value;
+
+
+    // =========================================
+    // SCALA DINAMICA
+    // =========================================
+
+    while (
+        value >
+        humidexGaugeMax
+    ) {
+
+        humidexGaugeMin +=
+            humidexStep;
+
+        humidexGaugeMax +=
+            humidexStep;
+
+    }
+
+
+    while (
+        value <
+        humidexGaugeMin
+    ) {
+
+        humidexGaugeMin -=
+            humidexStep;
+
+        humidexGaugeMax -=
+            humidexStep;
 
     }
 
 
     // =========================================
-    // SE IL VALORE ESCE DALLA SCALA
-    // SPOSTA TUTTA LA SCALA DI 10 °C
-    // =========================================
-
-    while (value > humidexGaugeMax) {
-
-        humidexGaugeMin += humidexStep;
-
-        humidexGaugeMax += humidexStep;
-
-    }
-
-
-    while (value < humidexGaugeMin) {
-
-        humidexGaugeMin -= humidexStep;
-
-        humidexGaugeMax -= humidexStep;
-
-    }
-
-
-    // =========================================
-    // AGGIORNA LA SCALA
+    // AGGIORNA SCALA
     // =========================================
 
     if (
-        humidexGauge.getMinValue() !== humidexGaugeMin ||
-        humidexGauge.getMaxValue() !== humidexGaugeMax
+        humidexGauge.getMinValue() !==
+            humidexGaugeMin ||
+
+        humidexGauge.getMaxValue() !==
+            humidexGaugeMax
     ) {
 
         humidexGauge.setMinValue(
@@ -3022,7 +3138,7 @@ function updateHumidexGauge(
 
 
     // =========================================
-    // AGGIORNA IL CONO ROSSO
+    // CONO ROSSO
     // =========================================
 
     humidexGauge.setArea([
@@ -3037,27 +3153,30 @@ function updateHumidexGauge(
 
 
     // =========================================
-    // AGGIORNA IL VALORE ATTUALE
+    // AGGIORNA VALORE
     // =========================================
-
-    humidexValue = value;
 
     humidexGauge.setValueAnimated(
         humidexValue
     );
 
+
+    // =========================================
+    // DEBUG
+    // =========================================
+
+    console.log(
+        "🌡️ HUMIDEX:",
+        {
+            temperatura: temperature,
+            dewpoint: dewpoint,
+            valore: humidexValue,
+            minima: humidexMinRecorded,
+            massima: humidexMaxRecorded
+        }
+    );
+
 }
-
-
-// =========================================
-// VALORE DI TEST
-// =========================================
-
-updateHumidexGauge(
-    38.4,   // Humidex attuale
-    21.8,   // minima registrata
-    40.5    // massima registrata
-);
 // =========================================
 // POPUP HUMIDEX
 // =========================================
@@ -3169,7 +3288,7 @@ humidexGaugeElement.addEventListener(
     "mouseleave",
     () => {
 
-        // Annulla il timer
+        // Annulla il timer 
         clearTimeout(
             humidexTooltipTimer
         );
