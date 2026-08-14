@@ -1347,6 +1347,109 @@ if (Number.isFinite(rad)) {
     );
 
 }
+// =========================================
+// PRECIPITAZIONI
+// =========================================
+
+console.log("🌧️ PRECIPITAZIONI - DATI RICEVUTI:", {
+    rainDaily: data?.rainDaily,
+    tipo: typeof data?.rainDaily
+});
+
+const rainDaily =
+    parseFloat(data?.rainDaily);
+
+console.log("🌧️ PRECIPITAZIONI - VALORE PARSATO:", {
+    rainDaily
+});
+
+if (Number.isFinite(rainDaily)) {
+
+    updateRainGauge(
+        rainDaily
+    );
+
+} else {
+
+    console.warn(
+        "🔴 PRECIPITAZIONI NON VALIDE:",
+        data?.rainDaily
+    );
+
+}
+// =========================================
+// RAIN RATE
+// =========================================
+
+console.log(
+    "🟠 RAIN RATE - DATI RICEVUTI:",
+    {
+        source: data?.source,
+        rainRate: data?.rainRate,
+        tipo: typeof data?.rainRate
+    }
+);
+
+
+const rainRate =
+    parseFloat(data?.rainRate);
+
+
+console.log(
+    "🟠 RAIN RATE - VALORE PARSATO:",
+    rainRate
+);
+
+
+if (Number.isFinite(rainRate)) {
+
+    updateRainRateGauge(
+        rainRate
+    );
+
+} else {
+
+    console.warn(
+        "🔴 RAIN RATE NON VALIDO:",
+        data?.rainRate
+    );
+
+}
+// =========================================
+// BASE NUVLOSA
+// =========================================
+
+console.log(
+    "☁️ CLOUD BASE - DATI STAZIONE:",
+    {
+        temp: data?.temp,
+        dewp: data?.dewp
+    }
+);
+
+
+if (
+    Number.isFinite(Number(data?.temp)) &&
+    Number.isFinite(Number(data?.dewp))
+) {
+
+    updateCloudBaseGauge(
+        data.temp,
+        data.dewp
+    );
+
+}
+else {
+
+    console.warn(
+        "🔴 CLOUD BASE - TEMPERATURA O DEWPOINT NON VALIDI:",
+        {
+            temp: data?.temp,
+            dewp: data?.dewp
+        }
+    );
+
+}
 
 }
 // =========================================
@@ -7061,7 +7164,7 @@ radGaugeElement.addEventListener(
 // DATI PRECIPITAZIONI
 // =========================================
 
-let rainValue = 12.4;
+let rainValue = 0;
 
 
 // =========================================
@@ -7171,62 +7274,123 @@ const RainGauge = new steelseries.RadialBargraph(
 
 function updateRainGauge(value) {
 
+    value = Number(value);
+
+    if (!Number.isFinite(value)) {
+
+        console.warn(
+            "🔴 PRECIPITAZIONI NON VALIDE:",
+            value
+        );
+
+        return;
+
+    }
+
+
     let newMax;
 
     if (value <= 10) {
+
         newMax = 10;
+
     }
     else if (value <= 20) {
+
         newMax = 20;
+
     }
     else if (value <= 30) {
+
         newMax = 30;
+
     }
     else if (value <= 40) {
+
         newMax = 40;
+
     }
     else if (value <= 50) {
+
         newMax = 50;
+
     }
     else if (value <= 75) {
+
         newMax = 75;
+
     }
     else if (value <= 100) {
+
         newMax = 100;
+
     }
     else if (value <= 150) {
+
         newMax = 150;
+
     }
     else if (value <= 200) {
+
         newMax = 200;
+
     }
     else if (value <= 300) {
+
         newMax = 300;
+
     }
     else if (value <= 400) {
+
         newMax = 400;
+
     }
     else if (value <= 500) {
+
         newMax = 500;
+
     }
     else if (value <= 750) {
+
         newMax = 750;
+
     }
     else if (value <= 1000) {
+
         newMax = 1000;
+
     }
     else if (value <= 1500) {
+
         newMax = 1500;
+
     }
     else {
+
         newMax =
             Math.ceil(value / 500) * 500;
+
     }
 
+
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
 
     if (
         RainGauge.getMaxValue() !== newMax
     ) {
+
+        console.log(
+            "📏 SCALA PRECIPITAZIONI:",
+            {
+                valore: value,
+                vecchiaScala:
+                    RainGauge.getMaxValue(),
+                nuovaScala:
+                    newMax
+            }
+        );
 
         RainGauge.setMaxValue(
             newMax
@@ -7237,22 +7401,28 @@ function updateRainGauge(value) {
     }
 
 
-    // Salva il valore attuale
+    // =========================================
+    // SALVA VALORE ATTUALE
+    // =========================================
+
     rainValue = value;
 
+
+    // =========================================
+    // AGGIORNA GAUGE
+    // =========================================
 
     RainGauge.setValueAnimated(
         rainValue
     );
 
+
+    console.log(
+        "🌧️ PRECIPITAZIONI GAUGE AGGIORNATO:",
+        rainValue
+    );
+
 }
-
-
-// =========================================
-// VALORE DI TEST
-// =========================================
-
-updateRainGauge(12.4);
 
 
 // =========================================
@@ -7305,17 +7475,25 @@ rainGaugeElement.addEventListener(
         );
 
 
-        // Attendi 1 secondo
         rainTooltipTimer =
             setTimeout(() => {
 
                 rainTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Precipitazioni:
+
                         <span class="gauge-tooltip-value">
-                            ${rainValue.toFixed(1)} mm
+                            ${
+                                Number.isFinite(
+                                    Number(rainValue)
+                                )
+                                    ? Number(rainValue).toFixed(1)
+                                    : "--"
+                            } mm
                         </span>
+
                     </div>
 
                 `;
@@ -7368,12 +7546,11 @@ rainGaugeElement.addEventListener(
 
     }
 );
-
 // =========================================
 // DATI RAIN RATE
 // =========================================
 
-let rainRateValue = 6.4;
+let rainRateValue = 0;
 
 
 // =========================================
@@ -7466,29 +7643,55 @@ const RainRateGauge = new steelseries.Radial(
 
 function updateRainRateGauge(value) {
 
+    const numericValue =
+        Number(value);
+
+
+    console.log(
+        "🟠 RAIN RATE - VALORE RICEVUTO:",
+        value,
+        "→ numerico:",
+        numericValue
+    );
+
+
+    if (
+        !Number.isFinite(numericValue)
+    ) {
+
+        console.warn(
+            "🔴 RAIN RATE NON VALIDO:",
+            value
+        );
+
+        return;
+    }
+
+
     let newMax;
 
-    if (value <= 30) {
+
+    if (numericValue <= 30) {
 
         newMax = 30;
 
     }
-    else if (value <= 50) {
+    else if (numericValue <= 50) {
 
         newMax = 50;
 
     }
-    else if (value <= 100) {
+    else if (numericValue <= 100) {
 
         newMax = 100;
 
     }
-    else if (value <= 200) {
+    else if (numericValue <= 200) {
 
         newMax = 200;
 
     }
-    else if (value <= 500) {
+    else if (numericValue <= 500) {
 
         newMax = 500;
 
@@ -7496,10 +7699,25 @@ function updateRainRateGauge(value) {
     else {
 
         newMax =
-            Math.ceil(value / 500) * 500;
+            Math.ceil(
+                numericValue / 500
+            ) * 500;
 
     }
 
+
+    console.log(
+        "🟠 RAIN RATE - SCALA:",
+        {
+            valore: numericValue,
+            scalaMassima: newMax
+        }
+    );
+
+
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
 
     if (
         RainRateGauge.getMaxValue() !== newMax
@@ -7509,14 +7727,24 @@ function updateRainRateGauge(value) {
             newMax
         );
 
-        RainRateGauge.setValue(0);
+        RainRateGauge.setValue(
+            0
+        );
 
     }
 
 
-    // Salva il valore attuale
-    rainRateValue = value;
+    // =========================================
+    // SALVA VALORE ATTUALE
+    // =========================================
 
+    rainRateValue =
+        numericValue;
+
+
+    // =========================================
+    // AGGIORNA GAUGE
+    // =========================================
 
     RainRateGauge.setValueAnimated(
         rainRateValue
@@ -7526,18 +7754,13 @@ function updateRainRateGauge(value) {
 
 
 // =========================================
-// VALORE DI TEST
-// =========================================
-
-updateRainRateGauge(6.4);
-
-
-// =========================================
 // POPUP RAIN RATE
 // =========================================
 
 const rainRateGaugeElement =
-    document.getElementById("RainRateGauge");
+    document.getElementById(
+        "RainRateGauge"
+    );
 
 
 // =========================================
@@ -7589,10 +7812,21 @@ rainRateGaugeElement.addEventListener(
                 rainRateTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Rain Rate:
+
                         <span class="gauge-tooltip-value">
-                            ${rainRateValue.toFixed(1)} mm/h
+
+                            ${
+                                Number.isFinite(
+                                    Number(rainRateValue)
+                                )
+                                    ? Number(rainRateValue).toFixed(1)
+                                    : "--"
+                            } mm/h
+
                         </span>
+
                     </div>
 
                 `;
@@ -7651,7 +7885,7 @@ rainRateGaugeElement.addEventListener(
 // DATI BASE NUVLOSA
 // =========================================
 
-let cloudBaseValue = 1500;
+let cloudBaseValue = 0;
 
 
 // =========================================
@@ -7738,15 +7972,85 @@ const CloudBaseGauge = new steelseries.Radial(
 
 
 // =========================================
-// SCALA DINAMICA BASE NUVLOSA
-// 0 → 1000 → 2000 → 3000 → 4000 → ...
+// AGGIORNA BASE NUVLOSA
+// FORMULA:
+// CLOUD BASE ≈ 125 × (T - Td)
 // =========================================
 
-function updateCloudBaseGauge(value) {
+function updateCloudBaseGauge(
+    temperature,
+    dewpoint
+) {
+
+    const temp =
+        Number(temperature);
+
+    const dewp =
+        Number(dewpoint);
+
+
+    console.log(
+        "☁️ CLOUD BASE - DATI RICEVUTI:",
+        {
+            temperatura: temperature,
+            dewpoint: dewpoint
+        }
+    );
+
+
+    if (
+        !Number.isFinite(temp) ||
+        !Number.isFinite(dewp)
+    ) {
+
+        console.warn(
+            "🔴 CLOUD BASE NON CALCOLABILE:",
+            {
+                temperatura: temperature,
+                dewpoint: dewpoint
+            }
+        );
+
+        return;
+    }
+
+
+    // =========================================
+    // CALCOLO LCL
+    // =========================================
+
+    const cloudBase =
+        125 * (temp - dewp);
+
+
+    console.log(
+        "☁️ CLOUD BASE - CALCOLO:",
+        {
+            temperatura: temp,
+            dewpoint: dewp,
+            differenza: temp - dewp,
+            cloudBase: cloudBase
+        }
+    );
+
+
+    // =========================================
+    // EVITA VALORI NEGATIVI
+    // =========================================
+
+    cloudBaseValue =
+        Math.max(0, cloudBase);
+
+
+    // =========================================
+    // SCALA DINAMICA
+    // 0 → 1000 → 2000 → 3000 → ...
+    // =========================================
 
     let newMax;
 
-    if (value <= 1000) {
+
+    if (cloudBaseValue <= 1000) {
 
         newMax = 1000;
 
@@ -7754,9 +8058,20 @@ function updateCloudBaseGauge(value) {
     else {
 
         newMax =
-            Math.ceil(value / 1000) * 1000;
+            Math.ceil(
+                cloudBaseValue / 1000
+            ) * 1000;
 
     }
+
+
+    console.log(
+        "☁️ CLOUD BASE - SCALA:",
+        {
+            valore: cloudBaseValue,
+            scalaMassima: newMax
+        }
+    );
 
 
     if (
@@ -7767,14 +8082,16 @@ function updateCloudBaseGauge(value) {
             newMax
         );
 
-        CloudBaseGauge.setValue(0);
+        CloudBaseGauge.setValue(
+            0
+        );
 
     }
 
 
-    // Salva il valore attuale
-    cloudBaseValue = value;
-
+    // =========================================
+    // AGGIORNA GAUGE
+    // =========================================
 
     CloudBaseGauge.setValueAnimated(
         cloudBaseValue
@@ -7784,18 +8101,13 @@ function updateCloudBaseGauge(value) {
 
 
 // =========================================
-// VALORE DI TEST
-// =========================================
-
-updateCloudBaseGauge(1500);
-
-
-// =========================================
 // POPUP BASE NUVLOSA
 // =========================================
 
 const cloudBaseGaugeElement =
-    document.getElementById("CloudBaseGauge");
+    document.getElementById(
+        "CloudBaseGauge"
+    );
 
 
 // =========================================
@@ -7840,17 +8152,27 @@ cloudBaseGaugeElement.addEventListener(
         );
 
 
-        // Attendi 1 secondo
         cloudBaseTooltipTimer =
             setTimeout(() => {
 
                 cloudBaseTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Base Nuvolosa:
+
                         <span class="gauge-tooltip-value">
-                            ${cloudBaseValue.toFixed(0)} m
+
+                            ${
+                                Number.isFinite(
+                                    Number(cloudBaseValue)
+                                )
+                                    ? Number(cloudBaseValue).toFixed(0)
+                                    : "--"
+                            } m
+
                         </span>
+
                     </div>
 
                 `;
