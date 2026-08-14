@@ -943,6 +943,23 @@ if (
     );
 
 }
+// =========================================
+// TEMPERATURA APPARENTE
+// =========================================
+
+if (
+    Number.isFinite(Number(data.temp)) &&
+    Number.isFinite(Number(data.dewp)) &&
+    Number.isFinite(Number(data.wind))
+) {
+
+    updatePercepitaGauge(
+        data.temp,
+        data.dewp,
+        data.wind
+    );
+
+}
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -3508,38 +3525,111 @@ const percepitaGauge = new steelseries.Radial(
 // FUNZIONE AGGIORNAMENTO
 // =========================================
 
+// =========================================
+// CALCOLO TEMPERATURA APPARENTE
+// =========================================
+
+function calculateApparentTemperature(
+    temperature,
+    dewpoint,
+    wind
+) {
+
+    const T =
+        Number(temperature);
+
+    const Td =
+        Number(dewpoint);
+
+    const V =
+        Number(wind);
+
+
+    if (
+        !Number.isFinite(T) ||
+        !Number.isFinite(Td) ||
+        !Number.isFinite(V)
+    ) {
+
+        console.warn(
+            "❌ Temperatura apparente: dati non validi",
+            {
+                temperature,
+                dewpoint,
+                wind
+            }
+        );
+
+        return null;
+
+    }
+
+
+    // =========================================
+    // PRESSIONE DI VAPORE
+    // =========================================
+
+    const e =
+        6.105 *
+        Math.exp(
+            17.27 * Td /
+            (237.7 + Td)
+        );
+
+
+    // =========================================
+    // TEMPERATURA APPARENTE
+    // =========================================
+
+    const apparentTemperature =
+        T +
+        0.33 * e -
+        0.70 * V -
+        4.00;
+
+
+    return apparentTemperature;
+
+}
+
+
+// =========================================
+// AGGIORNAMENTO GAUGE
+// =========================================
+
 function updatePercepitaGauge(
-    value,
-    minValue,
-    maxValue
+    temperature,
+    dewpoint,
+    wind
 ) {
 
     // =========================================
-    // AGGIORNA MINIMO REGISTRATO
+    // CALCOLA TEMPERATURA APPARENTE
     // =========================================
 
-    if (minValue < percepitaMinRecorded) {
+    const value =
+        calculateApparentTemperature(
+            temperature,
+            dewpoint,
+            wind
+        );
 
-        percepitaMinRecorded =
-            minValue;
+
+    if (
+        !Number.isFinite(value)
+    ) {
+
+        console.warn(
+            "❌ Temperatura apparente non aggiornata"
+        );
+
+        return;
 
     }
 
 
     // =========================================
-    // AGGIORNA MASSIMO REGISTRATO
-    // =========================================
-
-    if (maxValue > percepitaMaxRecorded) {
-
-        percepitaMaxRecorded =
-            maxValue;
-
-    }
-
-
-    // =========================================
-    // SALVA VALORE ATTUALE
+    // VALORE ATTUALE
     // =========================================
 
     percepitaValue =
@@ -3547,15 +3637,19 @@ function updatePercepitaGauge(
 
 
     // =========================================
+    // MINIMA = VALORE ATTUALE
+    // MASSIMA = VALORE ATTUALE
+    // =========================================
+
+    percepitaMinRecorded =
+        value;
+
+    percepitaMaxRecorded =
+        value;
+
+
+    // =========================================
     // SCALA DINAMICA
-    //
-    // SEMPRE 70 °C DI AMPIEZZA
-    // SPOSTAMENTO DI 10 °C
-    //
-    // -20 → 50
-    // -10 → 60
-    //   0 → 70
-    //  10 → 80
     // =========================================
 
     while (
@@ -3585,7 +3679,7 @@ function updatePercepitaGauge(
 
 
     // =========================================
-    // AGGIORNA LA SCALA
+    // AGGIORNA SCALA
     // =========================================
 
     if (
@@ -3608,44 +3702,59 @@ function updatePercepitaGauge(
 
 
     // =========================================
-    // AGGIORNA CONO ROSSO MIN / MAX
+    // CONO ROSSO
     // =========================================
 
     percepitaGauge.setArea([
 
         steelseries.Section(
-
             percepitaMinRecorded,
-
             percepitaMaxRecorded,
-
             "rgba(236, 45, 45, 0.17)"
-
         )
 
     ]);
 
 
     // =========================================
-    // AGGIORNA VALORE ATTUALE
+    // AGGIORNA VALORE
     // =========================================
 
     percepitaGauge.setValueAnimated(
         percepitaValue
     );
 
+
+    // =========================================
+    // DEBUG
+    // =========================================
+
+    console.log(
+        "🌡️ TEMPERATURA APPARENTE:",
+        {
+            temperatura: temperature,
+            dewpoint: dewpoint,
+            vento: wind,
+            valore: percepitaValue,
+            minima: percepitaMinRecorded,
+            massima: percepitaMaxRecorded
+        }
+    );
+
 }
 
 
 // =========================================
-// VALORE DI TEST
+// ELIMINA IL VECCHIO TEST
 // =========================================
 
-updatePercepitaGauge(
-    36.9,
-    21.8,
-    45.5
-);
+// NON usare più:
+//
+// updatePercepitaGauge(
+//     36.9,
+//     21.8,
+//     45.5
+// );
 
 
 // =========================================
