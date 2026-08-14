@@ -701,6 +701,9 @@ async function fetchPws(id) {
         const uv =
             observation.uv ?? null;
 
+        const rad =
+            observation.solarRadiation ?? null;
+
 
         // =========================================
         // LOG DATI ATTUALI
@@ -809,6 +812,9 @@ async function fetchPws(id) {
         const uvHigh =
             summary?.uvHigh ?? null;
 
+        const radHigh =
+            summary?.solarRadiationHigh ?? null;
+
 
         // =========================================
         // PRESSIONE
@@ -907,6 +913,8 @@ async function fetchPws(id) {
 
             uv,
             uvHigh,
+            rad,
+            radHigh,
 
             lat,
             lon,
@@ -1293,6 +1301,50 @@ if (Number.isFinite(uvHigh)) {
 
     uvMaxRecorded =
         null;
+
+}
+// =========================================
+// RADIAZIONE SOLARE
+// =========================================
+
+console.log(
+    "🟣 RADIAZIONE - DATI RICEVUTI:",
+    {
+        rad: data?.rad,
+        radHigh: data?.radHigh
+    }
+);
+
+
+const rad =
+    parseFloat(data?.rad);
+
+const radHigh =
+    parseFloat(data?.radHigh);
+
+
+console.log(
+    "🟣 RADIAZIONE - VALORI PARSATI:",
+    {
+        rad,
+        radHigh
+    }
+);
+
+
+if (Number.isFinite(rad)) {
+
+    updateRadGauge(
+        rad,
+        radHigh
+    );
+
+} else {
+
+    console.warn(
+        "🔴 RADIAZIONE NON VALIDA:",
+        data?.rad
+    );
 
 }
 
@@ -6544,8 +6596,15 @@ uvGaugeElement.addEventListener(
 // DATI RADIAZIONE SOLARE
 // =========================================
 
-let radValue = 0;
+let radValue = null;
 let radMaxRecorded = null;
+
+
+// =========================================
+// SCALA RADIAZIONE SOLARE
+// =========================================
+
+let radGaugeMax = 500;
 
 
 // =========================================
@@ -6553,8 +6612,11 @@ let radMaxRecorded = null;
 // =========================================
 
 const RadGauge = new steelseries.Radial(
+
     document.getElementById("RadGauge"),
+
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -6565,7 +6627,7 @@ const RadGauge = new steelseries.Radial(
             0,
 
         maxValue:
-            500,
+            radGaugeMax,
 
         threshold:
             450,
@@ -6627,68 +6689,192 @@ const RadGauge = new steelseries.Radial(
             )
 
         ]
+
     }
+
 );
 
 
 // =========================================
-// SCALA DINAMICA RADIAZIONE SOLARE
-// 0 → 500 → 750 → 1000 → 1250 → 1500
+// SCALA DINAMICA RADIAZIONE
+//
+// 0 → 500
+// 500 → 750
+// 750 → 1000
+// 1000 → 1250
+// 1250 → 1500
+// ecc.
+//
+// LA SCALA DIPENDE DA radHigh
 // =========================================
 
-function updateRadGauge(value) {
+function updateRadGauge(
+
+    value,
+    maxValue
+
+) {
+
+    const rad =
+        Number(value);
+
+    const radHigh =
+        Number(maxValue);
+
+
+    // =========================================
+    // CONTROLLO VALORE ATTUALE
+    // =========================================
+
+    if (!Number.isFinite(rad)) {
+
+        console.warn(
+            "🔴 RADIAZIONE NON VALIDA:",
+            value
+        );
+
+        return;
+
+    }
+
+
+    // =========================================
+    // CALCOLO SCALA IN BASE A radHigh
+    // =========================================
 
     let newMax;
 
-    if (value <= 500) {
-
-        newMax = 500;
-
-    }
-    else if (value <= 750) {
-
-        newMax = 750;
-
-    }
-    else if (value <= 1000) {
-
-        newMax = 1000;
-
-    }
-    else if (value <= 1250) {
-
-        newMax = 1250;
-
-    }
-    else if (value <= 1500) {
-
-        newMax = 1500;
-
-    }
-    else {
-
-        newMax =
-            Math.ceil(value / 250) * 250;
-
-    }
-
 
     if (
-        RadGauge.getMaxValue() !== newMax
+        Number.isFinite(radHigh)
+    ) {
+
+        if (radHigh <= 500) {
+
+            newMax = 500;
+
+        }
+
+        else {
+
+            newMax =
+                Math.ceil(
+                    radHigh / 250
+                ) * 250;
+
+        }
+
+    }
+
+    else {
+
+        // Fallback se radHigh non esiste
+
+        if (rad <= 500) {
+
+            newMax = 500;
+
+        }
+
+        else {
+
+            newMax =
+                Math.ceil(
+                    rad / 250
+                ) * 250;
+
+        }
+
+    }
+
+
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
+
+    if (
+        RadGauge.getMaxValue()
+        !== newMax
     ) {
 
         RadGauge.setMaxValue(
             newMax
         );
 
-        RadGauge.setValue(0);
+        RadGauge.setValue(
+            0
+        );
 
     }
 
 
-    // Salva il valore attuale
-    radValue = value;
+    radGaugeMax =
+        newMax;
 
+
+    // =========================================
+    // SALVA VALORE ATTUALE
+    // =========================================
+
+    radValue =
+        rad;
+
+
+    // =========================================
+    // SALVA MASSIMA
+    // =========================================
+
+    radMaxRecorded =
+        Number.isFinite(radHigh)
+            ? radHigh
+            : null;
+
+
+    // =========================================
+    // THRESHOLD = radHigh
+    // =========================================
+
+    if (
+        Number.isFinite(radHigh)
+    ) {
+
+        RadGauge.setThreshold(
+            radHigh
+        );
+
+    }
+
+
+    // =========================================
+    // LOG
+    // =========================================
+
+    console.log(
+        "🟣 RADIAZIONE GAUGE:",
+        {
+
+            rad:
+                radValue,
+
+            radHigh:
+                radMaxRecorded,
+
+            scalaMin:
+                0,
+
+            scalaMax:
+                radGaugeMax,
+
+            threshold:
+                radHigh
+
+        }
+    );
+
+
+    // =========================================
+    // AGGIORNA VALORE
+    // =========================================
 
     RadGauge.setValueAnimated(
         radValue
@@ -6698,18 +6884,13 @@ function updateRadGauge(value) {
 
 
 // =========================================
-// VALORE DI TEST
-// =========================================
-
-updateRadGauge(650);
-
-
-// =========================================
 // POPUP RADIAZIONE SOLARE
 // =========================================
 
 const radGaugeElement =
-    document.getElementById("RadGauge");
+    document.getElementById(
+        "RadGauge"
+    );
 
 
 // =========================================
@@ -6717,7 +6898,9 @@ const radGaugeElement =
 // =========================================
 
 const radTooltip =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
 radTooltip.className =
     "gauge-tooltip";
@@ -6731,7 +6914,8 @@ document.body.appendChild(
 // TIMER POPUP
 // =========================================
 
-let radTooltipTimer = null;
+let radTooltipTimer =
+    null;
 
 
 // =========================================
@@ -6739,7 +6923,9 @@ let radTooltipTimer = null;
 // =========================================
 
 radGaugeElement.addEventListener(
+
     "mouseenter",
+
     (event) => {
 
         radTooltip.style.left =
@@ -6754,27 +6940,65 @@ radGaugeElement.addEventListener(
         );
 
 
-        // Attendi 1 secondo
         radTooltipTimer =
             setTimeout(() => {
+
+                const rad =
+                    Number(radValue);
+
+                const radHigh =
+                    Number(radMaxRecorded);
+
+
+                console.log(
+                    "🟡 TOOLTIP RADIAZIONE:",
+                    {
+                        rad,
+                        radHigh
+                    }
+                );
+
 
                 radTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Radiazione Solare:
-                        <span class="gauge-tooltip-value">
-                            ${radValue.toFixed(0)} W/m²
+
+                        <span
+                            class="gauge-tooltip-value"
+                        >
+
+                            ${
+                                Number.isFinite(rad)
+                                    ? rad.toFixed(0)
+                                    : "--"
+                            }
+
+                            W/m²
+
                         </span>
+
                     </div>
 
+
                     <div>
+
                         Massima:
-                        ${radMaxRecorded === null
-                            ? "n.d."
-                            : radMaxRecorded.toFixed(0) + " W/m²"}
+
+                        ${
+                            Number.isFinite(radHigh)
+
+                                ? radHigh.toFixed(0)
+                                    + " W/m²"
+
+                                : "n.d."
+                        }
+
                     </div>
 
                 `;
+
 
                 radTooltip.classList.add(
                     "visible"
@@ -6783,6 +7007,7 @@ radGaugeElement.addEventListener(
             }, 1000);
 
     }
+
 );
 
 
@@ -6791,7 +7016,9 @@ radGaugeElement.addEventListener(
 // =========================================
 
 radGaugeElement.addEventListener(
+
     "mousemove",
+
     (event) => {
 
         radTooltip.style.left =
@@ -6801,6 +7028,7 @@ radGaugeElement.addEventListener(
             (event.clientY + 15) + "px";
 
     }
+
 );
 
 
@@ -6809,20 +7037,24 @@ radGaugeElement.addEventListener(
 // =========================================
 
 radGaugeElement.addEventListener(
+
     "mouseleave",
+
     () => {
 
         clearTimeout(
             radTooltipTimer
         );
 
-        radTooltipTimer = null;
+        radTooltipTimer =
+            null;
 
         radTooltip.classList.remove(
             "visible"
         );
 
     }
+
 );
 
 // =========================================
