@@ -1189,6 +1189,40 @@ if (Number.isFinite(wind)) {
     );
 
 }
+// =========================================
+// RAFFICA
+// =========================================
+
+console.log(
+    "🟣 RAFFICA - DATI RICEVUTI:",
+    {
+        windGust: data?.windGust
+    }
+);
+
+
+
+console.log(
+    "🟣 RAFFICA - VALORE PARSATO:",
+    windGust
+);
+
+
+if (Number.isFinite(windGust)) {
+
+    updateWindGustGauge(
+        windGust
+    );
+
+} else {
+
+    console.warn(
+        "🔴 RAFFICA NON VALIDA:",
+        data?.windGust
+    );
+
+}
+
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -5498,41 +5532,38 @@ const windGustGauge = new steelseries.Radial(
 
 
 // =========================================
-// DATI DELLE RAFFICHE
-// =========================================
-
-let windGustMin = 0;
-let windGustMax = 50;
-
-
-// =========================================
-// FUNZIONE SCALA DINAMICA
+// SCALA DINAMICA RAFFICA
 // =========================================
 
 function updateWindGustScale(value) {
 
     let newMax;
 
+
     if (value <= 50) {
 
         newMax = 50;
 
     }
+
     else if (value <= 100) {
 
         newMax = 100;
 
     }
+
     else if (value <= 200) {
 
         newMax = 200;
 
     }
+
     else if (value <= 500) {
 
         newMax = 500;
 
     }
+
     else {
 
         newMax =
@@ -5541,8 +5572,13 @@ function updateWindGustScale(value) {
     }
 
 
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
+
     if (
-        windGustGauge.getMaxValue() !== newMax
+        windGustGauge.getMaxValue()
+        !== newMax
     ) {
 
         windGustGauge.setMaxValue(
@@ -5555,15 +5591,43 @@ function updateWindGustScale(value) {
 
 
 // =========================================
-// FUNZIONE AGGIORNAMENTO
+// AGGIORNAMENTO GAUGE RAFFICA
 // =========================================
 
 function updateWindGustGauge(value) {
 
+    const gust =
+        Number(value);
+
+
+    // =========================================
+    // CONTROLLO VALORE
+    // =========================================
+
+    if (!Number.isFinite(gust)) {
+
+        console.warn(
+            "🔴 RAFFICA NON VALIDA:",
+            value
+        );
+
+        return;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
+
     updateWindGustScale(
-        value
+        gust
     );
 
+
+    // =========================================
+    // CONI
+    // =========================================
 
     windGustGauge.setArea([
 
@@ -5582,11 +5646,31 @@ function updateWindGustGauge(value) {
     ]);
 
 
-    // USA LA STESSA windGustValue
-    // DICHIARATA SOPRA
+    // =========================================
+    // SALVA VALORE
+    // =========================================
 
-    windGustValue = value;
+    windGustValue =
+        gust;
 
+
+    // =========================================
+    // LOG
+    // =========================================
+
+    console.log(
+        "🌬️ RAFFICA GAUGE:",
+        {
+            raffica: windGustValue,
+            scalaMassima:
+                windGustGauge.getMaxValue()
+        }
+    );
+
+
+    // =========================================
+    // AGGIORNA VALORE
+    // =========================================
 
     windGustGauge.setValueAnimated(
         windGustValue
@@ -5596,11 +5680,159 @@ function updateWindGustGauge(value) {
 
 
 // =========================================
-// VALORE DI TEST RAFFICA
+// POPUP RAFFICA
 // =========================================
 
-updateWindGustGauge(
-    9.6
+const windGustGaugeElement =
+    document.getElementById(
+        "windGustGauge"
+    );
+
+
+// =========================================
+// CREA POPUP
+// =========================================
+
+const windGustTooltip =
+    document.createElement(
+        "div"
+    );
+
+windGustTooltip.className =
+    "gauge-tooltip";
+
+document.body.appendChild(
+    windGustTooltip
+);
+
+
+// =========================================
+// TIMER POPUP
+// =========================================
+
+let windGustTooltipTimer =
+    null;
+
+
+// =========================================
+// MOUSE SOPRA IL GAUGE
+// =========================================
+
+windGustGaugeElement.addEventListener(
+
+    "mouseenter",
+
+    (event) => {
+
+        windGustTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        windGustTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+
+        clearTimeout(
+            windGustTooltipTimer
+        );
+
+
+        windGustTooltipTimer =
+            setTimeout(() => {
+
+                const gust =
+                    Number(
+                        windGustValue
+                    );
+
+
+                console.log(
+                    "🟡 TOOLTIP RAFFICA:",
+                    {
+                        raffica: gust
+                    }
+                );
+
+
+                windGustTooltip.innerHTML = `
+
+                    <div class="gauge-tooltip-title">
+
+                        Raffica:
+
+                        <span
+                            class="gauge-tooltip-value"
+                        >
+
+                            ${
+                                Number.isFinite(gust)
+                                    ? gust.toFixed(1)
+                                    : "--"
+                            }
+
+                            km/h
+
+                        </span>
+
+                    </div>
+
+                `;
+
+
+                windGustTooltip.classList.add(
+                    "visible"
+                );
+
+            }, 1000);
+
+    }
+
+);
+
+
+// =========================================
+// MOVIMENTO DEL MOUSE
+// =========================================
+
+windGustGaugeElement.addEventListener(
+
+    "mousemove",
+
+    (event) => {
+
+        windGustTooltip.style.left =
+            (event.clientX + 15) + "px";
+
+        windGustTooltip.style.top =
+            (event.clientY + 15) + "px";
+
+    }
+
+);
+
+
+// =========================================
+// USCITA DAL GAUGE
+// =========================================
+
+windGustGaugeElement.addEventListener(
+
+    "mouseleave",
+
+    () => {
+
+        clearTimeout(
+            windGustTooltipTimer
+        );
+
+        windGustTooltipTimer =
+            null;
+
+        windGustTooltip.classList.remove(
+            "visible"
+        );
+
+    }
+
 );
 
 
