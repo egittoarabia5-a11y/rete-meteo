@@ -1135,7 +1135,60 @@ if (
     );
 
 }
+// =========================================
+// VENTO
+// =========================================
 
+console.log(
+    "🟣 VENTO - DATI RICEVUTI:",
+    {
+        wind: data?.wind,
+        windGust: data?.windGust,
+        windGustHigh: data?.windGustHigh
+    }
+);
+
+
+const wind =
+    parseFloat(data?.wind);
+
+const windGust =
+    parseFloat(data?.windGust);
+
+const windGustHigh =
+    parseFloat(data?.windGustHigh);
+
+
+console.log(
+    "🟣 VENTO - VALORI PARSATI:",
+    {
+        wind,
+        windGust,
+        windGustHigh
+    }
+);
+
+
+if (Number.isFinite(wind)) {
+
+    updateWindGauge(
+        wind,
+        Number.isFinite(windGust)
+            ? windGust
+            : null,
+        Number.isFinite(windGustHigh)
+            ? windGustHigh
+            : null
+    );
+
+} else {
+
+    console.warn(
+        "🔴 VENTO NON VALIDO:",
+        data?.wind
+    );
+
+}
 }
 // =========================================
 // AGGIORNAMENTO GAUGE TEMPERATURA
@@ -4923,9 +4976,16 @@ pressureGaugeElement.addEventListener(
 
 );
 
+// =========================================
+// GAUGE VENTO
+// =========================================
+
 const windGauge = new steelseries.Radial(
+
     document.getElementById("windGauge"),
+
     {
+
         gaugeType:
             gaugeGlobals.gaugeType,
 
@@ -4982,7 +5042,9 @@ const windGauge = new steelseries.Radial(
 
         ledColor:
             steelseries.LedColor.RED_LED
+
     }
+
 );
 
 
@@ -4990,50 +5052,110 @@ const windGauge = new steelseries.Radial(
 // DATI VENTO
 // =========================================
 
-let windValue = 6.4;
-let windGustValue = 12.8;
+let windValue = null;
+let windGustValue = null;
+let windGustMaxValue = null;
 
 
 // =========================================
 // SCALA DINAMICA DEL VENTO
-// 0 → 30 → 50 → 100 → 200 → 500
+//
+// 0 → 30
+// 30 → 50
+// 50 → 100
+// 100 → 200
+// 200 → 500
+// oltre → multipli di 500
 // =========================================
 
-function updateWindGauge(value) {
+function updateWindGauge(
+    value,
+    gust,
+    gustMax
+) {
+
+    const wind =
+        Number(value);
+
+    const windGust =
+        Number(gust);
+
+    const windGustMax =
+        Number(gustMax);
+
+
+    // =========================================
+    // VERIFICA VALORE VENTO
+    // =========================================
+
+    if (!Number.isFinite(wind)) {
+
+        console.warn(
+            "🔴 VENTO NON VALIDO:",
+            value
+        );
+
+        return;
+
+    }
+
+
+    // =========================================
+    // SCALA DINAMICA
+    // =========================================
 
     let newMax;
 
-    if (value <= 30) {
+
+    if (wind <= 30) {
 
         newMax = 30;
 
     }
-    else if (value <= 50) {
+
+    else if (wind <= 50) {
 
         newMax = 50;
 
     }
-    else if (value <= 100) {
+
+    else if (wind <= 100) {
 
         newMax = 100;
 
     }
-    else if (value <= 200) {
+
+    else if (wind <= 200) {
 
         newMax = 200;
 
     }
-    else if (value <= 500) {
+
+    else if (wind <= 500) {
 
         newMax = 500;
 
     }
+
     else {
 
         newMax =
-            Math.ceil(value / 500) * 500;
+            Math.ceil(wind / 500) * 500;
 
     }
+
+
+    // =========================================
+    // LOG SCALA
+    // =========================================
+
+    console.log(
+        "🌬️ VENTO - SCALA:",
+        {
+            vento: wind,
+            scalaMassima: newMax
+        }
+    );
 
 
     // =========================================
@@ -5075,14 +5197,39 @@ function updateWindGauge(value) {
 
 
     // =========================================
-    // SALVA VALORE ATTUALE
+    // SALVA VALORI
     // =========================================
 
-    windValue = value;
+    windValue =
+        wind;
+
+    windGustValue =
+        Number.isFinite(windGust)
+            ? windGust
+            : null;
+
+    windGustMaxValue =
+        Number.isFinite(windGustMax)
+            ? windGustMax
+            : null;
 
 
     // =========================================
-    // AGGIORNA IL VALORE
+    // LOG DATI
+    // =========================================
+
+    console.log(
+        "🌬️ VENTO - VALORI:",
+        {
+            vento: windValue,
+            raffica: windGustValue,
+            rafficaMassima: windGustMaxValue
+        }
+    );
+
+
+    // =========================================
+    // AGGIORNA VALORE
     // =========================================
 
     windGauge.setValueAnimated(
@@ -5093,18 +5240,13 @@ function updateWindGauge(value) {
 
 
 // =========================================
-// VALORE DI TEST
-// =========================================
-
-updateWindGauge(6.4);
-
-
-// =========================================
 // POPUP VENTO
 // =========================================
 
 const windGaugeElement =
-    document.getElementById("windGauge");
+    document.getElementById(
+        "windGauge"
+    );
 
 
 // =========================================
@@ -5112,7 +5254,9 @@ const windGaugeElement =
 // =========================================
 
 const windTooltip =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
 windTooltip.className =
     "gauge-tooltip";
@@ -5126,7 +5270,8 @@ document.body.appendChild(
 // TIMER POPUP
 // =========================================
 
-let windTooltipTimer = null;
+let windTooltipTimer =
+    null;
 
 
 // =========================================
@@ -5134,7 +5279,9 @@ let windTooltipTimer = null;
 // =========================================
 
 windGaugeElement.addEventListener(
+
     "mouseenter",
+
     (event) => {
 
         windTooltip.style.left =
@@ -5149,25 +5296,87 @@ windGaugeElement.addEventListener(
         );
 
 
-        // Attendi 1 secondo
+        // =========================================
+        // ATTENDI 1 SECONDO
+        // =========================================
+
         windTooltipTimer =
             setTimeout(() => {
+
+                const wind =
+                    Number(windValue);
+
+                const gust =
+                    Number(windGustValue);
+
+                const gustMax =
+                    Number(windGustMaxValue);
+
+
+                console.log(
+                    "🟡 TOOLTIP VENTO:",
+                    {
+                        wind,
+                        gust,
+                        gustMax
+                    }
+                );
+
 
                 windTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Velocità del vento:
-                        <span class="gauge-tooltip-value">
-                            ${windValue.toFixed(1)} km/h
+
+                        <span
+                            class="gauge-tooltip-value"
+                        >
+
+                            ${
+                                Number.isFinite(wind)
+                                    ? wind.toFixed(1)
+                                    : "--"
+                            }
+
+                            km/h
+
                         </span>
+
                     </div>
 
+
                     <div>
+
                         Raffica:
-                        ${windGustValue.toFixed(1)} km/h
+
+                        ${
+                            Number.isFinite(gust)
+                                ? gust.toFixed(1)
+                                : "--"
+                        }
+
+                        km/h
+
+                    </div>
+
+
+                    <div>
+
+                        Raffica massima:
+
+                        ${
+                            Number.isFinite(gustMax)
+                                ? gustMax.toFixed(1)
+                                : "--"
+                        }
+
+                        km/h
+
                     </div>
 
                 `;
+
 
                 windTooltip.classList.add(
                     "visible"
@@ -5176,6 +5385,7 @@ windGaugeElement.addEventListener(
             }, 1000);
 
     }
+
 );
 
 
@@ -5184,7 +5394,9 @@ windGaugeElement.addEventListener(
 // =========================================
 
 windGaugeElement.addEventListener(
+
     "mousemove",
+
     (event) => {
 
         windTooltip.style.left =
@@ -5194,6 +5406,7 @@ windGaugeElement.addEventListener(
             (event.clientY + 15) + "px";
 
     }
+
 );
 
 
@@ -5202,20 +5415,24 @@ windGaugeElement.addEventListener(
 // =========================================
 
 windGaugeElement.addEventListener(
+
     "mouseleave",
+
     () => {
 
         clearTimeout(
             windTooltipTimer
         );
 
-        windTooltipTimer = null;
+        windTooltipTimer =
+            null;
 
         windTooltip.classList.remove(
             "visible"
         );
 
     }
+
 );
 const windGustGauge = new steelseries.Radial(
     document.getElementById("windGustGauge"),
