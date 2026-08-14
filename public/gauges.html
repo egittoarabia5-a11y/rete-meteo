@@ -8301,15 +8301,19 @@ let stationSecondsRemaining = 10;
 // CREA INDICATORE STATO IN ALTO
 // =========================================
 
+// =========================================
+// TITOLO STAZIONE + STATO ONLINE
+// =========================================
+
+let stationTitleStatusElement = null;
+
+
+// =========================================
+// CREA TITOLO COMPLETO
+// =========================================
+
 function createStationStatus() {
 
-    // Se esiste già non ricrearlo
-    if (document.getElementById("stationStatus")) {
-        return;
-    }
-
-
-    // Cerca il titolo principale della pagina
     const titleElement =
         document.querySelector("h1");
 
@@ -8317,60 +8321,100 @@ function createStationStatus() {
     if (!titleElement) {
 
         console.warn(
-            "⚠️ Titolo h1 non trovato per lo stato stazione"
+            "⚠️ Titolo h1 non trovato"
         );
 
         return;
     }
 
 
-    const statusElement =
+    // =========================================
+    // SVUOTA EVENTUALE STATO PRECEDENTE
+    // =========================================
+
+    const oldStatus =
+        document.getElementById(
+            "stationTitleStatus"
+        );
+
+    if (oldStatus) {
+        oldStatus.remove();
+    }
+
+
+    // =========================================
+    // CREA ELEMENTO STATO
+    // =========================================
+
+    stationTitleStatusElement =
         document.createElement("span");
 
-    statusElement.id =
-        "stationStatus";
+    stationTitleStatusElement.id =
+        "stationTitleStatus";
 
-    statusElement.style.marginLeft =
-        "15px";
 
-    statusElement.style.fontSize =
-        "0.55em";
+    // STESSO FONT DEL TITOLO
+    stationTitleStatusElement.style.font =
+        "inherit";
 
-    statusElement.style.fontWeight =
-        "normal";
+    stationTitleStatusElement.style.fontSize =
+        "inherit";
 
-    statusElement.style.whiteSpace =
-        "nowrap";
+    stationTitleStatusElement.style.fontWeight =
+        "inherit";
 
+    stationTitleStatusElement.style.color =
+        "inherit";
+
+    stationTitleStatusElement.style.margin =
+        "0";
+
+    stationTitleStatusElement.style.padding =
+        "0";
+
+
+    // =========================================
+    // AGGIUNGE AL TITOLO
+    // =========================================
 
     titleElement.appendChild(
-        statusElement
+        stationTitleStatusElement
     );
 
 
     updateStationStatus(
-        false
+        true
     );
 
 }
 
 
 // =========================================
-// AGGIORNA STATO STAZIONE
+// AGGIORNA STATO NEL TITOLO
 // =========================================
 
 function updateStationStatus(
     online
 ) {
 
-    const statusElement =
-        document.getElementById(
-            "stationStatus"
-        );
+    if (
+        !stationTitleStatusElement
+    ) {
+
+        stationTitleStatusElement =
+            document.getElementById(
+                "stationTitleStatus"
+            );
+
+    }
 
 
-    if (!statusElement) {
+    if (
+        !stationTitleStatusElement
+    ) {
+
         return;
+
     }
 
 
@@ -8378,48 +8422,28 @@ function updateStationStatus(
         online;
 
 
+    // =========================================
+    // ONLINE
+    // =========================================
+
     if (online) {
 
-        statusElement.innerHTML = `
+        stationTitleStatusElement.innerHTML =
 
-            <span style="color:#22c55e;">
-                ● Online
-            </span>
-
-            <span style="
-                margin-left:10px;
-                color:#888;
-            ">
-                Aggiorna in:
-                <strong id="stationCountdown">
-                    ${stationSecondsRemaining}
-                </strong>
-                sec.
-            </span>
-
-        `;
+            ` - 🟢 Online     Aggiorna in: ${stationSecondsRemaining} sec.`;
 
     }
+
+
+    // =========================================
+    // OFFLINE
+    // =========================================
+
     else {
 
-        statusElement.innerHTML = `
+        stationTitleStatusElement.innerHTML =
 
-            <span style="color:#ef4444;">
-                ● Offline
-            </span>
-
-            <span style="
-                margin-left:10px;
-                color:#888;
-            ">
-                Riprovo tra:
-                <strong id="stationCountdown">
-                    ${stationSecondsRemaining}
-                </strong>
-                sec.
-            </span>
-
-        `;
+            ` - 🔴 Offline     Riprovo tra: ${stationSecondsRemaining} sec.`;
 
     }
 
@@ -8452,18 +8476,9 @@ function startStationCountdown() {
             stationSecondsRemaining--;
 
 
-            const countdownElement =
-                document.getElementById(
-                    "stationCountdown"
-                );
-
-
-            if (countdownElement) {
-
-                countdownElement.textContent =
-                    stationSecondsRemaining;
-
-            }
+            updateStationStatus(
+                stationOnline
+            );
 
 
             if (
@@ -8482,13 +8497,13 @@ function startStationCountdown() {
 
 
 // =========================================
-// AGGIORNAMENTO AUTOMATICO
+// AUTO REFRESH
 // =========================================
 
 async function refreshStationData() {
 
     console.log(
-        "🔄 AGGIORNAMENTO AUTOMATICO STAZIONE:",
+        "🔄 AGGIORNAMENTO AUTOMATICO:",
         station
     );
 
@@ -8511,7 +8526,7 @@ async function refreshStationData() {
 
 
         // =====================================
-        // RIFAI IL FETCH
+        // FETCH
         // =====================================
 
         await fetchPws(
@@ -8524,7 +8539,7 @@ async function refreshStationData() {
         // =====================================
 
         console.log(
-            "🟢 AGGIORNAMENTO RIUSCITO:",
+            "🟢 FETCH RIUSCITO:",
             station
         );
 
@@ -8533,12 +8548,13 @@ async function refreshStationData() {
             true
         );
 
-
     }
+
+
     catch (error) {
 
         console.error(
-            "🔴 ERRORE AGGIORNAMENTO AUTOMATICO:",
+            "🔴 ERRORE FETCH:",
             error
         );
 
@@ -8550,16 +8566,16 @@ async function refreshStationData() {
     }
 
 
-    // =====================================
-    // RIPARTE IL COUNTDOWN
-    // =====================================
+    // =========================================
+    // NUOVO COUNTDOWN
+    // =========================================
 
     startStationCountdown();
 
 
-    // =====================================
-    // PROSSIMO AGGIORNAMENTO
-    // =====================================
+    // =========================================
+    // PROSSIMO FETCH
+    // =========================================
 
     clearTimeout(
         stationRefreshTimer
@@ -8582,7 +8598,7 @@ async function refreshStationData() {
 function startStationAutoRefresh() {
 
     console.log(
-        "🚀 SISTEMA AUTO-REFRESH AVVIATO"
+        "🚀 AUTO-REFRESH AVVIATO"
     );
 
 
@@ -8600,9 +8616,11 @@ function startStationAutoRefresh() {
         10;
 
 
-    updateStationStatus(
-        true
-    );
+    stationOnline =
+        true;
+
+
+    createStationStatus();
 
 
     startStationCountdown();
@@ -8618,14 +8636,7 @@ function startStationAutoRefresh() {
 
 
 // =========================================
-// CREA INDICATORE
-// =========================================
-
-createStationStatus();
-
-
-// =========================================
-// AVVIA AUTO-REFRESH
+// AVVIO
 // =========================================
 
 startStationAutoRefresh();
