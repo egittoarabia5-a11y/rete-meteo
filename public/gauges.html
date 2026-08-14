@@ -8290,7 +8290,12 @@ function showGaugeTooltip(
 // STATO STAZIONE
 // =========================================
 
+// =========================================
+// STATO STAZIONE NEL TITOLO
+// =========================================
+
 let stationOnline = false;
+
 let stationRefreshTimer = null;
 let stationCountdownTimer = null;
 
@@ -8298,123 +8303,106 @@ let stationSecondsRemaining = 10;
 
 
 // =========================================
-// CREA INDICATORE STATO IN ALTO
+// ELEMENTO TITOLO
 // =========================================
 
-// =========================================
-// TITOLO STAZIONE + STATO ONLINE
-// =========================================
-
-let stationTitleStatusElement = null;
+const stationNameElement =
+    document.getElementById("stationName");
 
 
 // =========================================
-// CREA TITOLO COMPLETO
+// ELEMENTO STATO
+// =========================================
+
+let stationStatusElement = null;
+
+
+// =========================================
+// CREA STATO NEL TITOLO
 // =========================================
 
 function createStationStatus() {
 
-    const titleElement =
-        document.querySelector("h1");
-
-
-    if (!titleElement) {
+    if (!stationNameElement) {
 
         console.warn(
-            "⚠️ Titolo h1 non trovato"
+            "⚠️ Elemento #stationName non trovato"
         );
 
         return;
+
     }
 
 
-    // =========================================
-    // SVUOTA EVENTUALE STATO PRECEDENTE
-    // =========================================
-
-    const oldStatus =
+    // Evita di crearlo due volte
+    const existing =
         document.getElementById(
             "stationTitleStatus"
         );
 
-    if (oldStatus) {
-        oldStatus.remove();
+
+    if (existing) {
+
+        stationStatusElement =
+            existing;
+
+        return;
+
     }
 
 
-    // =========================================
-    // CREA ELEMENTO STATO
-    // =========================================
-
-    stationTitleStatusElement =
+    stationStatusElement =
         document.createElement("span");
 
-    stationTitleStatusElement.id =
+
+    stationStatusElement.id =
         "stationTitleStatus";
 
 
+    // =========================================
     // STESSO FONT DEL TITOLO
-    stationTitleStatusElement.style.font =
-        "inherit";
-
-    stationTitleStatusElement.style.fontSize =
-        "inherit";
-
-    stationTitleStatusElement.style.fontWeight =
-        "inherit";
-
-    stationTitleStatusElement.style.color =
-        "inherit";
-
-    stationTitleStatusElement.style.margin =
-        "0";
-
-    stationTitleStatusElement.style.padding =
-        "0";
-
-
-    // =========================================
-    // AGGIUNGE AL TITOLO
     // =========================================
 
-    titleElement.appendChild(
-        stationTitleStatusElement
-    );
+    stationStatusElement.style.fontFamily =
+        "inherit";
+
+    stationStatusElement.style.fontSize =
+        "inherit";
+
+    stationStatusElement.style.fontWeight =
+        "inherit";
+
+    stationStatusElement.style.letterSpacing =
+        "inherit";
+
+    stationStatusElement.style.whiteSpace =
+        "nowrap";
 
 
-    updateStationStatus(
-        true
+    stationNameElement.appendChild(
+        stationStatusElement
     );
 
 }
 
 
 // =========================================
-// AGGIORNA STATO NEL TITOLO
+// AGGIORNA STATO
 // =========================================
 
 function updateStationStatus(
     online
 ) {
 
-    if (
-        !stationTitleStatusElement
-    ) {
+    if (!stationStatusElement) {
 
-        stationTitleStatusElement =
-            document.getElementById(
-                "stationTitleStatus"
-            );
+        createStationStatus();
 
     }
 
 
-    if (
-        !stationTitleStatusElement
-    ) {
-
+    if (!stationStatusElement) {
         return;
-
     }
 
 
@@ -8422,27 +8410,16 @@ function updateStationStatus(
         online;
 
 
-    // =========================================
-    // ONLINE
-    // =========================================
-
     if (online) {
 
-        stationTitleStatusElement.innerHTML =
-
+        stationStatusElement.textContent =
             ` - 🟢 Online     Aggiorna in: ${stationSecondsRemaining} sec.`;
 
     }
 
-
-    // =========================================
-    // OFFLINE
-    // =========================================
-
     else {
 
-        stationTitleStatusElement.innerHTML =
-
+        stationStatusElement.textContent =
             ` - 🔴 Offline     Riprovo tra: ${stationSecondsRemaining} sec.`;
 
     }
@@ -8476,6 +8453,15 @@ function startStationCountdown() {
             stationSecondsRemaining--;
 
 
+            if (
+                stationSecondsRemaining < 0
+            ) {
+
+                stationSecondsRemaining = 0;
+
+            }
+
+
             updateStationStatus(
                 stationOnline
             );
@@ -8497,7 +8483,7 @@ function startStationCountdown() {
 
 
 // =========================================
-// AUTO REFRESH
+// AGGIORNAMENTO AUTOMATICO
 // =========================================
 
 async function refreshStationData() {
@@ -8526,7 +8512,7 @@ async function refreshStationData() {
 
 
         // =====================================
-        // FETCH
+        // FETCH WUNDERGROUND
         // =====================================
 
         await fetchPws(
@@ -8539,7 +8525,7 @@ async function refreshStationData() {
         // =====================================
 
         console.log(
-            "🟢 FETCH RIUSCITO:",
+            "🟢 AGGIORNAMENTO RIUSCITO:",
             station
         );
 
@@ -8554,7 +8540,7 @@ async function refreshStationData() {
     catch (error) {
 
         console.error(
-            "🔴 ERRORE FETCH:",
+            "🔴 ERRORE AGGIORNAMENTO:",
             error
         );
 
@@ -8567,14 +8553,14 @@ async function refreshStationData() {
 
 
     // =========================================
-    // NUOVO COUNTDOWN
+    // RIPARTE IL COUNTDOWN
     // =========================================
 
     startStationCountdown();
 
 
     // =========================================
-    // PROSSIMO FETCH
+    // PROGRAMMA PROSSIMO FETCH
     // =========================================
 
     clearTimeout(
@@ -8592,7 +8578,7 @@ async function refreshStationData() {
 
 
 // =========================================
-// AVVIO SISTEMA
+// AVVIO AUTO-REFRESH
 // =========================================
 
 function startStationAutoRefresh() {
@@ -8623,6 +8609,11 @@ function startStationAutoRefresh() {
     createStationStatus();
 
 
+    updateStationStatus(
+        true
+    );
+
+
     startStationCountdown();
 
 
@@ -8638,6 +8629,8 @@ function startStationAutoRefresh() {
 // =========================================
 // AVVIO
 // =========================================
+
+createStationStatus();
 
 startStationAutoRefresh();
     </script>
