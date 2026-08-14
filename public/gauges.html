@@ -698,6 +698,9 @@ async function fetchPws(id) {
         const pressure =
             observation.metric?.pressure ?? null;
 
+        const uv =
+            observation.uv ?? null;
+
 
         // =========================================
         // LOG DATI ATTUALI
@@ -803,6 +806,9 @@ async function fetchPws(id) {
         const humLow =
             summary?.humidityLow ?? null;
 
+        const uvHigh =
+            summary?.uvHigh ?? null;
+
 
         // =========================================
         // PRESSIONE
@@ -898,6 +904,9 @@ async function fetchPws(id) {
             pressure,
             pressHigh,
             pressLow,
+
+            uv,
+            uvHigh,
 
             lat,
             lon,
@@ -1220,6 +1229,70 @@ if (Number.isFinite(windGust)) {
         "🔴 RAFFICA NON VALIDA:",
         data?.windGust
     );
+
+}
+// =========================================
+// INDICE UV
+// =========================================
+
+console.log(
+    "🟣 UV - DATI RICEVUTI:",
+    {
+        uv: data?.uv,
+        uvHigh: data?.uvHigh
+    }
+);
+
+
+const uv =
+    parseFloat(data?.uv);
+
+const uvHigh =
+    parseFloat(data?.uvHigh);
+
+
+console.log(
+    "🟣 UV - VALORI PARSATI:",
+    {
+        uv,
+        uvHigh
+    }
+);
+
+
+// =========================================
+// AGGIORNA GAUGE CON UV ATTUALE
+// =========================================
+
+if (Number.isFinite(uv)) {
+
+    updateUVGauge(
+        uv
+    );
+
+} else {
+
+    console.warn(
+        "🔴 UV NON VALIDO:",
+        data?.uv
+    );
+
+}
+
+
+// =========================================
+// AGGIORNA MASSIMA SOLO PER IL POPUP
+// =========================================
+
+if (Number.isFinite(uvHigh)) {
+
+    uvMaxRecorded =
+        uvHigh;
+
+} else {
+
+    uvMaxRecorded =
+        null;
 
 }
 
@@ -6070,7 +6143,7 @@ windDirectionGaugeElement.addEventListener(
 // GAUGE INDICE UV
 // =========================================
 
-let uvValue = 14.2;
+let uvValue = null;
 let uvMaxRecorded = null;
 
 const uvGauge = new steelseries.RadialBargraph(
@@ -6177,48 +6250,83 @@ const uvGauge = new steelseries.RadialBargraph(
 
 function updateUVGauge(value) {
 
+    const uv =
+        Number(value);
+
+
+    // =========================================
+    // CONTROLLO VALORE
+    // =========================================
+
+    if (!Number.isFinite(uv)) {
+
+        console.warn(
+            "🔴 UV NON VALIDO:",
+            value
+        );
+
+        return;
+
+    }
+
+
+    // =========================================
+    // CALCOLA SCALA
+    // =========================================
+
     let newMax;
 
-    if (value <= 10) {
+    if (uv <= 10) {
 
         newMax = 10;
 
     }
-    else if (value <= 12) {
+
+    else if (uv <= 12) {
 
         newMax = 12;
 
     }
-    else if (value <= 14) {
+
+    else if (uv <= 14) {
 
         newMax = 14;
 
     }
-    else if (value <= 16) {
+
+    else if (uv <= 16) {
 
         newMax = 16;
 
     }
-    else if (value <= 18) {
+
+    else if (uv <= 18) {
 
         newMax = 18;
 
     }
-    else if (value <= 20) {
+
+    else if (uv <= 20) {
 
         newMax = 20;
 
     }
+
     else {
 
         newMax =
-            Math.ceil(value / 2) * 2;
+            Math.ceil(uv / 2) * 2;
 
     }
 
 
+    // =========================================
+    // AGGIORNA SCALA
+    // =========================================
+
     if (
-        uvGauge.getMaxValue() !== newMax
+        uvGauge.getMaxValue()
+        !== newMax
     ) {
 
         uvGauge.setMaxValue(
@@ -6230,11 +6338,32 @@ function updateUVGauge(value) {
     }
 
 
-    // Salva il valore attuale
-    uvValue = value;
+    // =========================================
+    // SALVA VALORE ATTUALE
+    // =========================================
+
+    uvValue =
+        uv;
 
 
-    // Aggiorna il valore del gauge
+    // =========================================
+    // LOG
+    // =========================================
+
+    console.log(
+        "🟣 UV GAUGE:",
+        {
+            uv: uvValue,
+            scalaMassima:
+                uvGauge.getMaxValue()
+        }
+    );
+
+
+    // =========================================
+    // AGGIORNA GAUGE
+    // =========================================
+
     uvGauge.setValueAnimated(
         uvValue
     );
@@ -6243,18 +6372,13 @@ function updateUVGauge(value) {
 
 
 // =========================================
-// VALORE DI TEST
-// =========================================
-
-updateUVGauge(14.2);
-
-
-// =========================================
 // POPUP INDICE UV
 // =========================================
 
 const uvGaugeElement =
-    document.getElementById("UVGauge");
+    document.getElementById(
+        "UVGauge"
+    );
 
 
 // =========================================
@@ -6262,7 +6386,9 @@ const uvGaugeElement =
 // =========================================
 
 const uvTooltip =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
 uvTooltip.className =
     "gauge-tooltip";
@@ -6276,7 +6402,8 @@ document.body.appendChild(
 // TIMER POPUP
 // =========================================
 
-let uvTooltipTimer = null;
+let uvTooltipTimer =
+    null;
 
 
 // =========================================
@@ -6284,7 +6411,9 @@ let uvTooltipTimer = null;
 // =========================================
 
 uvGaugeElement.addEventListener(
+
     "mouseenter",
+
     (event) => {
 
         uvTooltip.style.left =
@@ -6299,29 +6428,60 @@ uvGaugeElement.addEventListener(
         );
 
 
-        // Attendi 1 secondo
         uvTooltipTimer =
             setTimeout(() => {
+
+                const uv =
+                    Number(uvValue);
+
+                const uvMax =
+                    Number(uvMaxRecorded);
+
+
+                console.log(
+                    "🟡 TOOLTIP UV:",
+                    {
+                        uv,
+                        uvHigh: uvMax
+                    }
+                );
+
 
                 uvTooltip.innerHTML = `
 
                     <div class="gauge-tooltip-title">
+
                         Indice UV:
-                        <span class="gauge-tooltip-value">
-                            ${uvValue.toFixed(1)}
+
+                        <span
+                            class="gauge-tooltip-value"
+                        >
+
+                            ${
+                                Number.isFinite(uv)
+                                    ? uv.toFixed(1)
+                                    : "--"
+                            }
+
                         </span>
+
                     </div>
 
+
                     <div>
+
                         Massima:
+
                         ${
-                            uvMaxRecorded === null
-                                ? "n.d."
-                                : uvMaxRecorded.toFixed(1)
+                            Number.isFinite(uvMax)
+                                ? uvMax.toFixed(1)
+                                : "n.d."
                         }
+
                     </div>
 
                 `;
+
 
                 uvTooltip.classList.add(
                     "visible"
@@ -6330,6 +6490,7 @@ uvGaugeElement.addEventListener(
             }, 1000);
 
     }
+
 );
 
 
@@ -6338,7 +6499,9 @@ uvGaugeElement.addEventListener(
 // =========================================
 
 uvGaugeElement.addEventListener(
+
     "mousemove",
+
     (event) => {
 
         uvTooltip.style.left =
@@ -6348,6 +6511,7 @@ uvGaugeElement.addEventListener(
             (event.clientY + 15) + "px";
 
     }
+
 );
 
 
@@ -6356,20 +6520,24 @@ uvGaugeElement.addEventListener(
 // =========================================
 
 uvGaugeElement.addEventListener(
+
     "mouseleave",
+
     () => {
 
         clearTimeout(
             uvTooltipTimer
         );
 
-        uvTooltipTimer = null;
+        uvTooltipTimer =
+            null;
 
         uvTooltip.classList.remove(
             "visible"
         );
 
     }
+
 );
 
 // =========================================
