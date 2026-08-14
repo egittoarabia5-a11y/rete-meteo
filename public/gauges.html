@@ -1000,54 +1000,49 @@ if (
 // PRESSIONE
 // =========================================
 
-console.log("🟣 updateSelectedStation PRESSIONE:", {
-    id,
-    latestData: latestData[id],
-    pressure: latestData[id]?.pressure,
-    pressHigh: latestData[id]?.pressHigh,
-    pressLow: latestData[id]?.pressLow
+console.log("🟣 PRESSIONE - DATI RICEVUTI:", {
+    source: data?.source,
+    pressure: data?.pressure,
+    pressHigh: data?.pressHigh,
+    pressLow: data?.pressLow
 });
 
 
-if (latestData[id]) {
+const pressure =
+    parseFloat(data?.pressure);
 
-    const pressureData =
-        latestData[id];
+const pressHigh =
+    parseFloat(data?.pressHigh);
 
-
-    const pressure =
-        Number(pressureData.pressure);
-
-    const pressHigh =
-        Number(pressureData.pressHigh);
-
-    const pressLow =
-        Number(pressureData.pressLow);
+const pressLow =
+    parseFloat(data?.pressLow);
 
 
-    console.log("🟣 PRESSIONE ESTRATTA:", {
+console.log("🟣 PRESSIONE - VALORI PARSATI:", {
+    pressure,
+    pressHigh,
+    pressLow
+});
+
+
+if (Number.isFinite(pressure)) {
+
+    updatePressureGauge(
         pressure,
-        pressHigh,
-        pressLow
-    });
+        Number.isFinite(pressLow)
+            ? pressLow
+            : pressure,
+        Number.isFinite(pressHigh)
+            ? pressHigh
+            : pressure
+    );
 
+} else {
 
-    if (Number.isFinite(pressure)) {
-
-        updatePressureGauge(
-            pressure,
-            pressLow,
-            pressHigh
-        );
-
-    } else {
-
-        console.warn(
-            "🔴 PRESSURE: valore pressure non valido",
-            pressureData.pressure
-        );
-
-    }
+    console.warn(
+        "🔴 PRESSIONE NON VALIDA:",
+        data?.pressure
+    );
 
 }
 
