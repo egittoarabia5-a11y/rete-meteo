@@ -438,6 +438,7 @@
     "IGENOA2728": {name: "Genova S. Fruttuoso Via Amarena - Fonte: Wunderground - Altitudine: 110 m.s.l.m.", link: "Amarena2.png", api: "IGENOA2728"},
     "IGENOA3170": {name: "Genova Borgoratti - Fonte: Wunderground - Altitudine: 40 m.s.l.m.", link: "beige.webp", api: "IGENOA3170"},
     "ITORRI88": {name: "Donetta (GE) - Fonte: Wunderground - Altitudine: 997 m.s.l.m.", link: "beige.webp", api: "ITORRI88"},
+    "ITORRI20": {name: "Pentema (GE) - Fonte: Wunderground - Altitudine: 948 m.s.l.m.", link: "beige.webp", api: "ITORRI20"},
 };
 
 
@@ -6782,6 +6783,10 @@ const RadGauge = new steelseries.Radial(
 // LA SCALA DIPENDE DA radHigh
 // =========================================
 
+// =========================================
+// AGGIORNA GAUGE RADIAZIONE SOLARE
+// =========================================
+
 function updateRadGauge(
 
     value,
@@ -6819,9 +6824,7 @@ function updateRadGauge(
     let newMax;
 
 
-    if (
-        Number.isFinite(radHigh)
-    ) {
+    if (Number.isFinite(radHigh)) {
 
         if (radHigh <= 500) {
 
@@ -6842,8 +6845,6 @@ function updateRadGauge(
 
     else {
 
-        // Fallback se radHigh non esiste
-
         if (rad <= 500) {
 
             newMax = 500;
@@ -6863,20 +6864,21 @@ function updateRadGauge(
 
 
     // =========================================
-    // AGGIORNA SCALA
+    // VERIFICA SE LA SCALA CAMBIA
     // =========================================
 
-    if (
-        RadGauge.getMaxValue()
-        !== newMax
-    ) {
+    const scaleChanged =
+        RadGauge.getMaxValue() !== newMax;
+
+
+    // =========================================
+    // AGGIORNA LA SCALA
+    // =========================================
+
+    if (scaleChanged) {
 
         RadGauge.setMaxValue(
             newMax
-        );
-
-        RadGauge.setValue(
-            0
         );
 
     }
@@ -6908,12 +6910,38 @@ function updateRadGauge(
     // THRESHOLD = radHigh
     // =========================================
 
-    if (
-        Number.isFinite(radHigh)
-    ) {
+    if (Number.isFinite(radHigh)) {
 
         RadGauge.setThreshold(
             radHigh
+        );
+
+    }
+
+
+    // =========================================
+    // AGGIORNA IL VALORE
+    // =========================================
+
+    if (scaleChanged) {
+
+        // Se la scala cambia,
+        // mantieni subito il puntatore
+        // sul valore attuale.
+
+        RadGauge.setValue(
+            radValue
+        );
+
+    }
+
+    else {
+
+        // Se la scala NON cambia,
+        // usa l'animazione normale.
+
+        RadGauge.setValueAnimated(
+            radValue
         );
 
     }
@@ -6943,15 +6971,6 @@ function updateRadGauge(
                 radHigh
 
         }
-    );
-
-
-    // =========================================
-    // AGGIORNA VALORE
-    // =========================================
-
-    RadGauge.setValueAnimated(
-        radValue
     );
 
 }
