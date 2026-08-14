@@ -606,13 +606,12 @@ async function fetchPws(id) {
         // VERIFICA STAZIONE
         // =========================================
 
-        const stationData =
-            StazioniWunderground[id];
+        const stationData = StazioniWunderground[id];
 
         if (!stationData) {
 
             console.error(
-                "Stazione Wunderground non trovata:",
+                "🔴 Stazione Wunderground non trovata:",
                 id
             );
 
@@ -627,10 +626,8 @@ async function fetchPws(id) {
         const urlCurrent =
             `https://api.weather.com/v2/pws/observations/current?apiKey=${apiKey}&stationId=${stationData.api}&numericPrecision=decimal&format=json&units=m`;
 
-
         const resCurrent =
             await fetch(urlCurrent);
-
 
         if (!resCurrent.ok) {
 
@@ -640,10 +637,8 @@ async function fetchPws(id) {
 
         }
 
-
         const dataCurrent =
             await resCurrent.json();
-
 
         if (
             !dataCurrent.observations ||
@@ -656,7 +651,6 @@ async function fetchPws(id) {
 
         }
 
-
         const observation =
             dataCurrent.observations[0];
 
@@ -666,43 +660,62 @@ async function fetchPws(id) {
         // =========================================
 
         const temp =
-            observation.metric.temp;
+            observation.metric?.temp ?? null;
 
         const dewp =
-            observation.metric.dewpt;
+            observation.metric?.dewpt ?? null;
 
         const heat =
-            observation.metric.heatIndex;
+            observation.metric?.heatIndex ?? null;
 
         const hum =
-            observation.humidity;
+            observation.humidity ?? null;
 
         const rainDaily =
-            observation.metric.precipTotal;
+            observation.metric?.precipTotal ?? null;
 
         const rainRate =
-            observation.metric.precipRate;
+            observation.metric?.precipRate ?? null;
 
         const lat =
-            observation.lat;
+            observation.lat ?? null;
 
         const lon =
-            observation.lon;
+            observation.lon ?? null;
 
         const wind =
-            observation.metric.windSpeed;
+            observation.metric?.windSpeed ?? null;
 
         const windGust =
-            observation.metric.windGust;
+            observation.metric?.windGust ?? null;
 
         const altitude =
-            observation.metric.elev;
+            observation.metric?.elev ?? null;
 
         const windDir =
-            observation.winddir;
+            observation.winddir ?? null;
 
         const pressure =
-            observation.pressure;
+            observation.metric?.pressure ?? null;
+
+
+        // =========================================
+        // LOG DATI ATTUALI
+        // =========================================
+
+        console.log(
+            "🔵 CURRENT WUNDERGROUND:",
+            {
+                id,
+                temp,
+                dewp,
+                heat,
+                hum,
+                pressure,
+                wind,
+                windGust
+            }
+        );
 
 
         // =========================================
@@ -712,10 +725,8 @@ async function fetchPws(id) {
         const urlDaily =
             `https://api.weather.com/v2/pws/dailysummary/1day?apiKey=${apiKey}&stationId=${stationData.api}&numericPrecision=decimal&format=json&units=m`;
 
-
         const resDaily =
             await fetch(urlDaily);
-
 
         if (!resDaily.ok) {
 
@@ -725,62 +736,130 @@ async function fetchPws(id) {
 
         }
 
-
         const dataDaily =
             await resDaily.json();
 
 
+        // =========================================
+        // SUMMARY
+        // =========================================
+
         const summary =
             dataDaily.summaries &&
             dataDaily.summaries.length > 0
-                ? dataDaily.summaries[0].metric
+                ? dataDaily.summaries[0]
                 : null;
 
+        const summaryMetric =
+            summary?.metric ?? null;
 
-const tempHigh =
-    summary ? summary.tempHigh : null;
 
-const tempLow =
-    summary ? summary.tempLow : null;
+        console.log(
+            "🔵 DAILY SUMMARY RAW:",
+            summary
+        );
 
-console.log("🔵 DAILY SUMMARY RAW:", summary);
-console.log("🔵 tempHigh RAW:", tempHigh, typeof tempHigh);
-console.log("🔵 tempLow RAW:", tempLow, typeof tempLow);
+
+        // =========================================
+        // TEMPERATURA
+        // =========================================
+
+        const tempHigh =
+            summaryMetric?.tempHigh ?? null;
+
+        const tempLow =
+            summaryMetric?.tempLow ?? null;
+
+
+        // =========================================
+        // DEWPOINT
+        // =========================================
 
         const dewpHigh =
-            summary ? summary.dewptHigh : null;
+            summaryMetric?.dewptHigh ?? null;
 
         const dewpLow =
-            summary ? summary.dewptLow : null;
+            summaryMetric?.dewptLow ?? null;
+
+
+        // =========================================
+        // HEAT INDEX
+        // =========================================
 
         const heatHigh =
-            summary ? summary.heatindexHigh : null;
+            summaryMetric?.heatindexHigh ?? null;
 
         const heatLow =
-            summary ? summary.heatindexLow : null;
+            summaryMetric?.heatindexLow ?? null;
+
+
+        // =========================================
+        // UMIDITÀ
+        // =========================================
 
         const humHigh =
-            summary
-                ? dataDaily.summaries[0].humidityHigh
-                : null;
+            summary?.humidityHigh ?? null;
 
         const humLow =
-            summary
-                ? dataDaily.summaries[0].humidityLow
-                : null;
-                        const pressHigh =
-            summary
-                ? dataDaily.summaries[0].pressureMax
-                : null;
-                        const pressLow =
-            summary
-                ? dataDaily.summaries[0].pressureMin
-                : null;
+            summary?.humidityLow ?? null;
+
+
+        // =========================================
+        // PRESSIONE
+        // =========================================
+
+        const pressHigh =
+            summaryMetric?.pressureMax ?? null;
+
+        const pressLow =
+            summaryMetric?.pressureMin ?? null;
+
+
+        // =========================================
+        // RAFFICA VENTO
+        // =========================================
 
         const windGustHigh =
-            summary
-                ? summary.windgustHigh
-                : null;
+            summaryMetric?.windgustHigh ?? null;
+
+
+        // =========================================
+        // LOG PRESSIONE
+        // =========================================
+
+        console.log(
+            "🟣 PRESSIONE WUNDERGROUND:",
+            {
+                pressure,
+                pressHigh,
+                pressLow,
+                pressureType: typeof pressure,
+                pressHighType: typeof pressHigh,
+                pressLowType: typeof pressLow
+            }
+        );
+
+
+        // =========================================
+        // LOG MIN / MAX
+        // =========================================
+
+        console.log(
+            "🟢 MIN/MAX WUNDERGROUND:",
+            {
+                tempLow,
+                tempHigh,
+                dewpLow,
+                dewpHigh,
+                heatLow,
+                heatHigh,
+                humLow,
+                humHigh,
+                pressLow,
+                pressHigh,
+                windGustHigh
+            }
+        );
 
 
         // =========================================
@@ -789,53 +868,62 @@ console.log("🔵 tempLow RAW:", tempLow, typeof tempLow);
 
         latestData[id] = {
 
-    source: "Wunderground",
+            source: "Wunderground",
 
-    temp,
-    tempHigh,
-    tempLow,
+            temp,
+            tempHigh,
+            tempLow,
 
-    dewp,
-    dewpHigh,
-    dewpLow,
+            dewp,
+            dewpHigh,
+            dewpLow,
 
-    heat,
-    heatHigh,
-    heatLow,
+            heat,
+            heatHigh,
+            heatLow,
 
-    hum,
-    humHigh,
-    humLow,
+            hum,
+            humHigh,
+            humLow,
 
-    rainDaily,
-    rainRate,
+            rainDaily,
+            rainRate,
 
-    wind,
-    windGust,
-    windGustHigh,
+            wind,
+            windGust,
+            windGustHigh,
 
-    windDir,
+            windDir,
 
-    pressure,
-    pressHigh,
-    pressLow,
+            pressure,
+            pressHigh,
+            pressLow,
 
-    lat,
-    lon,
+            lat,
+            lon,
 
-    altitude
-};
+            altitude
 
-console.log("🟢 latestData COMPLETO:", latestData[id]);
-console.log("🟢 temp:", latestData[id].temp);
-console.log("🟢 tempLow:", latestData[id].tempLow);
-console.log("🟢 tempHigh:", latestData[id].tempHigh);
+        };
+
+
+        // =========================================
+        // LOG FINALE
+        // =========================================
+
+        console.log(
+            "🟢 latestData COMPLETO:",
+            latestData[id]
+        );
 
 
         console.log(
-            "Dati Wunderground ricevuti:",
-            id,
-            latestData[id]
+            "🟢 PRESSIONE SALVATA:",
+            {
+                pressure: latestData[id].pressure,
+                pressHigh: latestData[id].pressHigh,
+                pressLow: latestData[id].pressLow
+            }
         );
 
 
@@ -851,7 +939,7 @@ console.log("🟢 tempHigh:", latestData[id].tempHigh);
     catch (err) {
 
         console.error(
-            `Errore fetch Wunderground ${id}:`,
+            `🔴 Errore fetch Wunderground ${id}:`,
             err
         );
 
