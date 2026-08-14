@@ -3961,37 +3961,83 @@ percepitaGaugeElement.addEventListener(
    GAUGE UMIDITÀ
 ================================= */
 
+// =========================================
+// UMIDITÀ MIN / MAX REGISTRATE
+// =========================================
+
+let humidityMinRecorded = 39.8;
+let humidityMaxRecorded = 83.4;
+let humidityValue = 64.2;
+
+
+// =========================================
+// UMIDITÀ GAUGE
+// =========================================
+
 const humidityGauge = new steelseries.Radial(
+
     document.getElementById("humidityGauge"),
+
     {
-        gaugeType: gaugeGlobals.gaugeType,
 
-        size: 240,
+        gaugeType:
+            gaugeGlobals.gaugeType,
 
-        minValue: 0,
-        maxValue: 100,
+        size:
+            240,
 
-        threshold: 80,
+        minValue:
+            0,
 
-        titleString: "Umidità",
-        unitString: "%",
+        maxValue:
+            100,
 
-        lcdDecimals: 1,
+        threshold:
+            80,
 
-        frameDesign: gaugeGlobals.frameDesign,
-        backgroundColor: gaugeGlobals.background,
-        foregroundType: gaugeGlobals.foreground,
+        titleString:
+            "Umidità",
 
-        pointerType: gaugeGlobals.pointer,
-        pointerColor: gaugeGlobals.pointerColour,
+        unitString:
+            "%",
 
-        knobType: gaugeGlobals.knob,
-        knobStyle: gaugeGlobals.knobStyle,
+        lcdDecimals:
+            1,
 
-        ledColor: steelseries.LedColor.RED_LED,
-        lcdColor: gaugeGlobals.lcdColour,
+        frameDesign:
+            gaugeGlobals.frameDesign,
+
+        backgroundColor:
+            gaugeGlobals.background,
+
+        foregroundType:
+            gaugeGlobals.foreground,
+
+        pointerType:
+            gaugeGlobals.pointer,
+
+        pointerColor:
+            gaugeGlobals.pointerColour,
+
+        knobType:
+            gaugeGlobals.knob,
+
+        knobStyle:
+            gaugeGlobals.knobStyle,
+
+        ledColor:
+            steelseries.LedColor.RED_LED,
+
+        lcdColor:
+            gaugeGlobals.lcdColour,
+
+
+        // =========================================
+        // COLORI DELLA SCALA
+        // =========================================
 
         section: [
+
             steelseries.Section(
                 0,
                 20,
@@ -4009,41 +4055,158 @@ const humidityGauge = new steelseries.Radial(
                 100,
                 "rgba(255,0,0,0.3)"
             )
+
+        ],
+
+
+        // =========================================
+        // CONO ROSSO MIN / MAX
+        // =========================================
+
+        area: [
+
+            steelseries.Section(
+                humidityMinRecorded,
+                humidityMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
         ]
+
     }
+
 );
 
 
 // =========================================
-// DATI MIN / MAX
+// AGGIORNAMENTO UMIDITÀ
 // =========================================
 
-let humidityMin = 39.8;
-let humidityMax = 83.4;
-let humidityValue = 64.2;
+function updateHumidityGauge(
+    value,
+    minValue,
+    maxValue
+) {
+
+    // =========================================
+    // CONVERSIONE NUMERICA
+    // =========================================
+
+    const currentValue =
+        Number(value);
+
+    const currentMin =
+        Number(minValue);
+
+    const currentMax =
+        Number(maxValue);
+
+
+    // =========================================
+    // VALORE ATTUALE
+    // =========================================
+
+    if (
+        Number.isFinite(currentValue)
+    ) {
+
+        humidityValue =
+            currentValue;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MINIMO REGISTRATO
+    // =========================================
+
+    if (
+        Number.isFinite(currentMin) &&
+        currentMin < humidityMinRecorded
+    ) {
+
+        humidityMinRecorded =
+            currentMin;
+
+    }
+
+
+    // =========================================
+    // AGGIORNA MASSIMO REGISTRATO
+    // =========================================
+
+    if (
+        Number.isFinite(currentMax) &&
+        currentMax > humidityMaxRecorded
+    ) {
+
+        humidityMaxRecorded =
+            currentMax;
+
+    }
+
+
+    // =========================================
+    // DEBUG
+    // =========================================
+
+    console.log(
+        "💧 HUMIDITY GAUGE:",
+        {
+            attuale: humidityValue,
+            minima: humidityMinRecorded,
+            massima: humidityMaxRecorded
+        }
+    );
+
+
+    // =========================================
+    // AGGIORNA CONO ROSSO
+    // =========================================
+
+    if (
+        Number.isFinite(humidityMinRecorded) &&
+        Number.isFinite(humidityMaxRecorded)
+    ) {
+
+        humidityGauge.setArea([
+
+            steelseries.Section(
+                humidityMinRecorded,
+                humidityMaxRecorded,
+                "rgba(236, 45, 45, 0.17)"
+            )
+
+        ]);
+
+    }
+
+
+    // =========================================
+    // AGGIORNA VALORE ATTUALE
+    // =========================================
+
+    if (
+        Number.isFinite(humidityValue)
+    ) {
+
+        humidityGauge.setValueAnimated(
+            humidityValue
+        );
+
+    }
+
+}
 
 
 // =========================================
-// CONO ROSSO MIN / MAX
+// VALORE DI TEST
 // =========================================
 
-humidityGauge.setArea([
-
-    steelseries.Section(
-        humidityMin,
-        humidityMax,
-        "rgba(236, 45, 45, 0.17)"
-    )
-
-]);
-
-
-// =========================================
-// VALORE ATTUALE
-// =========================================
-
-humidityGauge.setValueAnimated(
-    humidityValue
+updateHumidityGauge(
+    64.2,   // attuale
+    39.8,   // minima
+    83.4    // massima
 );
 
 
@@ -4052,7 +4215,9 @@ humidityGauge.setValueAnimated(
 // =========================================
 
 const humidityGaugeElement =
-    document.getElementById("humidityGauge");
+    document.getElementById(
+        "humidityGauge"
+    );
 
 
 // =========================================
@@ -4060,7 +4225,9 @@ const humidityGaugeElement =
 // =========================================
 
 const humidityTooltip =
-    document.createElement("div");
+    document.createElement(
+        "div"
+    );
 
 humidityTooltip.className =
     "gauge-tooltip";
@@ -4074,15 +4241,18 @@ document.body.appendChild(
 // TIMER POPUP
 // =========================================
 
-let humidityTooltipTimer = null;
+let humidityTooltipTimer =
+    null;
 
 
 // =========================================
-// MOUSE SOPRA IL GAUGE
+// MOUSE ENTER
 // =========================================
 
 humidityGaugeElement.addEventListener(
+
     "mouseenter",
+
     (event) => {
 
         humidityTooltip.style.left =
@@ -4097,36 +4267,78 @@ humidityGaugeElement.addEventListener(
         );
 
 
+        humidityTooltip.classList.remove(
+            "visible"
+        );
+
+
         // Attendi 1 secondo
+
         humidityTooltipTimer =
-            setTimeout(() => {
+            setTimeout(
 
-                humidityTooltip.innerHTML = `
+                () => {
 
-                    <div class="gauge-tooltip-title">
-                        Umidità:
-                        <span class="gauge-tooltip-value">
-                            ${humidityValue.toFixed(1)}%
-                        </span>
-                    </div>
+                    humidityTooltip.innerHTML = `
 
-                    <div>
-                        Massima:
-                        ${humidityMax.toFixed(1)}%
-                        -
-                        Minima:
-                        ${humidityMin.toFixed(1)}%
-                    </div>
+                        <div class="gauge-tooltip-title">
 
-                `;
+                            Umidità:
 
-                humidityTooltip.classList.add(
-                    "visible"
-                );
+                            <span
+                                class="gauge-tooltip-value"
+                            >
+                                ${
+                                    Number.isFinite(
+                                        humidityValue
+                                    )
+                                        ? humidityValue.toFixed(1)
+                                        : "--"
+                                }%
+                            </span>
 
-            }, 1000);
+                        </div>
+
+
+                        <div>
+
+                            Massima:
+                            ${
+                                Number.isFinite(
+                                    humidityMaxRecorded
+                                )
+                                    ? humidityMaxRecorded.toFixed(1)
+                                    : "--"
+                            }%
+
+                            -
+
+                            Minima:
+                            ${
+                                Number.isFinite(
+                                    humidityMinRecorded
+                                )
+                                    ? humidityMinRecorded.toFixed(1)
+                                    : "--"
+                            }%
+
+                        </div>
+
+                    `;
+
+
+                    humidityTooltip.classList.add(
+                        "visible"
+                    );
+
+                },
+
+                1000
+
+            );
 
     }
+
 );
 
 
@@ -4135,7 +4347,9 @@ humidityGaugeElement.addEventListener(
 // =========================================
 
 humidityGaugeElement.addEventListener(
+
     "mousemove",
+
     (event) => {
 
         humidityTooltip.style.left =
@@ -4145,6 +4359,7 @@ humidityGaugeElement.addEventListener(
             (event.clientY + 15) + "px";
 
     }
+
 );
 
 
@@ -4153,20 +4368,25 @@ humidityGaugeElement.addEventListener(
 // =========================================
 
 humidityGaugeElement.addEventListener(
+
     "mouseleave",
+
     () => {
 
         clearTimeout(
             humidityTooltipTimer
         );
 
-        humidityTooltipTimer = null;
+        humidityTooltipTimer =
+            null;
+
 
         humidityTooltip.classList.remove(
             "visible"
         );
 
     }
+
 );
 const pressureGauge = new steelseries.Radial(
     document.getElementById("pressureGauge"),
