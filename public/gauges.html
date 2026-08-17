@@ -7525,8 +7525,10 @@ function createRainfallSections(metric, maxValue = 500) {
             ) * factor;
 
 
-        const color =
-            interpolateColor(value);
+const color =
+    interpolateColor(
+        value + 0.5
+    );
 
 
         sections.push(
@@ -7627,6 +7629,10 @@ section:
 // SCALA DINAMICA PRECIPITAZIONI
 // =========================================
 
+// =========================================
+// SCALA DINAMICA PRECIPITAZIONI
+// =========================================
+
 function updateRainGauge(value) {
 
     value = Number(value);
@@ -7642,6 +7648,10 @@ function updateRainGauge(value) {
 
     }
 
+
+    // =========================================
+    // CALCOLO NUOVA SCALA
+    // =========================================
 
     let newMax;
 
@@ -7729,7 +7739,7 @@ function updateRainGauge(value) {
 
 
     // =========================================
-    // AGGIORNA SCALA
+    // CAMBIO SCALA
     // =========================================
 
     if (
@@ -7747,27 +7757,44 @@ function updateRainGauge(value) {
             }
         );
 
+
+        // Cambio scala
         RainGauge.setMaxValue(
             newMax
         );
 
-        RainGauge.setValue(0);
+
+        // Ricrea le sezioni per la nuova scala
+        if (
+            typeof RainGauge.setSections ===
+            "function"
+        ) {
+
+            RainGauge.setSections(
+                createRainfallSections(
+                    true,
+                    newMax
+                )
+            );
+
+        }
 
     }
 
 
     // =========================================
-    // SALVA VALORE ATTUALE
+    // SALVA VALORE
     // =========================================
 
-    rainValue = value;
+    rainValue =
+        value;
 
 
     // =========================================
-    // AGGIORNA GAUGE
+    // MANTIENE IL VALORE ATTUALE
     // =========================================
 
-    RainGauge.setValueAnimated(
+    RainGauge.setValue(
         rainValue
     );
 
