@@ -7361,22 +7361,198 @@ radGaugeElement.addEventListener(
 // SEZIONI PRECIPITAZIONI
 // =========================================
 
-function createRainfallSections(metric) {
+// =========================================
+// SEZIONI PRECIPITAZIONI GRADUATE
+// =========================================
+
+function createRainfallSections(metric, maxValue = 500) {
 
     const factor = metric ? 1 : 1 / 25;
 
-    return [
-        steelseries.Section(0, 5 * factor, 'rgba(0, 250, 0, 1)'),
-        steelseries.Section(5 * factor, 10 * factor, 'rgba(0, 250, 117, 1)'),
-        steelseries.Section(10 * factor, 25 * factor, 'rgba(218, 246, 0, 1)'),
-        steelseries.Section(25 * factor, 40 * factor, 'rgba(250, 186, 0, 1)'),
-        steelseries.Section(40 * factor, 50 * factor, 'rgba(250, 95, 0, 1)'),
-        steelseries.Section(50 * factor, 65 * factor, 'rgba(250, 0, 0, 1)'),
-        steelseries.Section(65 * factor, 75 * factor, 'rgba(250, 6, 80, 1)'),
-        steelseries.Section(75 * factor, 100 * factor, 'rgba(205, 18, 158, 1)'),
-        steelseries.Section(100 * factor, 125 * factor, 'rgba(0, 0, 250, 1)'),
-        steelseries.Section(125 * factor, 500 * factor, 'rgba(0, 219, 212, 1)')
+    // Punti di riferimento della scala originale
+    const stops = [
+
+        {
+            value: 0,
+            color: [0, 250, 0]
+        },
+
+        {
+            value: 5,
+            color: [0, 250, 117]
+        },
+
+        {
+            value: 10,
+            color: [218, 246, 0]
+        },
+
+        {
+            value: 25,
+            color: [250, 186, 0]
+        },
+
+        {
+            value: 40,
+            color: [250, 95, 0]
+        },
+
+        {
+            value: 50,
+            color: [250, 0, 0]
+        },
+
+        {
+            value: 65,
+            color: [250, 6, 80]
+        },
+
+        {
+            value: 75,
+            color: [205, 18, 158]
+        },
+
+        {
+            value: 100,
+            color: [0, 0, 250]
+        },
+
+        {
+            value: 125,
+            color: [0, 219, 212]
+        },
+
+        {
+            value: 500,
+            color: [0, 219, 212]
+        }
+
     ];
+
+
+    // =========================================
+    // INTERPOLAZIONE COLORE
+    // =========================================
+
+    function interpolateColor(value) {
+
+        // Prima del primo stop
+        if (value <= stops[0].value) {
+
+            return stops[0].color;
+
+        }
+
+
+        // Dopo l'ultimo stop
+        if (value >= stops[stops.length - 1].value) {
+
+            return stops[stops.length - 1].color;
+
+        }
+
+
+        // Cerca i due punti tra cui interpolare
+        for (let i = 0; i < stops.length - 1; i++) {
+
+            const a = stops[i];
+            const b = stops[i + 1];
+
+
+            if (
+                value >= a.value &&
+                value <= b.value
+            ) {
+
+                const t =
+                    (value - a.value) /
+                    (b.value - a.value);
+
+
+                const r =
+                    Math.round(
+                        a.color[0] +
+                        (b.color[0] - a.color[0]) * t
+                    );
+
+                const g =
+                    Math.round(
+                        a.color[1] +
+                        (b.color[1] - a.color[1]) * t
+                    );
+
+                const blue =
+                    Math.round(
+                        a.color[2] +
+                        (b.color[2] - a.color[2]) * t
+                    );
+
+
+                return [
+                    r,
+                    g,
+                    blue
+                ];
+
+            }
+
+        }
+
+
+        return [0, 219, 212];
+
+    }
+
+
+    // =========================================
+    // CREA UNA SECTION PER OGNI TACCA
+    // =========================================
+
+    const sections = [];
+
+    const step = 1;
+
+
+    for (
+        let value = 0;
+        value < maxValue;
+        value += step
+    ) {
+
+        const start =
+            value * factor;
+
+        const stop =
+            Math.min(
+                value + step,
+                maxValue
+            ) * factor;
+
+
+        const color =
+            interpolateColor(value);
+
+
+        sections.push(
+
+            steelseries.Section(
+                start,
+                stop,
+                `rgba(
+                    ${color[0]},
+                    ${color[1]},
+                    ${color[2]},
+                    1
+                )`
+            )
+
+        );
+
+    }
+
+
+    return sections;
+
 }
 let rainValue = 0;
 
@@ -7443,7 +7619,7 @@ const RainGauge = new steelseries.RadialBargraph(
             true,
 
 section:
-    createRainfallSections(true),
+    createRainfallSections(true, 500),
 
         fullScaleDeflectionTime:
             2.5
