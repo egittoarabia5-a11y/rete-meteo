@@ -675,196 +675,218 @@ function normalizeVariable(v) {
   return v;
 }
 
-function showPopup(feature) {
+function showPopup(feature) { 
 
-  if (!feature?.properties) return;
+  if (!feature?.properties) return; 
 
-  const props = feature.properties;
+  const props = feature.properties; 
 
-  const id = props.id;
-  const name = props.name;
-  const source = props.source;
+  const id = props.id; 
+  const name = props.name; 
+  const source = props.source; 
 
-  if (activePopup) activePopup.remove();
+  if (activePopup) activePopup.remove(); 
 
-  const station = allStations[id] || {};
+  const station = allStations[id] || {}; 
 
-  const variable = normalizeVariable(currentVariable);
+  const variable = normalizeVariable(currentVariable); 
 
-  const value = Number(props.value);
-  const valueStr = props.valueStr ?? "—";
+  const value = Number(props.value); 
+  const valueStr = props.valueStr ?? "—"; 
 
-  const isRain = variable === "rainDaily" || variable === "rainRate";
+  const isRain = variable === "rainDaily" || variable === "rainRate"; 
 
-  const getColor = (v, variable) => {
+  const getColor = (v, variable) => { 
 
-    if (v == null || isNaN(v)) return "#808080";
+    if (v == null || isNaN(v)) return "#808080"; 
 
-    if (variable === "hum") {
-      if (v < 20) return "#b44141";
-      else if (v < 30) return "#ff6262";
-      else if (v < 40) return "#ff9d56";
-      else if (v < 50) return "#f1d800";
-      else if (v < 60) return "#65d050";
-      else if (v < 70) return "#6ca561";
-      else if (v < 80) return "#4dc8ff";
-      else if (v < 90) return "#4da9ff";
-      return "#4d54ff";
-    }
+    if (variable === "hum") { 
+      if (v < 20) return "#b44141"; 
+      else if (v < 30) return "#ff6262"; 
+      else if (v < 40) return "#ff9d56"; 
+      else if (v < 50) return "#f1d800"; 
+      else if (v < 60) return "#65d050"; 
+      else if (v < 70) return "#6ca561"; 
+      else if (v < 80) return "#4dc8ff"; 
+      else if (v < 90) return "#4da9ff"; 
+      return "#4d54ff"; 
+    } 
 
-    if (variable === "rainDaily" || variable === "rainRate") {
-      if (v === 0) return "#808080";
-      else if (v < 2) return "#f9ae6c";
-      else if (v < 5) return "#f9966c";
-      else if (v < 10) return "#6ca561";
-      else if (v < 20) return "#65d050";
-      else if (v < 30) return "#4dc8ff";
-      else if (v < 50) return "#4da9ff";
-      return "#2c278e";
-    }
+    if (variable === "rainDaily" || variable === "rainRate") { 
+      if (v === 0) return "#808080"; 
+      else if (v < 2) return "#f9ae6c"; 
+      else if (v < 5) return "#f9966c"; 
+      else if (v < 10) return "#6ca561"; 
+      else if (v < 20) return "#65d050"; 
+      else if (v < 30) return "#4dc8ff"; 
+      else if (v < 50) return "#4da9ff"; 
+      return "#2c278e"; 
+    } 
 
-  if (v < -15) return "#f54dff";
-  if (v < -10) return "#c65bff";
-  if (v < -4) return "#4d54ff";
-  if (v < -2) return "#1f7eb9";
-  if (v <= 0) return "#539eb0";
-  if (v < 2) return "#67bac8";
-  if (v < 4) return "#5ac5ba";
-  if (v < 6) return "#42a37b";
-  if (v < 8) return "#538b53";
-  if (v < 10) return "#43af43";
-  if (v < 12) return "#7dd049";
-  if (v < 14) return "#abd84b";
-  if (v < 16) return "#ced854";
-  if (v < 18) return "#e8d541";
-  if (v < 20) return "#ffcc55";
-  if (v < 22) return "#ffaf54";
-  if (v < 24) return "#fa8f4b";
-  if (v < 26) return "#f26969";
-  if (v < 28) return "#de5a5a";
-  if (v < 30) return "#b05151";
-  if (v < 32) return "#994848";
-  if (v < 34) return "#743e3e";
-  if (v < 36) return "#b874b8";
-  if (v < 38) return "#ea7bea";
-  if (v >= 38) return "#995a99";
-  if (v >= 40) return "#747474";
-  if (v >= 42) return "#5a433e";
-  if (v >= 44) return "#785c55";
-  if (v >= 46) return "#9b8987";
+    if (v < -15) return "#f54dff"; 
+    if (v < -10) return "#c65bff"; 
+    if (v < -4) return "#4d54ff"; 
+    if (v < -2) return "#1f7eb9"; 
+    if (v <= 0) return "#539eb0"; 
+    if (v < 2) return "#67bac8"; 
+    if (v < 4) return "#5ac5ba"; 
+    if (v < 6) return "#42a37b"; 
+    if (v < 8) return "#538b53"; 
+    if (v < 10) return "#43af43"; 
+    if (v < 12) return "#7dd049"; 
+    if (v < 14) return "#abd84b"; 
+    if (v < 16) return "#ced854"; 
+    if (v < 18) return "#e8d541"; 
+    if (v < 20) return "#ffcc55"; 
+    if (v < 22) return "#ffaf54"; 
+    if (v < 24) return "#fa8f4b"; 
+    if (v < 26) return "#f26969"; 
+    if (v < 28) return "#de5a5a"; 
+    if (v < 30) return "#b05151"; 
+    if (v < 32) return "#994848"; 
+    if (v < 34) return "#743e3e"; 
+    if (v < 36) return "#b874b8"; 
+    if (v < 38) return "#ea7bea"; 
+    if (v >= 38) return "#995a99"; 
+    if (v >= 40) return "#747474"; 
+    if (v >= 42) return "#5a433e"; 
+    if (v >= 44) return "#785c55"; 
+    if (v >= 46) return "#9b8987"; 
 
-    return "#222222";
-  };
+    return "#222222"; 
+  }; 
 
-  const hexToRgba = (hex, a = 0.3) => {
-    const h = hex.replace("#", "");
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    return `rgba(${r},${g},${b},${a})`;
-  };
+  const hexToRgba = (hex, a = 0.3) => { 
+    const h = hex.replace("#", ""); 
+    const r = parseInt(h.substring(0, 2), 16); 
+    const g = parseInt(h.substring(2, 4), 16); 
+    const b = parseInt(h.substring(4, 6), 16); 
+    return `rgba(${r},${g},${b},${a})`; 
+  }; 
 
-  let max = null;
-  let min = null;
+  let max = null; 
+  let min = null; 
 
-  if (variable === "temp") {
-    max = station.tempHigh;
-    min = station.tempLow;
-  }
+  if (variable === "temp") { 
+    max = station.tempHigh; 
+    min = station.tempLow; 
+  } 
 
-  if (variable === "dewp") {
-    max = station.dewpHigh;
-    min = station.dewpLow;
-  }
+  if (variable === "dewp") { 
+    max = station.dewpHigh; 
+    min = station.dewpLow; 
+  } 
 
-  if (variable === "heat") {
-    max = station.heatHigh;
-    min = station.heatLow;
-  }
+  if (variable === "heat") { 
+    max = station.heatHigh; 
+    min = station.heatLow; 
+  } 
 
-  if (variable === "hum") {
-    max = station.humHigh;
-    min = station.humLow;
-  }
+  if (variable === "hum") { 
+    max = station.humHigh; 
+    min = station.humLow; 
+  } 
 
-  if (variable === "rainDaily") {
-    max = station.rainDaily;
-  }
+  if (variable === "rainDaily") { 
+    max = station.rainDaily; 
+  } 
 
-  if (variable === "rainRate") {
-    max = station.rainRate;
-  }
+  if (variable === "rainRate") { 
+    max = station.rainRate; 
+  } 
 
-  if (variable === "rainYearly") {
-    max = station.rainYearly;
-  }
+  if (variable === "rainYearly") { 
+    max = station.rainYearly; 
+  } 
 
-  const fmt = v =>
-    v == null || isNaN(v) ? "—" : Number(v).toFixed(1);
+  const fmt = v => 
+    v == null || isNaN(v) ? "—" : Number(v).toFixed(1); 
 
-  const baseColor = getColor(value, variable);
-  const overlay = hexToRgba(baseColor, 0.3);
+  const baseColor = getColor(value, variable); 
+  const overlay = hexToRgba(baseColor, 0.3); 
 
-  const html = `
-    <div style="
-      font-family:Inter,sans-serif;
-      text-align:center;
-      color:black;
-    ">
+  // 📊 URL GAUGES
+  const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(source)}&name=${encodeURIComponent(name)}`;
 
-      <div style="font-weight:700;font-size:15px;line-height:1.1;">
-        ${name}
+  const html = ` 
+    <div style=" 
+      font-family:Inter,sans-serif; 
+      text-align:center; 
+      color:black; 
+    "> 
+
+      <div style="font-weight:700;font-size:15px;line-height:1.1;"> 
+        ${name} 
+      </div> 
+
+      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;"> 
+        Fonte: ${source} 
+      </div> 
+
+      <div style="font-size:13px;opacity:0.75;margin-bottom:4px;"> 
+        ${variable === "temp" ? "Temperatura" : 
+          variable === "dewp" ? "Dew Point" : 
+          variable === "heat" ? "Heat Index" : 
+          variable === "hum" ? "Umidità" : 
+          isRain ? "Pioggia" : ""} 
+      </div> 
+
+      <div style="font-size:32px;font-weight:800;margin-bottom:6px;"> 
+        ${valueStr}${isRain ? " mm" : "°"} 
+      </div> 
+
+      ${ 
+        (max != null || min != null) 
+          ? ` 
+          <div style="font-size:12px;line-height:1.2;"> 
+            <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span> 
+            <span style="margin:0 2px;">-</span> 
+            <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span> 
+          </div> 
+          ` 
+          : "" 
+      } 
+
+      <!-- 📊 PULSANTE GAUGES -->
+      <div style="margin-top:6px;">
+        <button
+          type="button"
+          style="
+            font-family:'Inter',sans-serif;
+            padding:4px 14px;
+            border:none;
+            border-radius:6px;
+            background:#bebebe;
+            color:white;
+            font-size:13px;
+            font-weight:600;
+            cursor:pointer;
+          "
+          onclick="window.open('${gaugesUrl}','gaugesWindow')">
+          📊 Gauges
+        </button>
       </div>
 
-      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;">
-        Fonte: ${source}
-      </div>
+    </div> 
+  `; 
 
-      <div style="font-size:13px;opacity:0.75;margin-bottom:4px;">
-        ${variable === "temp" ? "Temperatura" :
-          variable === "dewp" ? "Dew Point" :
-          variable === "heat" ? "Heat Index" :
-          variable === "hum" ? "Umidità" :
-          isRain ? "Pioggia" : ""}
-      </div>
+  activePopup = new maplibregl.Popup({ 
+    closeButton: true, 
+    closeOnClick: true, 
+    offset: 20, 
+    className: "clean-popup" 
+  }) 
+    .setLngLat(feature.geometry.coordinates) 
+    .setHTML(html) 
+    .addTo(map); 
 
-      <div style="font-size:32px;font-weight:800;margin-bottom:6px;">
-        ${valueStr}${isRain ? " mm" : "°"}
-      </div>
-
-      ${
-        (max != null || min != null)
-          ? `
-          <div style="font-size:12px;line-height:1.2;">
-            <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span>
-            <span style="margin:0 2px;">-</span>
-            <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span>
-          </div>
-          `
-          : ""
-      }
-
-    </div>
-  `;
-
-  activePopup = new maplibregl.Popup({
-    closeButton: true,
-    closeOnClick: true,
-    offset: 20,
-    className: "clean-popup"
-  })
-    .setLngLat(feature.geometry.coordinates)
-    .setHTML(html)
-    .addTo(map);
-
-  // 🎨 GRIGIO + OVERLAY COLORATO 30%
-  const el = activePopup._content;
-  if (el) {
-    el.style.backgroundColor = "#e6e6e6";
-    el.style.backgroundImage = `linear-gradient(${overlay}, ${overlay})`;
-  }
-}
-// ================= UI BUTTONS =================
+  // 🎨 GRIGIO + OVERLAY COLORATO 30% 
+  const el = activePopup._content; 
+  if (el) { 
+    el.style.backgroundColor = "#e6e6e6"; 
+    el.style.backgroundImage = `linear-gradient(${overlay}, ${overlay})`; 
+  } 
+}// ================= UI BUTTONS =================
 function toggleMenu(id) {
   const el = document.getElementById(id);
   el.style.display = el.style.display === "block" ? "none" : "block";
