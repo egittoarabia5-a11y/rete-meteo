@@ -637,12 +637,13 @@ function updateLayer() {
 
   geojson.features = Object.values(allStations).map(st => {
     const { value, color, valueStr } = getValueAndColor(st);
-    
-    // Scegliamo cosa mostrare in base allo zoom corrente della mappa
+
     let textDisplay = "";
     if (value !== null) {
       textDisplay = currentZoom < 8 ? Math.round(value).toString() : valueStr;
     }
+
+    const iconId = getOrCreateDotIcon(map, color); // genera/riusa l'icona per quel colore
 
     return {
       type: "Feature",
@@ -653,8 +654,9 @@ function updateLayer() {
         source: st.source,
         value,
         valueStr,
-        textDisplay, // <--- Stringa pronta e sicura per MapLibre
-        color
+        textDisplay,
+        color,
+        icon: iconId
       }
     };
   });
@@ -801,7 +803,6 @@ function showPopup(feature) {
 
   const fmt = v => 
     v == null || isNaN(v) ? "—" : Number(v).toFixed(1); 
-
   const baseColor = getColor(value, variable); 
   const overlay = hexToRgba(baseColor, 0.3); 
 
@@ -923,7 +924,69 @@ map.loadImage(
     }
   }
 );
+function loadSdfIcon(map, id, svgString, size = 64) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, size, size);
+      const imageData = ctx.getImageData(0, 0, size, size);
 
+      if (!map.hasImage(id)) {
+        map.addImage(id, imageData, { pixelRatio: 2, sdf: true });
+      }
+      resolve();
+    };
+    img.onerror = reject;
+    // charset esplicito: risolve molti InvalidStateError su SVG data-URI
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+  });
+}
+const dotIconCache = new Set();
+
+function getOrCreateDotIcon(map, hexColor, size = 128) {
+  const id = 'dot-' + hexColor.replace('#', '');
+  if (dotIconCache.has(id) || map.hasImage(id)) return id;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = size / 2; 
+  const strokeWidth = size * 0.08;  // ← era 0.10, ora dimezzato
+  const innerR = outerR - strokeWidth;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+  ctx.fillStyle = hexColor;
+  ctx.fill();
+
+  const imageData = ctx.getImageData(0, 0, size, size);
+  map.addImage(id, imageData, { pixelRatio: 2 });
+  dotIconCache.add(id);
+  return id;
+}
+const dotSvg = `
+  <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="32" cy="32" r="28" fill="#ffffff"/>
+  </svg>
+`;
+
+loadSdfIcon(map, 'station-dot', dotSvg).then(() => {
+  // qui dentro (o comunque solo DOPO che la promise è risolta)
+  // fai il map.addLayer({ id: 'stations-marker', ... }) che usa 'icon-image': 'station-dot'
+});
 // 2. Evento Load della mappa
 map.on("load", () => {
   // Ricalcoliamo il controllo mobile in modo sicuro all'interno del load
@@ -948,79 +1011,80 @@ map.addLayer({
   }
 });
   map.addLayer({ id: "sky", type: "sky", paint: { "sky-type": "atmosphere" }});
-
+map.loadImage(
+  'data:image/svg+xml;base64,' + btoa(`
+    <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="28" fill="#ffffff"/>
+    </svg>
+  `),
+  (error, image) => {
+    if (error) throw error;
+    if (!map.hasImage('station-dot')) {
+      // sdf:true = puoi colorarla dinamicamente con icon-color
+      map.addImage('station-dot', image, { pixelRatio: 2, sdf: true });
+    }
+  }
+);
   // GeoJSON Source
-  map.addSource('weather-stations', { type: 'geojson', data: geojson });
-
+map.addSource('weather-stations', {
+  type: 'geojson',
+  data: geojson,
+  promoteId: 'id'
+});
   // Circle Layer (Ottimizzato per Mobile)
-  map.addLayer({
-    id: 'stations-circle',
-    type: 'circle',
-    source: 'weather-stations',
-    paint: {
-      'circle-radius': [
-        'interpolate', ['linear'], ['zoom'],
-        // Su mobile raddoppiamo quasi la dimensione minima per renderli cliccabili (minimo 14px a zoom basso)
- 4,  isMobile ? 4 : 9,
-        7,  isMobile ? 9 : 13,
-        10, isMobile ? 15 : 17,
-        14, isMobile ? 17 : 19
-      ],
-      'circle-color': ['get', 'color'],
-      'circle-stroke-color': '#ffffff',
-      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 7, 1.5, 14, 2.8],
-      'circle-opacity': 0.95,
-      'circle-pitch-scale': 'viewport',     
-      'circle-pitch-alignment': 'viewport'
-    }
-  });
-
-  // Text Layer (Corretto: i font sotto i 10px su mobile spariscono)
-    // Text Layer (Modificato per rimuovere il decimale sotto zoom 8)
-    // Text Layer (Corretto e ottimizzato contro i valori null/undefined)
-    // Text Layer pulito e leggero
-    // Text Layer statico (MapLibre deve solo leggere la proprietà pre-calcolata)
-  map.addLayer({
-    id: 'stations-text',
-    type: 'symbol',
-    source: 'weather-stations',
-    layout: {
-      'text-field': ['get', 'textDisplay'], // <--- Sarà gestito dinamicamente da JS
-      'text-font': ['Inter Bold', 'Arial Bold'],
-      'text-size': [
-        'interpolate', ['linear'], ['zoom'],
-        4,  isMobile ? 7 : 9,
-        6,  isMobile ? 8 : 10,
-        7,  isMobile ? 10 : 12,
-        8,  isMobile ? 10 : 12,
-        10, isMobile ? 12 : 14,
-        14, isMobile ? 14 : 16,
-        16, isMobile ? 16 : 18
-      ],
-      'text-anchor': 'center',
-      'text-allow-overlap': false,
-      'text-ignore-placement': false
-    },
-    paint: {
-      'text-color': '#ffffff'
-    }
-  });
-
+map.addLayer({
+  id: 'stations-marker',
+  type: 'symbol',
+  source: 'weather-stations',
+  layout: {
+    'icon-image': ['get', 'icon'],
+    'icon-size': [
+      'interpolate', ['linear'], ['zoom'],
+      4,  isMobile ? 0.16 : 0.35,
+      7,  isMobile ? 0.44 : 0.60,
+      10, isMobile ? 0.8  : 0.70,
+      14, isMobile ? 1.0  : 0.80
+    ],
+    'icon-padding': -6,
+    'icon-allow-overlap': false,
+    'icon-ignore-placement': false,
+    'text-field': ['get', 'textDisplay'],
+    'text-font': ['Inter Bold', 'Arial Bold'],
+    'text-size': [
+      'interpolate', ['linear'], ['zoom'],
+      4,  isMobile ? 7 : 9,
+      6,  isMobile ? 8 : 10,
+      7,  isMobile ? 10 : 12,
+      8,  isMobile ? 10 : 12,
+      10, isMobile ? 12 : 14,
+      14, isMobile ? 14 : 16,
+      16, isMobile ? 16 : 18
+    ],
+    'text-allow-overlap': false,
+    'text-ignore-placement': false,
+    'text-optional': false,
+    'icon-optional': false
+  },
+  paint: {
+    'text-color': '#ffffff',
+    'icon-opacity-transition': { duration: 0 },
+    'text-opacity-transition': { duration: 0 }
+  }
+});
 
 
 
   // Gestione Eventi Click & Touch
 map.on('click', (e) => {
   const features = map.queryRenderedFeatures(e.point, {
-    layers: ['stations-text', 'stations-circle']
+    layers: ['stations-marker']   // <-- un solo layer ora
   });
-
   if (!features.length) return;
-
   showPopup(features[0]);
 });
-  map.on('mouseenter', 'stations-circle', () => map.getCanvas().style.cursor = 'pointer');
-  map.on('mouseleave', 'stations-circle', () => map.getCanvas().style.cursor = '');
+
+map.on('mouseenter', 'stations-marker', () => map.getCanvas().style.cursor = 'pointer');
+map.on('mouseleave', 'stations-marker', () => map.getCanvas().style.cursor = '');
 // Ascolta lo zoom della mappa per aggiornare i decimali al volo
 // Ascolta lo zoom della mappa per aggiornare i decimali al volo (Soglia: 8)
 let lastZoomState = map.getZoom() < 8; // true se <8, false se >=8
