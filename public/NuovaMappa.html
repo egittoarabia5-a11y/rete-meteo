@@ -640,7 +640,7 @@ function updateLayer() {
 
     let textDisplay = "";
     if (value !== null) {
-      textDisplay = currentZoom < 8 ? Math.round(value).toString() : valueStr;
+      textDisplay = currentZoom < 6 ? Math.round(value).toString() : valueStr;
     }
 
     const iconId = getOrCreateDotIcon(map, color); // genera/riusa l'icona per quel colore
@@ -959,7 +959,7 @@ function getOrCreateDotIcon(map, hexColor, size = 128) {
   const cx = size / 2;
   const cy = size / 2;
   const outerR = size / 2; 
-  const strokeWidth = size * 0.08;  // ← era 0.10, ora dimezzato
+  const strokeWidth = size * 0.07;  // ← era 0.10, ora dimezzato
   const innerR = outerR - strokeWidth;
 
   ctx.beginPath();
@@ -1045,20 +1045,20 @@ map.addLayer({
       10, isMobile ? 0.8  : 0.70,
       14, isMobile ? 1.0  : 0.80
     ],
-    'icon-padding': -6,
+    'icon-padding': -9,
     'icon-allow-overlap': false,
     'icon-ignore-placement': false,
     'text-field': ['get', 'textDisplay'],
     'text-font': ['Inter Bold', 'Arial Bold'],
     'text-size': [
       'interpolate', ['linear'], ['zoom'],
-      4,  isMobile ? 7 : 9,
-      6,  isMobile ? 8 : 10,
-      7,  isMobile ? 10 : 12,
-      8,  isMobile ? 10 : 12,
-      10, isMobile ? 12 : 14,
-      14, isMobile ? 14 : 16,
-      16, isMobile ? 16 : 18
+      4,  isMobile ? 7 : 11,
+      6,  isMobile ? 8 : 12,
+      7,  isMobile ? 10 : 14,
+      8,  isMobile ? 10 : 14,
+      10, isMobile ? 12 : 16,
+      14, isMobile ? 14 : 18,
+      16, isMobile ? 16 : 20
     ],
     'text-allow-overlap': false,
     'text-ignore-placement': false,
@@ -1086,15 +1086,15 @@ map.on('click', (e) => {
 map.on('mouseenter', 'stations-marker', () => map.getCanvas().style.cursor = 'pointer');
 map.on('mouseleave', 'stations-marker', () => map.getCanvas().style.cursor = '');
 // Ascolta lo zoom della mappa per aggiornare i decimali al volo
-// Ascolta lo zoom della mappa per aggiornare i decimali al volo (Soglia: 8)
-let lastZoomState = map.getZoom() < 8; // true se <8, false se >=8
+// Ascolta lo zoom della mappa per aggiornare i decimali al volo (Soglia: 6)
+let lastZoomState = map.getZoom() < 6; // true se <6, false se >=6
 
 map.on('zoom', () => {
-  const isUnderZoom8 = map.getZoom() < 8;
+  const isUnderZoom6 = map.getZoom() < 6;
   
-  // Aggiorna solo quando si attraversa la soglia dello zoom 8 (in entrambe le direzioni)
-  if (isUnderZoom8 !== lastZoomState) {
-    lastZoomState = isUnderZoom8;
+  // Aggiorna solo quando si attraversa la soglia dello zoom 6 (in entrambe le direzioni)
+  if (isUnderZoom6 !== lastZoomState) {
+    lastZoomState = isUnderZoom6;
     updateLayer();
   }
 });
