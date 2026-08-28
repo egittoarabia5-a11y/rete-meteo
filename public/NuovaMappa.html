@@ -1032,33 +1032,84 @@ map.addSource('weather-stations', {
   promoteId: 'id'
 });
   // Circle Layer (Ottimizzato per Mobile)
+// Layer 1: bordo bianco
+map.addLayer({
+  id: 'stations-border',
+  type: 'symbol',
+  source: 'weather-stations',
+  layout: {
+    'icon-image': 'dot-border',
+    'icon-size': [
+      'case',
+      ['==', ['get', 'value'], null],
+      // ===== SCALA RIDOTTA per stazioni senza dato =====
+      [
+        'interpolate', ['linear'], ['zoom'],
+        4,  isMobile ? 0.07 : 0.16,
+        7,  isMobile ? 0.19 : 0.26,
+        10, isMobile ? 0.35 : 0.31,
+        14, isMobile ? 0.44 : 0.35
+      ],
+      // ===== SCALA NORMALE =====
+      [
+        'interpolate', ['linear'], ['zoom'],
+        4,  isMobile ? 0.18 : 0.39,
+        7,  isMobile ? 0.48 : 0.66,
+        10, isMobile ? 0.88 : 0.77,
+        14, isMobile ? 1.10 : 0.88
+      ]
+    ],
+    'icon-allow-overlap': false,
+    'icon-ignore-placement': false,
+    'icon-padding': -6
+  },
+  paint: {
+    'icon-color': '#ffffff',
+    'icon-opacity-transition': { duration: 0 }
+  }
+});
+
+// Layer 2: riempimento colorato + testo
 map.addLayer({
   id: 'stations-marker',
   type: 'symbol',
   source: 'weather-stations',
   layout: {
-    'icon-image': ['get', 'icon'],
+    'icon-image': 'dot-fill',
     'icon-size': [
-      'interpolate', ['linear'], ['zoom'],
-      4,  isMobile ? 0.3 : 0.35,
-      7,  isMobile ? 0.5 : 0.60,
-      10, isMobile ? 0.6  : 0.70,
-      14, isMobile ? 0.7  : 0.80
+      'case',
+      ['==', ['get', 'value'], null],
+      // ===== SCALA RIDOTTA per stazioni senza dato =====
+      [
+        'interpolate', ['linear'], ['zoom'],
+        4,  isMobile ? 0.06 : 0.14,
+        7,  isMobile ? 0.18 : 0.24,
+        10, isMobile ? 0.32 : 0.28,
+        14, isMobile ? 0.40 : 0.32
+      ],
+      // ===== SCALA NORMALE =====
+      [
+        'interpolate', ['linear'], ['zoom'],
+        4,  isMobile ? 0.16 : 0.35,
+        7,  isMobile ? 0.44 : 0.60,
+        10, isMobile ? 0.8  : 0.70,
+        14, isMobile ? 1.0  : 0.80
+      ]
     ],
-    'icon-padding': -9,
+    'icon-padding': -6,
     'icon-allow-overlap': false,
     'icon-ignore-placement': false,
     'text-field': ['get', 'textDisplay'],
     'text-font': ['Inter Bold', 'Arial Bold'],
     'text-size': [
       'interpolate', ['linear'], ['zoom'],
-      4,  isMobile ? 9 : 11,
-      6,  isMobile ? 10 : 12,
-      7,  isMobile ? 12 : 14,
-      8,  isMobile ? 12 : 14,
-      10, isMobile ? 14 : 16,
-      14, isMobile ? 16 : 18,
-      16, isMobile ? 18 : 20
+      4,  isMobile ? 7 : 9,
+      6,  isMobile ? 8 : 10,
+      7,  isMobile ? 10 : 12,
+      8,  isMobile ? 10 : 12,
+      10, isMobile ? 12 : 14,
+      14, isMobile ? 14 : 16,
+      16, isMobile ? 16 : 18
     ],
     'text-allow-overlap': false,
     'text-ignore-placement': false,
@@ -1066,12 +1117,12 @@ map.addLayer({
     'icon-optional': false
   },
   paint: {
+    'icon-color': ['get', 'color'],
     'text-color': '#ffffff',
     'icon-opacity-transition': { duration: 0 },
     'text-opacity-transition': { duration: 0 }
   }
 });
-
 
 
   // Gestione Eventi Click & Touch
