@@ -1164,76 +1164,99 @@ async function fetchLimet(nomeStazione) {
 
     try {
 
-        const stationData = StazioniLimetByName[nomeStazione];
+        const urls = [
+            "https://api-stazioni-meteo.eggittof.workers.dev/limet.json",
+            "https://api-stazioni-meteo.eggittof.workers.dev/limet2.json"
+        ];
 
-        if (!stationData) {
+        let raw = null;
 
-            console.error("🔴 Stazione LIMET non trovata:", nomeStazione);
+        for (const url of urls) {
+
+            const res = await fetch(url + "?_=" + Date.now());
+
+            if (!res.ok) {
+                console.warn(`⚠️ HTTP ${res.status} da ${url}`);
+                continue;
+            }
+
+            const data = await res.json();
+
+            // Cerca la stazione precisa
+            const station = data.stations?.find(
+                stazione => stazione.N === nomeStazione
+            );
+
+            if (station) {
+                raw = station;
+
+                console.log(`🔵 LIMET trovata in ${url}:`, {
+                    nomeStazione,
+                    raw
+                });
+
+                break;
+            }
+        }
+
+        // Se non è stata trovata
+        if (!raw) {
+            console.error(
+                "🔴 Stazione LIMET non trovata:",
+                nomeStazione
+            );
             return;
-
         }
 
-        // Cache-busting sull'URL, altrimenti si rischia di leggere sempre la stessa risposta
-// =========================================
-// URL CON CORS PROXY (con API key)
-// =========================================
-
-const baseUrl = stationData.url.split("?")[0];
-
-const targetUrl = baseUrl + "?_=" + Date.now();
-
-const url =
-    "https://corsproxy.io/?key=75226ba1&url=" +
-    encodeURIComponent(targetUrl);
-
-const res = await fetch(url);
-
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
-
-        const raw = await res.json();
-
-        console.log("🔵 CURRENT LIMET:", { nomeStazione, raw });
-
+        // Salva i dati nel formato usato dal resto del programma
         latestData[nomeStazione] = {
 
             source: "LIMET",
 
-            temp: parseNumLimet(raw.temp),
-            tempLow: parseNumLimet(raw.tempTL),
-            tempHigh: parseNumLimet(raw.tempTH),
+            // Temperatura
+            temp: parseNumLimet(raw.T),
+            tempLow: parseNumLimet(raw.TL),
+            tempHigh: parseNumLimet(raw.TH),
 
-            dewp: parseNumLimet(raw.dew),
-            dewpLow: parseNumLimet(raw.dewpointTL),
-            dewpHigh: parseNumLimet(raw.dewpointTH),
+            // Dew point
+            dewp: parseNumLimet(raw.D),
+            dewpLow: parseNumLimet(raw.DL),
+            dewpHigh: parseNumLimet(raw.DH),
 
-            heat: parseNumLimet(raw.heatindex),
-            heatLow: parseNumLimet(raw.heatindex),   // LIMET non fornisce una minima giornaliera
-            heatHigh: parseNumLimet(raw.heatindexTH),
+            // Heat index
+            heat: parseNumLimet(raw.HI),
+            heatLow: null,
+            heatHigh: null,
 
-            hum: parseNumLimet(raw.hum),
-            humLow: parseNumLimet(raw.humTL),
-            humHigh: parseNumLimet(raw.humTH),
+            // Umidità
+            hum: parseNumLimet(raw.H),
+            humLow: parseNumLimet(raw.HL),
+            humHigh: parseNumLimet(raw.HH),
 
-            rainDaily: parseNumLimet(raw.rfall),
-            rainRate: parseNumLimet(raw.rrate),
+            // Pioggia
+            rainDaily: parseNumLimet(raw.R),
+            rainRate: parseNumLimet(raw.RR),
 
-            wind: parseNumLimet(raw.wspeed),
-            windGust: parseNumLimet(raw.wgust),
-            windGustHigh: parseNumLimet(raw.wgustTM),
+            // Vento
+            wind: parseNumLimet(raw.V),
+            windGust: parseNumLimet(raw.VR),
+            windGustHigh: null,
 
-            windDir: parseNumLimet(raw.bearing),
+            // Direzione vento
+            windDir: null,
 
-            pressure: parseNumLimet(raw.press),
-            pressLow: parseNumLimet(raw.pressTL),
-            pressHigh: parseNumLimet(raw.pressTH),
+            // Pressione
+            pressure: parseNumLimet(raw.P),
+            pressLow: null,
+            pressHigh: null,
 
-            uv: parseNumLimet(raw.UV),
-            uvHigh: parseNumLimet(raw.UVTH),
+            // UV
+            uv: null,
+            uvHigh: null,
 
-            rad: parseNumLimet(raw.SolarRad),
-            radHigh: parseNumLimet(raw.CurrentSolarMax)
+            // Radiazione solare
+            rad: null,
+            radHigh: null
 
         };
 
@@ -1241,13 +1264,14 @@ const res = await fetch(url);
 
     } catch (err) {
 
-        console.error(`🔴 Errore fetch LIMET ${nomeStazione}:`, err);
+        console.error(
+            `🔴 Errore fetch LIMET ${nomeStazione}:`,
+            err
+        );
+
         throw err;
-
     }
-
-}
-async function fetchPws(id) {
+}async function fetchPws(id) {
 
     try {
 
