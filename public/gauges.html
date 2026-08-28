@@ -1175,14 +1175,16 @@ async function fetchLimet(nomeStazione) {
 
         // Cache-busting sull'URL, altrimenti si rischia di leggere sempre la stessa risposta
 // =========================================
-// URL CON CORS PROXY
+// URL CON CORS PROXY (con API key)
 // =========================================
 
 const baseUrl = stationData.url.split("?")[0];
 
 const targetUrl = baseUrl + "?_=" + Date.now();
 
-const url = "https://corsproxy.io/?url=" + encodeURIComponent(targetUrl);
+const url =
+    "https://corsproxy.io/?key=75226ba1&url=" +
+    encodeURIComponent(targetUrl);
 
 const res = await fetch(url);
 
