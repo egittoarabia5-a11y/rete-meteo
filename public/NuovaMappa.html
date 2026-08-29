@@ -1356,9 +1356,13 @@ const fetch3R = async () => {
     if (!data?.stations) return;
 
     data.stations.forEach((st) => {
-
+  console.log("STAZIONE COMPLETA:", st);
+  console.log("ID:", st.id);
+  console.log("N:", st.N);
       const id = st.id;
       if (!id) return;
+
+      const N = st.N;
 
       const lat = Number(st.lat);
       const lon = Number(st.lon);
@@ -1367,6 +1371,10 @@ const fetch3R = async () => {
 
       allStations[id] = {
         source: "3R",
+
+        // ===== IDENTIFICAZIONE =====
+        id: id,
+        N: N,
 
         // ===== TEMPERATURE =====
         temp: st.T ?? null,
@@ -1406,8 +1414,7 @@ const fetch3R = async () => {
         rainRateLow: null,
 
         lat,
-        lon,
-        id
+        lon
       };
 
       updateLayer(id);
@@ -1997,9 +2004,9 @@ const fetchComuneGenova = async () => {
         dewp: st.D ?? null,
         dewpHigh: st.DH ?? null,
         dewpLow: st.DL ?? null,
-        heat: null,
-        heatHigh: null,
-        heatLow: st.TL ?? null,
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
 
         lat,
         lon
