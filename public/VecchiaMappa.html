@@ -80,6 +80,7 @@
     <label><input type="checkbox" class="sourceFilter" value="Wunderground"> Wunderground</label><br>
     <label><input type="checkbox" class="sourceFilter" value="CentroMeteoLombardo"> CML</label>
     <label><input type="checkbox" class="sourceFilter" value="DatiMeteoAsti"> DMA</label><br>
+    <label><input type="checkbox" class="sourceFilter" value="FMT"> FMT</label><br>
     <label><input type="checkbox" class="sourceFilter" value="WeatherLink"> Reti Minori </label><br>
   </div>
   <div id="reloadBtn" style="
@@ -400,7 +401,7 @@ function getStationMeta(id) {
   const maps = {
     stations, stationsLimet, stations3R, stationsTorinoMeteo, stationsNetAtmo,
     stationsOMIRL, stationsCML, stationsDMA, stationsMeteoTortona,
-    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL, stationsSM, stationsAERIS,
+    stations1, stations2, stations3, stationsIgnorete, stationsComuneGenova, stationsWL, stationsSM, stationsAERIS, stationsFMT
   };
   const defaultSource = {
     stations: 'Wunderground',
@@ -420,6 +421,7 @@ function getStationMeta(id) {
     stationsWL: 'WeatherLink',
     stationsSM: 'WeatherLink',
     stationsAERIS: 'WeatherLink',
+    stationsFMT: 'FMT',
   };
 
   for (const key of Object.keys(maps)) {
@@ -762,7 +764,8 @@ const loadedSources = {
   Wunderground: false,
   CentroMeteoLombardo: false,
   DMA: false,
-  OMIRL: false
+  OMIRL: false,
+  FMT: false,
 };
 document.querySelectorAll('.sourceFilter').forEach(cb => {
   cb.addEventListener('change', (e) => {
@@ -1463,7 +1466,8 @@ async function fetchNetAtmo() {
         console.error(`Errore fetch dati ${id}:`, err);
       }
     }
-    const stationsOMIRL = {}; // qui salviamo tutte le stazioni OMIRL
+    const stationsOMIRL = {};
+    const stationsFMT = {}; // qui salviamo tutte le stazioni FMT
 
 async function fetchOMIRL() {
   try {
@@ -1530,7 +1534,81 @@ async function fetchOMIRL() {
     console.error("Errore fetch OMIRL:", err);
   }
 }
+async function fetchFMT() {
+  try {
 
+    const urls = [
+      "https://api-stazioni-meteo.eggittof.workers.dev/fmt.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/fmt2.json",
+      "https://api-stazioni-meteo.eggittof.workers.dev/fmt3.json"
+    ];
+
+    // Esegue i 3 fetch contemporaneamente
+    const responses = await Promise.all(
+      urls.map(url => fetch(url))
+    );
+
+    const dataArrays = await Promise.all(
+      responses.map(res => res.json())
+    );
+
+    dataArrays.forEach((data) => {
+
+      if (!Array.isArray(data)) return;
+
+      data.forEach((stationData) => {
+
+        // Ignora il timestamp
+        if (!stationData.ID) return;
+
+        const id = stationData.ID;
+
+        const lat = stationData.LAT != null
+          ? parseFloat(stationData.LAT)
+          : null;
+
+        const lon = stationData.LON != null
+          ? parseFloat(stationData.LON)
+          : null;
+
+        const name = stationData.N ?? id;
+
+        const rainDaily = stationData.R != null
+          ? parseFloat(stationData.R)
+          : null;
+
+        latestData[id] = {
+          source: "FMT",
+          name,
+          rainDaily,
+          lat,
+          lon,
+
+          isInactive: rainDaily == null
+        };
+
+        stationsFMT[id] = {
+          lat,
+          lon
+        };
+
+        if (lat != null && lon != null) {
+
+          if (!markers[id]) {
+            createMarker(id, lat, lon);
+          }
+
+          updateMarker(id);
+        }
+
+      });
+
+    });
+
+  } catch (err) {
+    console.error("Errore fetch FMT:", err);
+  }
+}
 
 async function fetchCML() {
   try {
@@ -1893,6 +1971,7 @@ startSourceUpdates(source, () => {
     case "Ignorete": return fetchIgnorete();
     case "DatiMeteoAsti": return fetchDMA();
     case "OMIRL": return fetchOMIRL();
+    case "FMT": return fetchFMT();
     case "CentroMeteoLombardo": return fetchCML();
     case "WeatherLink": 
       fetchWL();
@@ -1922,6 +2001,7 @@ function fetchBySource(source) {
     case "Ignorete": return fetchIgnorete();
     case "DatiMeteoAsti": return fetchDMA();
     case "OMIRL": return fetchOMIRL();
+    case "FMT": return fetchFMT();
     case "CentroMeteoLombardo": return fetchCML();
     case "Wunderground": return fetchPwsAll();
     case "WeatherLink":
@@ -1944,6 +2024,7 @@ document.getElementById("tempSelect").addEventListener("change", () =>
   Object.keys(stationsTorinoMeteo).forEach(id => updateMarker(id)); 
   Object.keys(stationsCML).forEach(id => updateMarker(id)); 
   Object.keys(stationsOMIRL).forEach(id => updateMarker(id)); 
+  Object.keys(stationsFMT).forEach(id => updateMarker(id));
   Object.keys(stations3R).forEach(id => updateMarker(id)); 
   Object.keys(stationsMeteoTortona).forEach(id => updateMarker(id)); 
   Object.keys(stationsDMA).forEach(id => updateMarker(id)); 
