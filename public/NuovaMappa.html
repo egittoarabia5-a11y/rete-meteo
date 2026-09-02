@@ -226,6 +226,34 @@
 #regionMenu button:hover{
   background:#f0f0f0;
 }
+.varRow {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  width: 100%;
+}
+
+.varRow button {
+  width: auto;
+  flex: 1;
+  box-sizing: border-box;
+  background: #eeeeee;
+  border: none;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.varRow button:first-child {
+  width: 60%;
+  flex: none;
+}
+
+.varRow button:last-child {
+  width: 40%;
+  flex: none;
+}
+.varRow button:hover {
+  background: #e0e0e0;
+}
 </style>
 </head>
 <div id="regionControl">
@@ -253,17 +281,30 @@
 <div id="variableControl">
 
   <!-- TEMPERATURA -->
-  <div class="dropdown">
-    <button class="varButton" id="tempButton">
-      <img src="https://i.ibb.co/wFphv6Nw/1780391956635.png" alt="1780391956635" border="0">
-    </button>
+<div class="dropdown">
+  <button class="varButton" id="tempButton">
+    <img src="https://i.ibb.co/wFphv6Nw/1780391956635.png" alt="Temperatura">
+  </button>
 
-    <div class="dropdownMenu" id="tempMenu">
-      <button data-var="temp" data-mode="current">Attuale</button>
-      <button data-var="temp" data-mode="max">Massimo</button>
-      <button data-var="temp" data-mode="min">Minimo</button>
+  <div class="dropdownMenu" id="tempMenu">
+
+    <div class="varRow">
+      <button data-var="temp" data-mode="current">Temperatura</button>
+      <button data-var="temp" data-mode="current-anom">Anom.</button>
     </div>
+
+    <div class="varRow">
+      <button data-var="temp" data-mode="max">Massimo</button>
+      <button data-var="temp" data-mode="max-anom">Anom.</button>
+    </div>
+
+    <div class="varRow">
+      <button data-var="temp" data-mode="min">Minimo</button>
+      <button data-var="temp" data-mode="min-anom">Anom.</button>
+    </div>
+
   </div>
+</div>
 
   <!-- DEWPOINT -->
   <div class="dropdown">
@@ -566,6 +607,66 @@ function getColor(variable, value) {
     else if (value < 50) return "#4da9ff";
     return "#2c278e";
   }
+if (variable === "anom") {
+
+  if (value === null || isNaN(value)) return "#808080";
+
+  // NEUTRO
+  if (value === 0) return "#d0d0d0";
+
+  // =========================
+  // ANOMALIE NEGATIVE
+  // =========================
+  if (value < 0) {
+    if (value > -0.5) return "#abdcff";
+    else if (value > -1) return "#a4d1fd";
+    else if (value > -1.5) return "#abbbff";
+    else if (value > -2) return "#85adff";
+    else if (value > -2.5) return "#618dff";
+    else if (value > -3) return "#4372ff";
+    else if (value > -3.5) return "#065bff";
+    else if (value > -4) return "#014cdd";
+    else if (value > -4.5) return "#3232ff";
+    else if (value > -5) return "#0034e8";
+    else if (value > -6) return "#0033ad";
+    else if (value > -7) return "#00338e";
+    else if (value > -8) return "#001d69";
+    else if (value > -9) return "#00034f";
+    else if (value > -10) return "#7e173a";
+    else if (value > -11) return "#3c177e";
+    else if (value > -12) return "#9a707e";
+    else if (value > -13) return "#9a707e";
+    else if (value > -14) return "#383838";
+    else return "#000000";
+  }
+
+  // =========================
+  // ANOMALIE POSITIVE
+  // =========================
+  if (value > 0) {
+    if (value < 0.5) return "#ffefab";
+    else if (value < 1) return "#ffd4ab";
+    else if (value < 1.5) return "#ffceab";
+    else if (value < 2) return "#ffbfab";
+    else if (value < 2.5) return "#ffabab";
+    else if (value < 3) return "#ff6c6c";
+    else if (value < 3.5) return "#fa4848";
+    else if (value < 4) return "#ff3232";
+    else if (value < 4.5) return "#e80000";
+    else if (value < 5) return "#ad0000";
+    else if (value < 6) return "#8e0000";
+    else if (value < 7) return "#690000";
+    else if (value < 8) return "#4f0000";
+    else if (value < 9) return "#7e173a";
+    else if (value < 10) return "#9a4c66";
+    else if (value < 11) return "#9a707e";
+    else if (value < 12) return "#6d6367";
+    else if (value < 13) return "#383838";
+    else return "#000000";
+  }
+
+  return "#d0d0d0";
+}
 
   // Temperatura / Dewpoint / Heat  if (value < -20) return "#9d8cac";
   if (value < -15) return "#f54dff";
@@ -605,15 +706,32 @@ function getValueAndColor(st) {
 
   const mode = modes[currentVariable];
   let value = null;
+  let colorVariable = currentVariable;
 
-  const get = (base) =>
-    mode === "current"
-      ? st[base]
-      : mode === "max"
-      ? st[base + "High"]
-      : st[base + "Low"];
+  const get = (base) => {
+    if (mode === "current") return st[base];
+    if (mode === "max") return st[base + "High"];
+    if (mode === "min") return st[base + "Low"];
 
-  if (currentVariable === "temp") value = get("temp");
+    if (mode === "current-anom") return st[base + "MeanAnom"];
+    if (mode === "max-anom") return st[base + "HighAnom"];
+    if (mode === "min-anom") return st[base + "LowAnom"];
+
+    return null;
+  };
+
+  if (currentVariable === "temp") {
+    value = get("temp");
+
+    if (
+      mode === "current-anom" ||
+      mode === "max-anom" ||
+      mode === "min-anom"
+    ) {
+      colorVariable = "anom";
+    }
+  }
+
   else if (currentVariable === "dewp") value = get("dewp");
   else if (currentVariable === "heat") value = get("heat");
   else if (currentVariable === "hum") value = get("hum");
@@ -628,7 +746,7 @@ function getValueAndColor(st) {
 
   return {
     value,
-    color: getColor(currentVariable, value),
+    color: getColor(colorVariable, value),
     valueStr: value !== null ? value.toFixed(1) : ""
   };
 }
@@ -673,6 +791,7 @@ function normalizeVariable(v) {
   if (v === "humidity" || v === "hum" || v === "UR") return "hum";
   if (v === "temp" || v === "temperature") return "temp";
   if (v === "dewp") return "dewp";
+  if (v === "anom") return "anom";
   if (v === "heat") return "heat";
   if (v === "rainDaily") return "rainDaily";
   if (v === "rainRate") return "rainRate";
@@ -1101,6 +1220,19 @@ map.on('zoom', () => {
     updateLayer();
   }
 });
+
+// =====================================================
+// CARICAMENTO CLIMATOLOGIA
+// =====================================================
+
+const climatologiaPromise = fetch("/climatologia.json")
+  .then(res => {
+    if (!res.ok) {
+      throw new Error(`Errore HTTP climatologia: ${res.status}`);
+    }
+
+    return res.json();
+  });
 
 
 const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
@@ -2283,8 +2415,44 @@ async function fetchPWSWorld() {
     console.error("❌ fetchAeris error:", err);
   }
 }
+
+// =====================================================
+// FETCH STAZIONI AERIS GENOVA
+// =====================================================
+
 async function fetchPWSGenova() {
   try {
+
+    // Carica la climatologia
+    const climatologia = await climatologiaPromise;
+
+    // =====================================================
+    // DATA ODIERNA
+    // =====================================================
+
+    const now = new Date();
+
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
+    const climatologyDay = `${month}-${day}`;
+
+    // =====================================================
+    // CLIMATOLOGIA DEL GIORNO
+    // =====================================================
+
+    const climate =
+      climatologia?.genova_sestri_ponente?.daily?.[climatologyDay] ?? null;
+
+    if (!climate) {
+      console.warn(
+        `⚠️ Nessun dato climatologico per ${climatologyDay}`
+      );
+    }
+
+    // =====================================================
+    // FETCH AERIS
+    // =====================================================
 
     const res = await fetch(
       "https://api-stazioni-meteo.eggittof.workers.dev/aeris.json"
@@ -2292,11 +2460,14 @@ async function fetchPWSGenova() {
 
     const data = await res.json();
 
-
     if (!data?.stations) {
       console.warn("❌ nessuna stations");
       return;
     }
+
+    // =====================================================
+    // STAZIONI
+    // =====================================================
 
     data.stations.forEach(st => {
 
@@ -2305,38 +2476,117 @@ async function fetchPWSGenova() {
       const lat = Number(st.lat);
       const lon = Number(st.lon);
 
+      // Ignora stazioni senza coordinate
       if (!lat || !lon) return;
 
+
+      // =====================================================
+      // TEMPERATURE
+      // =====================================================
+
+      const temp = st.T ?? null;
+      const tempHigh = st.TH ?? null;
+      const tempLow = st.TL ?? null;
+
+
+      // =====================================================
+      // ANOMALIE TEMPERATURE
+      // =====================================================
+
+      // Media temperatura:
+      // per ora lasciata volutamente a 0
+
+      const tempMeanAnom = 0;
+
+      let tempHighAnom = null;
+      let tempLowAnom = null;
+
+
+      if (climate) {
+
+        // ---------------------------------------------
+        // ANOMALIA MASSIMA
+        // Tmax osservata - media Tmax climatologica
+        // ---------------------------------------------
+
+        if (
+          tempHigh !== null &&
+          climate.tmax !== null &&
+          climate.tmax !== undefined
+        ) {
+
+          tempHighAnom =
+            Number(tempHigh) - Number(climate.tmax);
+
+        }
+
+
+        // ---------------------------------------------
+        // ANOMALIA MINIMA
+        // Tmin osservata - media Tmin climatologica
+        // ---------------------------------------------
+
+        if (
+          tempLow !== null &&
+          climate.tmin !== null &&
+          climate.tmin !== undefined
+        ) {
+
+          tempLowAnom =
+            Number(tempLow) - Number(climate.tmin);
+
+        }
+
+      }
+
+
+      // =====================================================
+      // SALVATAGGIO STAZIONE
+      // =====================================================
+
       allStations[id] = {
+
         id,
         source: "AERIS",
 
         // ================= TEMPERATURE =================
-        temp: st.T ?? null,
-        tempHigh: st.TH ?? null,
-        tempLow: st.TL ?? null,
+
+        temp,
+        tempHigh,
+        tempLow,
+
+        // ================= ANOMALIE =================
+
+        tempMeanAnom,
+        tempHighAnom,
+        tempLowAnom,
 
         // ================= DEWPOINT =================
+
         dewp: st.D ?? null,
         dewpHigh: st.DH ?? null,
         dewpLow: st.DL ?? null,
 
         // ================= HEAT INDEX =================
+
         heat: st.HI ?? null,
         heatHigh: st.HIH ?? null,
         heatLow: st.HIL ?? null,
 
         // ================= HUMIDITY =================
+
         hum: st.H ?? null,
         humHigh: st.HH ?? null,
         humLow: st.HL ?? null,
 
         // ================= PRESSURE =================
+
         pressure: st.P ?? null,
         pressureHigh: st.PH ?? null,
         pressureLow: st.PL ?? null,
 
         // ================= WIND =================
+
         wind: st.V ?? null,
         windHigh: st.VH ?? null,
         windLow: st.VL ?? null,
@@ -2347,24 +2597,36 @@ async function fetchPWSGenova() {
         windDir: st.WD ?? null,
 
         // ================= PRECIPITATION =================
+
         rainDaily: st.R ?? null,
         rainRate: st.RR ?? null,
 
         // ================= RADIATION =================
+
         rad: st.RAD ?? null,
         radHigh: st.RADH ?? null,
         radLow: st.RADL ?? null,
 
         // ================= META =================
+
         lat,
         lon,
         time: st.timestamp ?? null
       };
+
+
+      // =====================================================
+      // AGGIORNA MAPPA
+      // =====================================================
+
       updateLayer(id);
+
     });
 
   } catch (err) {
-    console.error("❌ fetchAeris error:", err);
+
+    console.error("❌ fetchAERIS error:", err);
+
   }
 }
 async function fetchNetatmoGenova() {
