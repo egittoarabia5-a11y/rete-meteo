@@ -234,23 +234,28 @@
 }
 
 .varRow button {
-  width: auto;
-  flex: 1;
   box-sizing: border-box;
   background: #eeeeee;
   border: none;
   padding: 8px 10px;
   cursor: pointer;
 }
+
 .varRow button:first-child {
-  width: 60%;
+  width: 30%;
+  flex: none;
+}
+
+.varRow button:nth-child(2) {
+  width: 40%;
   flex: none;
 }
 
 .varRow button:last-child {
-  width: 40%;
+  width: 30%;
   flex: none;
 }
+
 .varRow button:hover {
   background: #e0e0e0;
 }
@@ -289,16 +294,19 @@
   <div class="dropdownMenu" id="tempMenu">
 
     <div class="varRow">
+      <button data-var="temp" data-mode="current-mean">Media</button>
       <button data-var="temp" data-mode="current">Temperatura</button>
       <button data-var="temp" data-mode="current-anom">Anom.</button>
     </div>
 
     <div class="varRow">
+      <button data-var="temp" data-mode="max-mean">Media</button>
       <button data-var="temp" data-mode="max">Massimo</button>
       <button data-var="temp" data-mode="max-anom">Anom.</button>
     </div>
 
     <div class="varRow">
+      <button data-var="temp" data-mode="min-mean">Media</button>
       <button data-var="temp" data-mode="min">Minimo</button>
       <button data-var="temp" data-mode="min-anom">Anom.</button>
     </div>
@@ -649,19 +657,19 @@ if (variable === "anom") {
     else if (value < 1.5) return "#ffbea4";
     else if (value < 2) return "#ffa28f";
     else if (value < 2.5) return "#ff8989";
-    else if (value < 3) return "#ff6c6c";
-    else if (value < 3.5) return "#fa4848";
-    else if (value < 4) return "#ff3232";
-    else if (value < 4.5) return "#e80000";
-    else if (value < 5) return "#ad0000";
-    else if (value < 6) return "#8e0000";
-    else if (value < 7) return "#690000";
-    else if (value < 8) return "#4f0000";
-    else if (value < 9) return "#7e173a";
-    else if (value < 10) return "#9a4c66";
-    else if (value < 11) return "#9a707e";
-    else if (value < 12) return "#6d6367";
-    else if (value < 13) return "#383838";
+    else if (value < 3) return "#f96262";
+    else if (value < 3.5) return "#dd4c4c";
+    else if (value < 4) return "#df4444";
+    else if (value < 4.5) return "#c04040";
+    else if (value < 5) return "#ab4646";
+    else if (value < 6) return "#974646";
+    else if (value < 7) return "#783333";
+    else if (value < 8) return "#6a3c3c";
+    else if (value < 9) return "#bb5275";
+    else if (value < 10) return "#b55b79";
+    else if (value < 11) return "#a37685";
+    else if (value < 12) return "#796e72";
+    else if (value < 13) return "#515151";
     else return "#000000";
   }
 
@@ -843,71 +851,146 @@ function showPopup(feature) {
   const station = allStations[id] || {}; 
 
   const variable = normalizeVariable(currentVariable); 
+const currentMode = modes[currentVariable];
 
+const isAnom =
+  currentVariable === "temp" &&
+  (
+    currentMode === "current-anom" ||
+    currentMode === "max-anom" ||
+    currentMode === "min-anom"
+  );
+
+const colorVariable = isAnom ? "anom" : variable;
   const value = Number(props.value); 
   const valueStr = props.valueStr ?? "—"; 
 
   const isRain = variable === "rainDaily" || variable === "rainRate"; 
 
-  const getColor = (v, variable) => { 
+  const getColor = (v, variable) => {
 
-    if (v == null || isNaN(v)) return "#808080"; 
+  if (v == null || isNaN(v)) return "#808080";
 
-    if (variable === "hum") { 
-      if (v < 20) return "#b44141"; 
-      else if (v < 30) return "#ff6262"; 
-      else if (v < 40) return "#ff9d56"; 
-      else if (v < 50) return "#f1d800"; 
-      else if (v < 60) return "#65d050"; 
-      else if (v < 70) return "#6ca561"; 
-      else if (v < 80) return "#4dc8ff"; 
-      else if (v < 90) return "#4da9ff"; 
-      return "#4d54ff"; 
-    } 
+  // =========================
+  // SCALA ANOMALIE
+  // =========================
+  if (variable === "anom") {
 
-    if (variable === "rainDaily" || variable === "rainRate") { 
-      if (v === 0) return "#808080"; 
-      else if (v < 2) return "#f9ae6c"; 
-      else if (v < 5) return "#f9966c"; 
-      else if (v < 10) return "#6ca561"; 
-      else if (v < 20) return "#65d050"; 
-      else if (v < 30) return "#4dc8ff"; 
-      else if (v < 50) return "#4da9ff"; 
-      return "#2c278e"; 
-    } 
+    // NEUTRO
+    if (v === 0) return "#d0d0d0";
 
-    if (v < -15) return "#f54dff"; 
-    if (v < -10) return "#c65bff"; 
-    if (v < -4) return "#4d54ff"; 
-    if (v < -2) return "#1f7eb9"; 
-    if (v <= 0) return "#539eb0"; 
-    if (v < 2) return "#67bac8"; 
-    if (v < 4) return "#5ac5ba"; 
-    if (v < 6) return "#42a37b"; 
-    if (v < 8) return "#538b53"; 
-    if (v < 10) return "#43af43"; 
-    if (v < 12) return "#7dd049"; 
-    if (v < 14) return "#abd84b"; 
-    if (v < 16) return "#ced854"; 
-    if (v < 18) return "#e8d541"; 
-    if (v < 20) return "#ffcc55"; 
-    if (v < 22) return "#ffaf54"; 
-    if (v < 24) return "#fa8f4b"; 
-    if (v < 26) return "#f26969"; 
-    if (v < 28) return "#de5a5a"; 
-    if (v < 30) return "#b05151"; 
-    if (v < 32) return "#994848"; 
-    if (v < 34) return "#743e3e"; 
-    if (v < 36) return "#b874b8"; 
-    if (v < 38) return "#ea7bea"; 
-    if (v >= 38) return "#995a99"; 
-    if (v >= 40) return "#747474"; 
-    if (v >= 42) return "#5a433e"; 
-    if (v >= 44) return "#785c55"; 
-    if (v >= 46) return "#9b8987"; 
+    // ANOMALIA NEGATIVA
+    if (v < 0) {
+      if (v > -0.5) return "#abdcff";
+      else if (v > -1) return "#a4d1fd";
+      else if (v > -1.5) return "#abbbff";
+      else if (v > -2) return "#85adff";
+      else if (v > -2.5) return "#618dff";
+      else if (v > -3) return "#4372ff";
+      else if (v > -3.5) return "#065bff";
+      else if (v > -4) return "#014cdd";
+      else if (v > -4.5) return "#3232ff";
+      else if (v > -5) return "#0034e8";
+      else if (v > -6) return "#0033ad";
+      else if (v > -7) return "#00338e";
+      else if (v > -8) return "#001d69";
+      else if (v > -9) return "#00034f";
+      else if (v > -10) return "#7e173a";
+      else if (v > -11) return "#3c177e";
+      else if (v > -12) return "#9a707e";
+      else if (v > -13) return "#9a707e";
+      else if (v > -14) return "#383838";
+      else return "#000000";
+    }
 
-    return "#222222"; 
-  }; 
+    // ANOMALIA POSITIVA
+    if (v > 0) {
+      if (v < 0.5) return "#dabbb2";
+      else if (v < 1) return "#f5bcaa";
+      else if (v < 1.5) return "#ffbea4";
+      else if (v < 2) return "#ffa28f";
+      else if (v < 2.5) return "#ff8989";
+      else if (v < 3) return "#f96262";
+      else if (v < 3.5) return "#dd4c4c";
+      else if (v < 4) return "#df4444";
+      else if (v < 4.5) return "#c04040";
+      else if (v < 5) return "#ab4646";
+      else if (v < 6) return "#974646";
+      else if (v < 7) return "#783333";
+      else if (v < 8) return "#6a3c3c";
+      else if (v < 9) return "#bb5275";
+      else if (v < 10) return "#b55b79";
+      else if (v < 11) return "#a37685";
+      else if (v < 12) return "#796e72";
+      else if (v < 13) return "#515151";
+      else return "#000000";
+    }
+
+    return "#d0d0d0";
+  }
+
+  // =========================
+  // UMIDITÀ
+  // =========================
+  if (variable === "hum") {
+    if (v < 20) return "#b44141";
+    else if (v < 30) return "#ff6262";
+    else if (v < 40) return "#ff9d56";
+    else if (v < 50) return "#f1d800";
+    else if (v < 60) return "#65d050";
+    else if (v < 70) return "#6ca561";
+    else if (v < 80) return "#4dc8ff";
+    else if (v < 90) return "#4da9ff";
+    return "#4d54ff";
+  }
+
+  // =========================
+  // PIOGGIA
+  // =========================
+  if (variable === "rainDaily" || variable === "rainRate") {
+    if (v === 0) return "#808080";
+    else if (v < 2) return "#f9ae6c";
+    else if (v < 5) return "#f9966c";
+    else if (v < 10) return "#6ca561";
+    else if (v < 20) return "#65d050";
+    else if (v < 30) return "#4dc8ff";
+    else if (v < 50) return "#4da9ff";
+    return "#2c278e";
+  }
+
+  // =========================
+  // TEMPERATURA / DEWPOINT / HEAT
+  // =========================
+  if (v < -15) return "#f54dff";
+  if (v < -10) return "#c65bff";
+  if (v < -4) return "#4d54ff";
+  if (v < -2) return "#1f7eb9";
+  if (v <= 0) return "#539eb0";
+  if (v < 2) return "#67bac8";
+  if (v < 4) return "#5ac5ba";
+  if (v < 6) return "#42a37b";
+  if (v < 8) return "#538b53";
+  if (v < 10) return "#43af43";
+  if (v < 12) return "#7dd049";
+  if (v < 14) return "#abd84b";
+  if (v < 16) return "#ced854";
+  if (v < 18) return "#e8d541";
+  if (v < 20) return "#ffcc55";
+  if (v < 22) return "#ffaf54";
+  if (v < 24) return "#fa8f4b";
+  if (v < 26) return "#f26969";
+  if (v < 28) return "#de5a5a";
+  if (v < 30) return "#b05151";
+  if (v < 32) return "#994848";
+  if (v < 34) return "#743e3e";
+  if (v < 36) return "#b874b8";
+  if (v < 38) return "#ea7bea";
+  if (v < 40) return "#995a99";
+  if (v < 42) return "#747474";
+  if (v < 44) return "#5a433e";
+  if (v < 46) return "#785c55";
+  return "#9b8987";
+};
 
   const hexToRgba = (hex, a = 0.3) => { 
     const h = hex.replace("#", ""); 
@@ -954,7 +1037,7 @@ function showPopup(feature) {
 
   const fmt = v => 
     v == null || isNaN(v) ? "—" : Number(v).toFixed(1); 
-  const baseColor = getColor(value, variable); 
+const baseColor = getColor(value, colorVariable);
   const overlay = hexToRgba(baseColor, 0.3); 
 
   // 📊 URL GAUGES
@@ -1398,12 +1481,6 @@ if (id === "ILIGURIA67" && climate) {
       const climateTmin = Number(climate.tmin) - 1.1;
       if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom =Number(tempLow) - climateTmin;}
     }
-    else if (id === "IGENOA2897" && climate) {
-      const climateTmean = Number(climate.tmean) - 1.1;
-      const climateTmax = Number(climate.tmax) - 0.5;
-      const climateTmin = Number(climate.tmin) - 0.9;
-      if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom =Number(tempLow) - climateTmin;}
-    }
     else if (id === "IGENOA2728" && climate) {
       const climateTmean = Number(climate.tmean) - 1.1;
       const climateTmax = Number(climate.tmax) - 0.5;
@@ -1667,6 +1744,111 @@ if (id === "GEPEG" && climate) {
           Number(climate.tmax) - 2.3;
         const climateTmin =
           Number(climate.tmin) - 5.0;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "FFRES" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 4.7;
+        const climateTmin =
+          Number(climate.tmin) - 5.4;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "PTURC" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 4.5;
+        const climateTmin =
+          Number(climate.tmin) - 7.2;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "CAMOG" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 0.1;
+        const climateTmin =
+          Number(climate.tmin) + 0.2;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "MTPOR" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 2.6;
+        const climateTmin =
+          Number(climate.tmin) - 4.0;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "RAPAL" && climate) {
+        const climateTmax =
+          Number(climate.tmax) + 0.9;
+        const climateTmin =
+          Number(climate.tmin) - 3.5;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "CHIRI" && climate) {
+        const climateTmax =
+          Number(climate.tmax) + 0.3;
+        const climateTmin =
+          Number(climate.tmin) - 0.9;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "PRTTI" && climate) {
+        const climateTmax =
+          Number(climate.tmax) + 1.0;
+        const climateTmin =
+          Number(climate.tmin) - 4.7;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "OGNIO" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 2.9;
+        const climateTmin =
+          Number(climate.tmin) - 3.9;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "SALBE" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 2.5;
+        const climateTmin =
+          Number(climate.tmin) - 5.0;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "TRRIG" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 3.3;
+        const climateTmin =
+          Number(climate.tmin) - 5.3;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "DAVAG" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 0.3;
+        const climateTmin =
+          Number(climate.tmin) - 5.7;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "CABAN" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 3.4;
+        const climateTmin =
+          Number(climate.tmin) - 10.1;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "CRORE" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 1.9;
+        const climateTmin =
+          Number(climate.tmin) - 5.1;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "ISOVE" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 0.9;
+        const climateTmin =
+          Number(climate.tmin) - 4.9;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "MONTG" && climate) {
+        const climateTmax =
+          Number(climate.tmax) - 2.2;
+        const climateTmin =
+          Number(climate.tmin) - 8.5;
         if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
       }
 
@@ -2517,14 +2699,7 @@ const fetchComuneGenova = async () => {
       let tempLowAnom = null;
 
 
-      // ==========================================
-      // CLIMATOLOGIA SAMPIERDARENA
-      // ==========================================
-      if (id === "Quezzi" && climate) {tempMeanAnom = 0;
-        const climateTmax = Number(climate.tmax) - 0.1;
-        const climateTmin = Number(climate.tmin) - 1.5;
-        if (tempHigh !== null) {tempHighAnom = Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
-      }
+
 
 
       // ==============================
@@ -3170,30 +3345,6 @@ async function fetchPWSGenova() {
         // Oregina: -0.8 °C sulle minime
         const climateTmin =
           Number(climate.tmin) - 0.8;
-
-        // Anomalia della massima
-        if (tempHigh !== null) {
-          tempHighAnom =
-            Number(tempHigh) - climateTmax;
-        }
-
-        // Anomalia della minima
-        if (tempLow !== null) {
-          tempLowAnom =
-            Number(tempLow) - climateTmin;
-        }
-      }
-            else if (id === "Genova S.Tecla" && climate) {
-
-        tempMeanAnom = 0;
-
-        // Oregina: -0.9 °C sulle massime
-        const climateTmax =
-          Number(climate.tmax) - 0.9;
-
-        // Oregina: -0.8 °C sulle minime
-        const climateTmin =
-          Number(climate.tmin) - 0.9;
 
         // Anomalia della massima
         if (tempHigh !== null) {
