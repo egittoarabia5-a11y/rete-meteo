@@ -434,7 +434,6 @@
   ICALIC12: { api: "ICALIC12", nome: "Posticcio", sovrastima: "no" },
   IORTON8: { api: "IORTON8", nome: "Casano", sovrastima: "no" },
   ILUNI5: { api: "ILUNI5", nome: "Luni", sovrastima: "no" },
-  IBARGAGL5: { api: "IBARGAGL5", nome: "Traso" },
   IBOGLI8: { api: "IBOGLI8", nome: "Bogliasco Poggio" },
   IDAVAG2: { api: "IDAVAG2", nome: "Davagna" },
   IMONTO47: { api: "IMONTO47", nome: "Montoggio-Bromia" },
@@ -452,10 +451,7 @@
   IGENOA3021: { api: "IGENOA3021", nome: "Genova Begato" },
   IGENOA3032: { api: "IGENOA3032", nome: "Genova Fontanegli" },
   IGENOA3080: { api: "IGENOA3080", nome: "Genova Boccadasse" },
-  IGENOA3058: { api: "IGENOA3058", nome: "Genova Via Chiodo" },
-  ILIGURIA67: { api: "ILIGURIA67", nome: "Genova Villa Scassi" },
   IGENOVAA2: { api: "IGENOVAA2" },
-  IBOGLI12: { api: "IBOGLI12", nome: "Bogliasco Via F.li Ferrari" },
   IGENOA3082: { api: "IGENOA3082", nome: "Geirato" },
   IURBE3: { api: "IURBE3", nome: "Passo del Faiallo", sovrastima: "no" },
   IVARAZ9: { api: "IVARAZ9", nome: "Piani D'Invrea", sovrastima: "no" },
@@ -1849,6 +1845,13 @@ if (id === "GEPEG" && climate) {
           Number(climate.tmax) - 2.2;
         const climateTmin =
           Number(climate.tmin) - 8.5;
+        if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+      }     
+      else if (id === "CAVIP" && climate) {
+        const climateTmax =
+          Number(climate.tmax) + 1.1;
+        const climateTmin =
+          Number(climate.tmin) - 1.2;
         if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
       }
 
@@ -3300,36 +3303,106 @@ async function fetchPWSGenova() {
       let tempLowAnom = null;
 
 
-      // ==========================================
-      // CLIMATOLOGIA GENOVA AEROPORTO
-      // ==========================================
+// ==========================================
+// CLIMATOLOGIA GENOVA AEROPORTO
+// ==========================================
 
-      if (id === "Genova Aeroporto" && climate) {
+if (id === "Genova Aeroporto" && climate) {
 
-        tempMeanAnom = 0;
+  tempMeanAnom = 0;
 
-        // Anomalia della massima
-        if (
-          tempHigh !== null &&
-          climate.tmax !== null &&
-          climate.tmax !== undefined
-        ) {
-          tempHighAnom =
-            Number(tempHigh) - Number(climate.tmax);
-        }
+  // Anomalia della massima
+  if (
+    tempHigh !== null &&
+    climate.tmax !== null &&
+    climate.tmax !== undefined
+  ) {
+    tempHighAnom =
+      Number(tempHigh) - Number(climate.tmax);
+  }
 
-        // Anomalia della minima
-        if (
-          tempLow !== null &&
-          climate.tmin !== null &&
-          climate.tmin !== undefined
-        ) {
-          tempLowAnom =
-            Number(tempLow) - Number(climate.tmin);
-        }
-      }
+  // Anomalia della minima
+  if (
+    tempLow !== null &&
+    climate.tmin !== null &&
+    climate.tmin !== undefined
+  ) {
+    tempLowAnom =
+      Number(tempLow) - Number(climate.tmin);
+  }
+}
 
 
+// ==========================================
+// CLIMATOLOGIA VILLANOVA AEROPORTO
+// BASATA SU ALBENGA
+// ==========================================
+
+else if (id === "Villanova Aeroporto") {
+
+  const albengaClimate =
+    climatologia?.albenga?.daily?.[climatologyDay] ?? null;
+
+  if (albengaClimate) {
+
+    tempMeanAnom = 0;
+
+    // Anomalia della massima
+    if (
+      tempHigh !== null &&
+      albengaClimate.tmax !== null &&
+      albengaClimate.tmax !== undefined
+    ) {
+      tempHighAnom =
+        Number(tempHigh) - Number(albengaClimate.tmax);
+    }
+
+    // Anomalia della minima
+    if (
+      tempLow !== null &&
+      albengaClimate.tmin !== null &&
+      albengaClimate.tmin !== undefined
+    ) {
+      tempLowAnom =
+        Number(tempLow) - Number(albengaClimate.tmin);
+    }
+  }
+}
+// ==========================================
+// CLIMATOLOGIA SARZANA AEROPORTO
+// BASATA SU SARZANA
+// ==========================================
+
+else if (id === "Sarzana Aeroporto") {
+
+  const sarzanaClimate =
+    climatologia?.sarzana?.daily?.[climatologyDay] ?? null;
+
+  if (sarzanaClimate) {
+
+    tempMeanAnom = 0;
+
+    // Anomalia della massima
+    if (
+      tempHigh !== null &&
+      sarzanaClimate.tmax !== null &&
+      sarzanaClimate.tmax !== undefined
+    ) {
+      tempHighAnom =
+        Number(tempHigh) - Number(sarzanaClimate.tmax);
+    }
+
+    // Anomalia della minima
+    if (
+      tempLow !== null &&
+      sarzanaClimate.tmin !== null &&
+      sarzanaClimate.tmin !== undefined
+    ) {
+      tempLowAnom =
+        Number(tempLow) - Number(sarzanaClimate.tmin);
+    }
+  }
+}
       // ==========================================
       // CLIMATOLOGIA GENOVA OREGINA
       // ==========================================
