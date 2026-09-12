@@ -35,7 +35,7 @@
     color: var(--paper);
     min-height:100vh;
     overflow-x:hidden;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
   }
 
   a{color:inherit;}
@@ -130,7 +130,7 @@
     filter: blur(70px);
     opacity:.85;
     z-index:0;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
     pointer-events:none;
   }
 
@@ -146,7 +146,7 @@
     flex-direction:column;
     justify-content:flex-end;
     padding: 28px 32px 32px;
-    transition: background 1.4s ease;
+    transition: background 3.5s ease-in-out;
     isolation:isolate;
   }
   .hero canvas{
@@ -162,7 +162,7 @@
     z-index:1;
     mix-blend-mode: soft-light;
     opacity:.6;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
     pointer-events:none;
   }
   .hero-vignette{
@@ -274,7 +274,7 @@
     min-height:76px;
     overflow:visible;
     z-index:0;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
   }
   .instrument-card::before{
     content:"";
@@ -285,7 +285,7 @@
     filter: blur(9px);
     opacity:.28;
     z-index:-1;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
     pointer-events:none;
   }
   .instrument-card .ic-label{
@@ -390,7 +390,7 @@
     color: var(--paper);
     z-index:0;
     overflow:visible;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
   }
   .avg-chip .chip-date{
     font-family:'Work Sans', sans-serif;
@@ -407,7 +407,7 @@
     filter: blur(9px);
     opacity:.28;
     z-index:-1;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
     pointer-events:none;
   }
 
@@ -435,7 +435,7 @@
     border:1px solid var(--line);
     border-radius:16px;
     padding:14px 14px 10px;
-    transition: background-color 1.2s ease;
+    transition: background-color 3.5s ease-in-out;
   }
   .chart-panel svg{ width:100%; height:200px; display:block; overflow:visible; }
   .chart-panel.mini{ padding:10px 10px 8px; }
@@ -1913,7 +1913,7 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 let prevMode = null;
 let prevParticles = [];
 let transitionStart = 0;
-const TRANSITION_MS = reduceMotion ? 0 : 1100;
+const TRANSITION_MS = reduceMotion ? 0 : 3500;
 
 function resizeCanvas(){
   canvas.width = hero.clientWidth;
@@ -2158,10 +2158,12 @@ function draw(){
 }
 
 /* ============================================================
-   DATI LIVE — centralina reale (Weather Underground / PWS API)
+   DATI LIVE — centralina reale (PWS) + METAR (condizione del cielo)
    ============================================================ */
 const LIVE_CURRENT_URL = 'https://api.weather.com/v2/pws/observations/current?apiKey=53b89abc03d14d7ab89abc03d1dd7ab6&stationId=IGENOA2897&numericPrecision=decimal&format=json&units=m';
 const LIVE_DAILY_URL = 'https://api.weather.com/v2/pws/dailysummary/1day?apiKey=53b89abc03d14d7ab89abc03d1dd7ab6&stationId=IGENOA2897&numericPrecision=decimal&format=json&units=m';
+const LIVE_METAR_URL = 'https://api-stazioni-meteo.eggittof.workers.dev/metar.json';
+const METAR_REFRESH_MS = 5 * 60 * 1000; // il METAR si aggiorna ogni 5 minuti
 const LIVE_REFRESH_MS = 10 * 1000; // riallinea ogni 10 secondi
 
 /* Humidex (formula standard, da temperatura e dew point in °C) */
@@ -2170,48 +2172,86 @@ function computeHumidex(tempC, dewptC){
   return tempC + 0.5555 * (e - 10.0);
 }
 
-/* Stima la condizione meteo (e quindi l'atmosfera/icona da mostrare) a partire
-   dai soli dati grezzi della centralina, che non fornisce una "condizione"
-   testuale ma solo valori numerici dei sensori */
-function classifyCondition(cur, day){
-  const dm = day.metric;
-  const temp = cur.metric.temp;
-  const dewpt = cur.metric.dewpt;
-  const humidity = cur.humidity;
+/* Pioggia e neve (in tutte le loro varianti) restano decise dai sensori
+   della centralina — precipitazione in corso e temperatura — non dal METAR */
+function classifyPrecipCondition(cur){
   const precipRate = cur.metric.precipRate;
-  const solar = cur.solarRadiation;
-  const uv = cur.uv;
-  const spread = temp - dewpt;
-  const isDaytime = (uv > 0 || solar > 5);
+  const temp = cur.metric.temp;
+  if(precipRate <= 0) return null;
 
-  if(precipRate > 0){
-    if(precipRate < 1) return 'pioviggine';
-    if(precipRate < 4) return 'pioggia';
-    if(precipRate < 15) return 'pioggia_moderata';
-    return 'pioggia_forte';
+  if(temp <= 0.5){
+    return (precipRate < 1.5) ? 'nevischio' : 'neve';
   }
-  if(!isDaytime){
-    return (humidity > 88) ? 'notte_nuvolosa' : 'notte';
+  if(temp <= 2.5){
+    return 'pioggia_mista_neve';
   }
-  if(spread < 2.5 && humidity > 92) return 'nebbia';
-  if(spread < 4.5 && humidity > 85) return 'foschia';
+  if(precipRate < 1) return 'pioviggine';
+  if(precipRate < 4) return 'pioggia';
+  if(precipRate < 15) return 'pioggia_moderata';
+  return 'pioggia_forte';
+}
 
-  const ratio = solar / 850; // stima approssimativa rispetto a un cielo sereno a mezzogiorno
+/* Tutte le altre condizioni (sereno, parzialmente nuvoloso, nuvoloso, nebbia,
+   foschia, notte, notte nuvolosa) derivano dal METAR dell'aeroporto di Genova
+   (LIMJ) — copertura nuvolosa e fenomeni di visibilità riportati dai piloti */
+function classifySkyFromMetar(metar, isDaytime){
+  const wx = (metar.wxString || '').toUpperCase();
+  const coverTop = (metar.cover || '').toUpperCase();
+  const clouds = metar.clouds || [];
+
+  const hasVV = coverTop === 'VV' || clouds.some(c => (c.cover||'').toUpperCase() === 'VV');
+  if(wx.includes('FG') || hasVV) return 'nebbia';
+  if(wx.includes('BR') || wx.includes('HZ')) return 'foschia';
+
+  const order = { FEW:1, SCT:2, BKN:3, OVC:4 };
+  let maxCover = null;
+  clouds.forEach(c=>{
+    const cov = (c.cover||'').toUpperCase();
+    if(order[cov] && (!maxCover || order[cov] > order[maxCover])) maxCover = cov;
+  });
+
+  const isClear = coverTop === 'CAVOK' || coverTop === 'SKC' || coverTop === 'CLR' || coverTop === 'NSC' || !maxCover;
+  if(isClear) return isDaytime ? 'sereno' : 'notte';
+  if(maxCover === 'FEW' || maxCover === 'SCT') return isDaytime ? 'parzialmente_nuvoloso' : 'notte_nuvolosa';
+  return isDaytime ? 'nuvoloso' : 'notte_nuvolosa'; // BKN, OVC
+}
+
+/* Riserva: se il METAR non è disponibile, stima il cielo dalla radiazione
+   solare misurata dalla centralina rispetto a un cielo sereno a mezzogiorno */
+function classifySkyFromSolarRatio(cur, isDaytime){
+  if(!isDaytime) return 'notte';
+  const ratio = cur.solarRadiation / 850;
   if(ratio > 0.65) return 'sereno';
   if(ratio > 0.35) return 'parzialmente_nuvoloso';
   return 'nuvoloso';
 }
 
-/* Costruisce un oggetto "scenario" a partire dalle due risposte dell'API,
+function classifyCondition(cur, metar){
+  const precipCondition = classifyPrecipCondition(cur);
+  if(precipCondition) return precipCondition;
+
+  const isDaytime = (cur.uv > 0 || cur.solarRadiation > 5);
+  if(metar){
+    try{
+      return classifySkyFromMetar(metar, isDaytime);
+    } catch(err){
+      console.error('METAR non leggibile, uso la stima da radiazione solare.', err);
+    }
+  }
+  return classifySkyFromSolarRatio(cur, isDaytime);
+}
+
+/* Costruisce un oggetto "scenario" a partire dalle risposte delle API,
    riusando la palette visiva (cielo/accento/icona) dello scenario demo più
    simile alla condizione rilevata, ma con tutti i valori numerici reali */
-function buildLiveScenario(curPayload, dayPayload){
+function buildLiveScenario(curPayload, dayPayload, metarPayload){
   const cur = curPayload.observations[0];
   const day = dayPayload.summaries[0];
+  const metar = Array.isArray(metarPayload) ? metarPayload[0] : null;
   const m = cur.metric;
   const dm = day.metric;
 
-  const conditionKey = classifyCondition(cur, day);
+  const conditionKey = classifyCondition(cur, metar);
   const palette = SCENARIOS[conditionKey];
 
   const temp = m.temp;
@@ -2262,6 +2302,7 @@ function buildLiveScenario(curPayload, dayPayload){
 
 let secondsToRefresh = Math.round(LIVE_REFRESH_MS / 1000);
 let liveIsOnline = true;
+let cachedMetar = null;
 
 function renderLiveStatus(){
   const dot = document.getElementById('liveStatusDot');
@@ -2272,13 +2313,24 @@ function renderLiveStatus(){
   text.textContent = `${label} · Aggiorna tra ${secondsToRefresh}s`;
 }
 
+/* Il METAR cambia poco nel tempo (è un bollettino aeroportuale), quindi lo
+   scarichiamo separatamente ogni 5 minuti invece che a ogni ciclo dei 10s */
+async function refreshMetar(){
+  try{
+    cachedMetar = await fetch(LIVE_METAR_URL).then(r => r.json());
+  } catch(err){
+    console.error('METAR non disponibile, uso la riserva da radiazione solare.', err);
+    cachedMetar = null;
+  }
+}
+
 async function loadLiveWeather(){
   try{
     const [curPayload, dayPayload] = await Promise.all([
       fetch(LIVE_CURRENT_URL).then(r => r.json()),
       fetch(LIVE_DAILY_URL).then(r => r.json())
     ]);
-    const liveScenario = buildLiveScenario(curPayload, dayPayload);
+    const liveScenario = buildLiveScenario(curPayload, dayPayload, cachedMetar);
     applyScenario(liveScenario);
     liveIsOnline = true;
   } catch(err){
@@ -2299,8 +2351,9 @@ function tickLiveCountdown(){
 }
 
 resizeCanvas();
-loadLiveWeather();
+refreshMetar().then(loadLiveWeather);
 setInterval(tickLiveCountdown, 1000);
+setInterval(refreshMetar, METAR_REFRESH_MS);
 renderAverages();
 renderAnomalies();
 requestAnimationFrame(draw);
