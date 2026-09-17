@@ -1167,6 +1167,7 @@ map.loadImage(
     }
   }
 );
+
 function loadSdfIcon(map, id, svgString, size = 64) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -1274,6 +1275,14 @@ map.addSource('weather-stations', {
   data: geojson,
   promoteId: 'id'
 });
+map.addLayer({
+  id: "darken-overlay",
+  type: "background",
+  paint: {
+    "background-color": "#000000",
+    "background-opacity": 0.2
+  }
+});
   // Circle Layer (Ottimizzato per Mobile)
 map.addLayer({
   id: 'stations-marker',
@@ -1283,10 +1292,10 @@ map.addLayer({
     'icon-image': ['get', 'icon'],
     'icon-size': [
       'interpolate', ['linear'], ['zoom'],
-      4,  isMobile ? 0.3 : 0.35,
-      7,  isMobile ? 0.5 : 0.60,
-      10, isMobile ? 0.6  : 0.70,
-      14, isMobile ? 0.7  : 0.80
+      4,  isMobile ? 0.3 : 0.30,
+      7,  isMobile ? 0.52 : 0.55,
+      10, isMobile ? 0.6  : 0.65,
+      14, isMobile ? 0.7  : 0.75
     ],
     'icon-padding': -9,
     'icon-allow-overlap': false,
@@ -1295,13 +1304,13 @@ map.addLayer({
     'text-font': ['Inter Bold', 'Arial Bold'],
     'text-size': [
       'interpolate', ['linear'], ['zoom'],
-      4,  isMobile ? 9 : 11,
-      6,  isMobile ? 10 : 12,
-      7,  isMobile ? 12 : 14,
-      8,  isMobile ? 12 : 14,
-      10, isMobile ? 14 : 16,
-      14, isMobile ? 16 : 18,
-      16, isMobile ? 18 : 20
+      4,  isMobile ? 9 : 10.5,
+      6,  isMobile ? 10 : 11.5,
+      7,  isMobile ? 12 : 13.5,
+      8,  isMobile ? 12 : 13.5,
+      10, isMobile ? 14 : 15.5,
+      14, isMobile ? 16 : 17.5,
+      16, isMobile ? 18 : 19.5
     ],
     'text-allow-overlap': false,
     'text-ignore-placement': false,
@@ -1310,12 +1319,12 @@ map.addLayer({
   },
   paint: {
     'text-color': '#ffffff',
+    'icon-opacity': 0.9,
+    'text-opacity': 0.9,
     'icon-opacity-transition': { duration: 0 },
     'text-opacity-transition': { duration: 0 }
   }
 });
-
-
 
   // Gestione Eventi Click & Touch
 map.on('click', (e) => {
@@ -1972,6 +1981,7 @@ const fetch3R = async () => {
     const CAR = "carmagnola";
     const SAL = "saluzzo";
     const NER = "neraissa";
+    const BAR = "barant";
 
 
     // ==============================
@@ -2080,6 +2090,22 @@ const fetch3R = async () => {
       PIE_246: [ACQ, -2.7,  -2.2],
       PIE_135: [MON, -2.8,  -2.0],
       PIE_327: [MON, -3.3,  -1.4],
+      PIE_317: [ACQ, -0.1,   0.9],
+      PIE_429: [ACQ, -1.4,   0.9],
+      PIE_S3228: [MON, -2.5,  -0.3],
+      PIE_329: [MON, -1.3,  -0.9],
+      PIE_357: [NER, -1.3,  -1.1],
+      PIE_133: [NER,  1.0,  -0.4],
+      PIE_S4062: [NER, -2.5,  -2.8],
+      PIE_S2570: [NER,  3.5,   2.5],
+      PIE_283: [NER, -1.1,  -1.4],
+      PIE_355: [NER, -2.7,  -3.2],
+      PIE_356: [SAL, -1.6,  -0.6],
+      PIE_S4151: [SAL, -2.2,   0.1],
+      PIE_105: [SAL, -0.7,  -0.4],
+      PIE_003: [BAR,  0.0,   0.0],
+      PIE_S4063: [BAR, -2.2,  -2.6],
+      PIE_S2898: [BAR, -2.5,  -1.5],
 
     };
 
@@ -2387,6 +2413,81 @@ const fetchCML = async () => {
 
   } catch (err) {
     console.error("Errore fetch CML:", err);
+  }
+};const fetchGepo = async () => {
+  try {
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/gepo.json"
+    );
+
+    const data = await res.json();
+
+    if (!Array.isArray(data)) return;
+
+    data.forEach((st) => {
+      if (!st.id) return;
+
+      // 🚫 filtro esclusione
+      if (excludedStations.has(st.id)) return;
+
+      const id = st.id;
+
+      const lat = Number(st.LAT);
+      const lon = Number(st.LON);
+
+      if (isNaN(lat) || isNaN(lon)) return;
+
+      allStations[id] = {
+        source: "GEPO",
+
+        id,
+        N: st.N ?? st.id,
+
+        temp: st.T ?? null,
+        tempHigh: st.TH ?? null,
+        tempLow: st.TL ?? null,
+
+        // ===== UMIDITÀ =====
+        hum: st.H ?? null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
+
+        // ===== DEW POINT =====
+        dewp: st.D ?? null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ===== HEAT INDEX =====
+        heat: st.HI ?? null,
+        heatHigh: st.HIH ?? null,
+        heatLow: st.HIL ?? null,
+
+        // ===== VENTO =====
+        wind: st.V ?? null,
+        windHigh: null,
+        windLow: null,
+
+        windGust: st.VR ?? null,
+        windDir: st.VD ?? null,
+
+        // ===== PIOGGIA =====
+        rainDaily: st.R ?? null,
+        rainDailyHigh: null,
+        rainDailyLow: null,
+
+        rainRate: st.RR ?? null,
+        rainRateHigh: null,
+        rainRateLow: null,
+
+        lat,
+        lon
+      };
+    });
+
+    updateLayer();
+
+  } catch (err) {
+    console.error("Errore fetch GEPO:", err);
   }
 };
 const fetchTorinoMeteo = async () => {
@@ -3182,51 +3283,6 @@ const fetchLimet = async () => {
       const temp = st.T ?? null;
       const tempHigh = st.TH ?? null;
       const tempLow = st.TL ?? null;
-
-// ==============================
-// ANOMALIE
-// ==============================
-
-
-let tempHighAnom = null;
-let tempLowAnom = null;
-
-
-// ==========================================
-// CLIMATOLOGIA LIMET
-// ==========================================
-
-if (climate) {
-
-  let climateTmax = null;
-  let climateTmin = null;
-
-  // ==============================
-  // GENOVA ERZELLI
-  // ==============================
-
-
-  // ==============================
-  // CALCOLO ANOMALIE
-  // ==============================
-
-  if (climateTmax !== null || climateTmin !== null) {
-
-    // Per ora la media rimane 0
-    tempMeanAnom = 0;
-
-    if (tempHigh !== null && climateTmax !== null) {
-      tempHighAnom =
-        Number(tempHigh) - climateTmax;
-    }
-
-    if (tempLow !== null && climateTmin !== null) {
-      tempLowAnom =
-        Number(tempLow) - climateTmin;
-    }
-  }
-}
-
       // ==============================
       // SALVATAGGIO STAZIONE
       // ==============================
@@ -3245,12 +3301,6 @@ if (climate) {
         temp,
         tempHigh,
         tempLow,
-
-        // Anomalie
-        tempMeanAnom,
-        tempHighAnom,
-        tempLowAnom,
-
 
         // ===== HUMIDITY =====
 
@@ -3814,6 +3864,8 @@ document.querySelectorAll("#regionMenu button").forEach(btn=>{
 });
 document
   .getElementById("refreshRegionButton")
+document
+  .getElementById("refreshRegionButton")
   .addEventListener("click", () => {
 
     const btn = document.getElementById("refreshRegionButton");
@@ -3829,29 +3881,28 @@ document
     switch(currentRegion){
 
       case "liguria":
-        startLiguria();
+        startLiguria(false);
         break;
 
       case "piemonte":
-        startPiemonte();
+        startPiemonte(false);
         break;
 
       case "lombardia":
-        startLombardia();
+        startLombardia(false);
         break;
 
       case "trentino":
-        startTrentino();
+        startTrentino(false);
         break;
     }
 
-    // 🔥 reset flag dopo un po'
     setTimeout(() => {
       isRefreshing = false;
     }, 1500);
 
   });
-setRegion("liguria");
+  setRegion("liguria");
 
   // Avvio
   function loadLiguriaData(){
@@ -3866,51 +3917,40 @@ setRegion("liguria");
   fetchLimet();
   fetchPWSGenova();
   fetchWeatherLinkLIG();
+  fetchGepo();
 }
-function startLiguria(){
+function startLiguria(clear = true){
 
   clearAllIntervals();
-  clearPreviousRegionStations();
+  if (clear) clearPreviousRegionStations();
 
   regionStationIds = new Set(Object.keys(stations));
 
   loadLiguriaData();
 
-  // PWS interval
   intervals.push(setInterval(() => {
     Object.keys(stations).forEach(id =>
       fetchPws(id, stations)
     );
   }, 300000));
 
-  // altri dataset interval (IMPORTANTISSIMO)
   intervals.push(setInterval(fetchOMIRL, 300000));
   intervals.push(setInterval(fetchIgnorete, 300000));
   intervals.push(setInterval(fetchComuneGenova, 300000));
   intervals.push(setInterval(fetchLimet, 300000));
   intervals.push(setInterval(fetchPWSGenova, 300000));
-}
-function startTrentino(){
-
-  clearAllIntervals();
-  clearPreviousRegionStations();
-
-
-  fetchMeteoTrentino();
-  // ===== INTERVALS =====
-  intervals.push(setInterval(fetchMeteoTrentino, 600000));
+  intervals.push(setInterval(fetchGepo, 300000));
 }
 
-function startPiemonte(){
+function startPiemonte(clear = true){
 
   clearAllIntervals();
-  clearPreviousRegionStations();
+  if (clear) clearPreviousRegionStations();
 
   regionStationIds = new Set([
     ...Object.keys(stationsPiemonte)
   ]);
 
-  // ===== FETCH INITIAL =====
   Object.keys(stationsPiemonte).forEach(id =>
     fetchPws(id, stationsPiemonte)
   );
@@ -3920,7 +3960,6 @@ function startPiemonte(){
   fetchTorinoMeteo();
   fetchWeatherLink();
 
-  // ===== INTERVALS =====
   intervals.push(setInterval(() => {
     Object.keys(stationsPiemonte).forEach(id =>
       fetchPws(id, stationsPiemonte)
@@ -3931,12 +3970,12 @@ function startPiemonte(){
   intervals.push(setInterval(fetch3R, 300000));
   intervals.push(setInterval(fetchTorinoMeteo, 300000));
 }
-function startLombardia(){
+
+function startLombardia(clear = true){
 
   clearAllIntervals();
-  clearPreviousRegionStations();
+  if (clear) clearPreviousRegionStations();
 
-  // se hai stationsLombardia in futuro
   if (typeof stationsLombardia !== "undefined") {
 
     regionStationIds = new Set([
@@ -3961,6 +4000,14 @@ function startLombardia(){
   intervals.push(setInterval(fetchWeatherLinkLOM, 300000));
 }
 
+function startTrentino(clear = true){
+
+  clearAllIntervals();
+  if (clear) clearPreviousRegionStations();
+
+  fetchMeteoTrentino();
+  intervals.push(setInterval(fetchMeteoTrentino, 600000));
+}
 });
 </script>
 </body>
