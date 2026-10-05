@@ -48,6 +48,34 @@
   }
 
   /* ---------- top bar ---------- */
+  /* ---------- tab di navigazione tra le pagine ---------- */
+  .page-tabs{
+    display:flex;
+    gap:8px;
+    padding: 2px 2px 16px;
+  }
+  .page-tab{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:9px 18px;
+    border-radius:100px;
+    border:1px solid var(--line);
+    background: var(--glass);
+    color: var(--paper);
+    text-decoration:none;
+    opacity:.7;
+    transition: background-color .25s ease, opacity .25s ease, border-color .25s ease;
+  }
+  .page-tab:hover{ background: var(--glass-strong); opacity:1; }
+  .page-tab.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--ink);
+    font-weight:600;
+    opacity:1;
+  }
+
   .topbar{
     display:flex;
     align-items:center;
@@ -495,6 +523,11 @@
 <body>
 
 <div class="page">
+
+  <div class="page-tabs">
+    <a href="stazione-meteo.html" class="page-tab active">Stazione</a>
+    <a href="dati-storici.html" class="page-tab">Dati storici</a>
+  </div>
 
   <div class="topbar">
     <div class="station-id">

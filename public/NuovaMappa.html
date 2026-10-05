@@ -26,7 +26,24 @@
   position: relative;
   display: inline-block;
 }
+.varRow2 button:hover {
+  background: #e0e0e0;
+}
 
+/* Colori testo menu Medie: nero = media, rosso scuro = max, blu scuro = min */
+#mediaMenu button[data-mode*="max-mean"] {
+  color: #8b0000;
+}
+
+#mediaMenu button[data-mode*="min-mean"] {
+  color: #00008b;
+}
+
+#mediaMenu button[data-mode*="current-mean"],
+#mediaMenu button[data-mode="month-mean"],
+#mediaMenu button[data-mode="month-mean-anom"] {
+  color: #000000;
+}
 .dropdownMenu {
   display: none;
   position: absolute;
@@ -115,6 +132,18 @@
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,.3);
   padding: 0;
+}#mediaButton {
+  overflow: hidden;
+  position: relative;
+}
+#mediaButton img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 85%;
+  height: 85%;
+  object-fit: cover;
+  transform: translate(-50%, -50%);
 }
 #tempButton img{
   width: 85%;
@@ -232,7 +261,38 @@
   gap: 4px;
   width: 100%;
 }
+.varRow2 {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  width: 100%;
+}
 
+.varRow2 button {
+  box-sizing: border-box;
+  background: #eeeeee;
+  border: none;
+  padding: 8px 10px;
+  cursor: pointer;
+  flex: 1;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.varRow2 button:hover {
+  background: #e0e0e0;
+}
+
+#mediaMenu {
+  min-width: 260px;
+}
+
+#mediaButton {
+  font-family: "Inter", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: #333;
+}
 .varRow button {
   box-sizing: border-box;
   background: #eeeeee;
@@ -285,32 +345,57 @@
   
 <div id="variableControl">
 
-  <!-- TEMPERATURA -->
+ <!-- MEDIE -->
+<div class="dropdown">
+  <button class="varButton" id="mediaButton">
+    <img src="https://cdn.phototourl.com/member/2026-09-25-e9b223aa-c5e1-4cac-ba61-a977de06fa28.png" alt="Media">
+  </button>
+
+  <div class="dropdownMenu" id="mediaMenu">
+
+    <div class="varRow2">
+      <button data-var="media" data-mode="current-mean">Temp Media Giorno</button>
+      <button data-var="media" data-mode="current-mean-anom">Anomalia Giornaliera</button>
+    </div>
+
+    <div class="varRow2">
+      <button data-var="media" data-mode="max-mean">T Max Media Giorno</button>
+      <button data-var="media" data-mode="max-mean-anom">Anomalia Giornaliera</button>
+    </div>
+
+    <div class="varRow2">
+      <button data-var="media" data-mode="min-mean">T Min Media Giorno</button>
+      <button data-var="media" data-mode="min-mean-anom">Anomalia Giornaliera</button>
+    </div>
+
+    <div class="varRow2">
+      <button data-var="media" data-mode="month-mean">T Media Mese</button>
+      <button data-var="media" data-mode="month-mean-anom">Anomalia Mensile</button>
+    </div>
+
+    <div class="varRow2">
+      <button data-var="media" data-mode="month-max-mean">T Max Media Mese</button>
+      <button data-var="media" data-mode="month-max-mean-anom">Anomalia Mensile</button>
+    </div>
+
+    <div class="varRow2">
+      <button data-var="media" data-mode="month-min-mean">T Min Media Mese</button>
+      <button data-var="media" data-mode="month-min-mean-anom">Anomalia Mensile</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- TEMPERATURA -->
 <div class="dropdown">
   <button class="varButton" id="tempButton">
     <img src="https://i.ibb.co/wFphv6Nw/1780391956635.png" alt="Temperatura">
   </button>
 
   <div class="dropdownMenu" id="tempMenu">
-
-    <div class="varRow">
-      <button data-var="temp" data-mode="current-mean">Media</button>
-      <button data-var="temp" data-mode="current">Temperatura</button>
-      <button data-var="temp" data-mode="current-anom">Anom.</button>
-    </div>
-
-    <div class="varRow">
-      <button data-var="temp" data-mode="max-mean">Media</button>
-      <button data-var="temp" data-mode="max">Massimo</button>
-      <button data-var="temp" data-mode="max-anom">Anom.</button>
-    </div>
-
-    <div class="varRow">
-      <button data-var="temp" data-mode="min-mean">Media</button>
-      <button data-var="temp" data-mode="min">Minimo</button>
-      <button data-var="temp" data-mode="min-anom">Anom.</button>
-    </div>
-
+    <button data-var="temp" data-mode="current">Temperatura</button>
+    <button data-var="temp" data-mode="max">Massimo</button>
+    <button data-var="temp" data-mode="min">Minimo</button>
   </div>
 </div>
 
@@ -388,52 +473,7 @@
   IRECCO16: { api: "IRECCO16", nome: "Recco", sovrastima: "no" },
   IAVEGN2: { api: "IAVEGN2", nome: "Avegno Testana", sovrastima: "no" },
   IMELE16: { api: "IMELE16", nome: "Genova Acquasanta", sovrastima: "no" },
-  IMELE15: { api: "IMELE15", nome: "Mele", sovrastima: "no" },
-  ICOGOL39: { api: "ICOGOL39", nome: "Sciarborasca Molino", sovrastima: "no" },
-  ICOGOL7: { api: "ICOGOL7", nome: "Cogoleto Madonnina", sovrastima: "no" },
-  ICOGOL10: { api: "ICOGOL10", nome: "Cogoleto Beuca", sovrastima: "no" },
   ISERRA22: { api: "ISERRA22", nome: "Mignanego", sovrastima: "no" },
-  ICAMPO445: { api: "ICAMPO445", nome: "Pietralavezzara", sovrastima: "no" },
-  ICAMPO312: { api: "ICAMPO312", nome: "Campomorone", sovrastima: "no" },
-  ICOGOL39: { api: "IMIGNA23", nome: "Passo dei Giovi", sovrastima: "no" },
-  IBUSAL3: { api: "IBUSAL3", nome: "Busalla", sovrastima: "no" },
-  IBUSAL1: { api: "IBUSAL1", nome: "Busalla Giò Alto", sovrastima: "no" },
-  ICROCE7: { api: "ICROCE7", nome: "Crocefieschi", sovrastima: "no" },
-  ISAVIG97: { api: "ISAVIG97", nome: "Ponte di Savignone", sovrastima: "no" },
-  ICASEL6: { api: "ICASEL6", nome: "Casella", sovrastima: "no" },
-  IVALBR4: { api: "IVALBR4", nome: "Valbrevenna", sovrastima: "no" },
-  IMONTO93: { api: "IMONTO93", nome: "Casà", sovrastima: "no" },
-  IRONCO16: { api: "IRONCO16", nome: "Banchetta", sovrastima: "no" },
-  IRONCO23: { api: "IRONCO23", nome: "Ronco Scrivia", sovrastima: "no" },
-  ISANTO411: { api: "ISANTO411", nome: "Busalletta", sovrastima: "no" },
-  IRAPAL35: { api: "IRAPAL35", nome: "Sant'Andrea di Foggia", sovrastima: "no" },
-  IRAPAL28: { api: "IRAPAL28", nome: "Rapallo Golf", sovrastima: "no" },
-  ISANTA1774: { api: "ISANTA1774", nome: "Santa Margherita Ligure", sovrastima: "no" },
-  ICHIAV22: { api: "ICHIAV22", nome: "Sant'Andrea di Rovereto", sovrastima: "no" },
-  ILIGURIA123: { api: "ILIGURIA123", nome: "Villa Oneto", sovrastima: "no" },
-  ICOGOR3: { api: "ICOGOR3", nome: "Cogorno", sovrastima: "no" },
-  ISESTR36: { api: "ISESTR36", nome: "Sestri Levante", sovrastima: "no" },
-  ISESTR23: { api: "ISESTR23", nome: "Riva Trigoso", sovrastima: "no" },
-  ICASAR91: { api: "ICASAR91", nome: "Casarza Ligure", sovrastima: "no" },
-  IMONEG33: { api: "IMONEG33", nome: "Moneglia", sovrastima: "no" },
-  ILIGURIA20: { api: "ILIGURIA20", nome: "Moneglia Casale", sovrastima: "no" },
-  ILIGURIA175: { api: "ILIGURIA175", nome: "Lavagna", sovrastima: "no" },
-  INE1805: { api: "INE1805", nome: "Trei", sovrastima: "no" },
-  IBONAS9: { api: "IBONAS9", nome: "Bonassola", sovrastima: "no" },
-  IRICCD2: { api: "IRICCD2", nome: "San Benedetto", sovrastima: "no" },
-  ILASPE54: { api: "ILASPE54", nome: "Vignale", sovrastima: "no" },
-  ILASPE76: { api: "ILASPE76", nome: "Coregna", sovrastima: "no" },
-  ILASPE12: { api: "ILASPE12", nome: "La Spezia", sovrastima: "no" },
-  ISPLASER2: { api: "ISPLASER2", nome: "Lerici", sovrastima: "no" },
-  IVEZZA26: { api: "IVEZZA26", nome: "Fornola", sovrastima: "no" },
-  IVEZZA19: { api: "IVEZZA19", nome: "San Venario", sovrastima: "no" },
-  ILIGURIA131: { api: "ILIGURIA131", nome: "Ponzano Magra", sovrastima: "no" },
-  ISARZA7: { api: "ISARZA7", nome: "Sarzana Turi", sovrastima: "no" },
-  ISANTO374: { api: "ISANTO374", nome: "Santo Stefano di Magra", sovrastima: "no" },
-  IBOLAN1: { api: "IBOLAN1", nome: "Bolano", sovrastima: "no" },
-  ICALIC12: { api: "ICALIC12", nome: "Posticcio", sovrastima: "no" },
-  IORTON8: { api: "IORTON8", nome: "Casano", sovrastima: "no" },
-  ILUNI5: { api: "ILUNI5", nome: "Luni", sovrastima: "no" },
   IBOGLI8: { api: "IBOGLI8", nome: "Bogliasco Poggio" },
   IDAVAG2: { api: "IDAVAG2", nome: "Davagna" },
   IMONTO47: { api: "IMONTO47", nome: "Montoggio-Bromia" },
@@ -442,32 +482,15 @@
   IGENOA2819: { api: "IGENOA2819", nome: "Genova Via dei Platani" },
   IGENOA2865: { api: "IGENOA2865", nome: "Genova Granarolo" },
   IGENOA2881: { api: "IGENOA2881", nome: "Genova Bolzaneto" },
-  IGENOA2887: { api: "IGENOA2887", nome: "Colle degli Ometti" },
   IGENOA2933: { api: "IGENOA2933", nome: "Genova Serino" },
   IGENOA2959: { api: "IGENOA2959", nome: "Genova Pontedecimo" },
   ILIGURIA183: { api: "ILIGURIA183", nome: "Genova Sestri - Cataldi" },
   IGENOA2983: { api: "IGENOA2983" },
-  IGENOA2997: { api: "IGENOA2997", nome: "Genova Quinto" },
   IGENOA3021: { api: "IGENOA3021", nome: "Genova Begato" },
   IGENOA3032: { api: "IGENOA3032", nome: "Genova Fontanegli" },
   IGENOA3080: { api: "IGENOA3080", nome: "Genova Boccadasse" },
-  IGENOVAA2: { api: "IGENOVAA2" },
   IGENOA3082: { api: "IGENOA3082", nome: "Geirato" },
   IURBE3: { api: "IURBE3", nome: "Passo del Faiallo", sovrastima: "no" },
-  IVARAZ9: { api: "IVARAZ9", nome: "Piani D'Invrea", sovrastima: "no" },
-  IVARAZ6: { api: "IVARAZ6", nome: "Varazze", sovrastima: "no" },
-  IALBIS6: { api: "IALBIS6", nome: "Albisola", sovrastima: "no" },
-  IQUILI21: { api: "IQUILI21", nome: "Valleggia", sovrastima: "no" },
-  IFINAL23: { api: "IFINAL23", nome: "Finale Ligure", sovrastima: "no" },
-  IFINAL12: { api: "IFINAL12", nome: "Finalborgo", sovrastima: "no" },
-  IPIETR18: { api: "IPIETR18", nome: "Pietra Ligure", sovrastima: "no" },
-  ILOANO19: { api: "ILOANO19", nome: "Loano", sovrastima: "no" },
-  ILOANO18: { api: "ILOANO18", nome: "Borghetto Santo Spirito", sovrastima: "no" },
-  ITOIRA11: { api: "ITOIRA11", nome: "Toirano", sovrastima: "no" },
-  ICERIALE2: { api: "ICERIALE2", nome: "Ceriale", sovrastima: "no" },
-  IVILLA764: { api: "IVILLA764", nome: "Villanova d'Albenga", sovrastima: "no" },
-  ILAIGU24: { api: "ILAIGU24", nome: "Laigueglia", sovrastima: "no" },
-  IANDOR45: { api: "IANDOR45", nome: "Marina di Andora", sovrastima: "no" },
   IMIOGL2: { api: "IMIOGL2", nome: "Mioglia", sovrastima: "no" },
   IALTAR9: { api: "IALTAR9", nome: "Altare", sovrastima: "no" },
   IMALLA14: { api: "IMALLA14", nome: "Mallare", sovrastima: "no" },
@@ -523,7 +546,7 @@ const stationsPiemonte = {
 };
 const map = new maplibregl.Map({
   container: "map",
-  style: "https://api.maptiler.com/maps/01a05dda-465e-7c90-b36a-8a880227714b/style.json?key=XmmMp2A0QsmHw00AZQPw",
+  style: "https://api.maptiler.com/maps/01a0d036-df5d-7f48-8c4d-48830d3cfabc/style.json?key=in074RMr3iwS1dZ7OlHm",
   center: [8.98, 44.41],
   zoom: 12,
   pitch: 0,
@@ -544,20 +567,19 @@ pitchToggle.addEventListener("click", () => {
   is3D = !is3D;
 
   if (is3D) {
-    map.easeTo({
-      pitch: 60,
-      duration: 800
-    });
-
+    map.easeTo({ pitch: 60, duration: 800 });
     pitchToggle.innerText = "Piatta";
   } else {
-    map.easeTo({
-      pitch: 0,
-      duration: 800
-    });
-
+    map.easeTo({ pitch: 0, duration: 800 });
     pitchToggle.innerText = "Rilievi";
   }
+
+  // 👇 nuovo: cambia forma marker (goccia in 3D, pallino in piatta)
+  map.setLayoutProperty('stations-marker', 'icon-anchor', is3D ? 'bottom' : 'center');
+  map.setLayoutProperty('stations-marker', 'text-anchor', is3D ? 'bottom' : 'center');
+  map.setLayoutProperty('stations-marker', 'text-offset', is3D ? [0, -2.2] : [0, 0]);
+
+  updateLayer();
 });
 let regionStationIds = new Set();
 function clearPreviousRegionStations() {
@@ -573,8 +595,14 @@ function clearPreviousRegionStations() {
 let currentVariable = "temp";
 let modes = {
   temp: "current", dewp: "current", heat: "current", 
-  hum: "current", rainDaily: "current", rainRate: "current", rainYearly: "current"
+  hum: "current", rainDaily: "current", rainRate: "current", rainYearly: "current",
+  media: "current-mean"
 };
+const mediaAnomModes = [
+  "current-mean-anom", "max-mean-anom", "min-mean-anom",
+  "month-mean-anom", "month-max-mean-anom", "month-min-mean-anom"
+];
+
 let currentRegion = "liguria";
 
 let intervals = [];
@@ -680,18 +708,18 @@ if (variable === "anom") {
   if (value <= 0) return "#539eb0";
   if (value < 2) return "#67bac8";
   if (value < 4) return "#5ac5ba";
-  if (value < 6) return "#42a37b";
-  if (value < 8) return "#538b53";
-  if (value < 10) return "#419a41";
-  if (value < 12) return "#5cb425";
-  if (value < 14) return "#76ca38";
-  if (value < 16) return "#a1d950";
-  if (value < 18) return "#eadf00";
-  if (value < 20) return "#ffcc55";
-  if (value < 22) return "#ffaf54";
-  if (value < 24) return "#fa8f4b";
-  if (value < 26) return "#f26969";
-  if (value < 28) return "#de5a5a";
+  if (value < 6) return "#489c7e";
+  if (value < 8) return "#3b9459";
+  if (value < 10) return "#378537";
+  if (value < 12) return "#51a31b";
+  if (value < 14) return "#6fbf32";
+  if (value < 16) return "#98cc4a";
+  if (value < 18) return "#dec800";
+  if (value < 20) return "#f5be40";
+  if (value < 22) return "#fa9d40";
+  if (value < 24) return "#f0752f";
+  if (value < 26) return "#d4582f";
+  if (value < 28) return "#d14f4f";
   if (value < 30) return "#b05151";
   if (value < 32) return "#994848";
   if (value < 34) return "#743e3e";
@@ -705,9 +733,35 @@ if (variable === "anom") {
   return "#ff5c5c";
 }
 
+// Media climatologica mensile della T media = (T max media + T min media) / 2
+function getMonthMeanClim(st) {
+  if (st.tempMeanClimAvg != null && !isNaN(Number(st.tempMeanClimAvg))) {
+    return Number(st.tempMeanClimAvg);
+  }
+  if (st.tempHighClimAvg != null && st.tempLowClimAvg != null) {
+    return (Number(st.tempHighClimAvg) + Number(st.tempLowClimAvg)) / 2;
+  }
+  return null;
+}
+
 // ================= GET VALUE =================
 function getValueAndColor(st) { 
- 
+ function getMonthToDateAverage(days) {
+
+  if (!Array.isArray(days)) return null;
+
+  const now = new Date();
+  const today = now.getDate();
+
+  const values = days
+    .slice(0, today)
+    .filter(v => v != null && !isNaN(v))
+    .map(Number);
+
+  if (!values.length) return null;
+
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
   const mode = modes[currentVariable]; 
   let value = null; 
   let colorVariable = currentVariable; 
@@ -716,10 +770,6 @@ const get = (base) => {
     if (mode === "current") return st[base]; 
     if (mode === "max") return st[base + "High"]; 
     if (mode === "min") return st[base + "Low"]; 
- 
-    if (mode === "current-anom") return st[base + "MeanAnom"]; 
-    if (mode === "max-anom") return st[base + "HighAnom"]; 
-    if (mode === "min-anom") return st[base + "LowAnom"]; 
 
     // Media climatologica = valore reale - anomalia
     if (mode === "current-mean") {
@@ -732,6 +782,7 @@ const get = (base) => {
       const a = st[base + "HighAnom"];
       return (v != null && a != null) ? Number(v) - Number(a) : null;
     }
+    
     if (mode === "min-mean") {
       const v = st[base + "Low"];
       const a = st[base + "LowAnom"];
@@ -743,16 +794,67 @@ const get = (base) => {
  
   if (currentVariable === "temp") { 
     value = get("temp"); 
- 
-    if ( 
-      mode === "current-anom" || 
-      mode === "max-anom" || 
-      mode === "min-anom" 
-    ) { 
-      colorVariable = "anom"; 
-    } 
   } 
- 
+   else if (currentVariable === "media") {
+
+    // ===== GIORNALIERE (climatologiche, riprese da Temperatura) =====
+    if (mode === "current-mean") {
+      value = (st.tempMean != null && st.tempMeanAnom != null)
+        ? Number(st.tempMean) - Number(st.tempMeanAnom)
+        : null;
+    }
+    else if (mode === "max-mean") {
+      // Valore climatologico del giorno (da climatologia.json)
+      value = (st.tempHigh != null && st.tempHighAnom != null)
+        ? Number(st.tempHigh) - Number(st.tempHighAnom)
+        : null;
+    }
+    else if (mode === "min-mean") {
+      // Valore climatologico del giorno (da climatologia.json)
+      value = (st.tempLow != null && st.tempLowAnom != null)
+        ? Number(st.tempLow) - Number(st.tempLowAnom)
+        : null;
+    }
+
+    else if (mode === "current-mean-anom") {
+      value = st.tempMeanAnom ?? null;
+      colorVariable = "anom";
+    }
+    else if (mode === "max-mean-anom") {
+      value = st.tempHighAnom ?? null;
+      colorVariable = "anom";
+    }
+    else if (mode === "min-mean-anom") {
+      value = st.tempLowAnom ?? null;
+      colorVariable = "anom";
+    }
+
+    // ===== MENSILI (archivioLiguria) =====
+    else if (mode === "month-mean") {
+      value = getMonthMeanClim(st);
+    }
+    else if (mode === "month-max-mean") {
+      // Media climatologica dal giorno 1 al giorno corrente del mese
+      value = st.tempHighClimAvg ?? null;
+    }
+    else if (mode === "month-min-mean") {
+      // Media climatologica dal giorno 1 al giorno corrente del mese
+      value = st.tempLowClimAvg ?? null;
+    }
+
+    else if (mode === "month-mean-anom") {
+      value = st.monthMeanAnom ?? null;
+      colorVariable = "anom";
+    }
+    else if (mode === "month-max-mean-anom") {
+      value = st.monthHighAnom ?? null;
+      colorVariable = "anom";
+    }
+    else if (mode === "month-min-mean-anom") {
+      value = st.monthLowAnom ?? null;
+      colorVariable = "anom";
+    }
+  }
   else if (currentVariable === "dewp") value = get("dewp"); 
   else if (currentVariable === "heat") value = get("heat"); 
   else if (currentVariable === "hum") value = get("hum"); 
@@ -766,12 +868,7 @@ const get = (base) => {
   } 
 
   const isAnom =
-    currentVariable === "temp" &&
-    (
-      mode === "current-anom" ||
-      mode === "max-anom" ||
-      mode === "min-anom"
-    );
+    currentVariable === "media" && mediaAnomModes.includes(mode);
 
   return { 
     value, 
@@ -810,8 +907,9 @@ function updateLayer() {
         textDisplay = currentZoom < 6 ? Math.round(value).toString() : valueStr;
       }
 
-      const iconId = getOrCreateDotIcon(map, color); // genera/riusa l'icona per quel colore
-
+     const iconId = is3D
+  ? getOrCreatePinIcon(map, color)
+  : getOrCreateDotIcon(map, color);
       return {
         type: "Feature",
         geometry: { type: "Point", coordinates: [st.lon, st.lat] },
@@ -863,12 +961,8 @@ function showPopup(feature) {
 const currentMode = modes[currentVariable];
 
 const isAnom =
-  currentVariable === "temp" &&
-  (
-    currentMode === "current-anom" ||
-    currentMode === "max-anom" ||
-    currentMode === "min-anom"
-  );
+  currentVariable === "media" &&
+  mediaAnomModes.includes(currentMode);
 
 const colorVariable = isAnom ? "anom" : variable;
   const value = Number(props.value); 
@@ -982,8 +1076,8 @@ const colorVariable = isAnom ? "anom" : variable;
   if (v < 10) return "#43af43";
   if (v < 12) return "#7dd049";
   if (v < 14) return "#abd84b";
-  if (v < 16) return "#ced854";
-  if (v < 18) return "#e8d541";
+  if (v < 16) return "#b6bf35";
+  if (v < 18) return "#dec800";
   if (v < 20) return "#ffcc55";
   if (v < 22) return "#ffaf54";
   if (v < 24) return "#fa8f4b";
@@ -1044,6 +1138,69 @@ const colorVariable = isAnom ? "anom" : variable;
     max = station.rainYearly; 
   } 
 
+  // Popup delle medie: in rosso la media climatologica, in blu il valore reale
+  let mediaClimValue = null;
+  let mediaActualValue = null;
+  let mediaActualLabel = "";
+  let mediaTitle = "";
+  let mediaScope = "";
+
+  if (variable === "media") {
+
+    const modeParts = currentMode.split("-");
+    const isMonth = modeParts[0] === "month";
+    const kind = modeParts.includes("max") ? "max"
+               : modeParts.includes("min") ? "min"
+               : "mean";
+
+    // Titolo: "Anomalia massime" / "Media clim. minime" / ...
+    mediaTitle =
+      (isAnom ? "Anomalia " : "Media clim. ") +
+      { max: "massime", min: "minime", mean: "medie" }[kind];
+
+    // Sotto il titolo: "Giornaliera" o "Mensile"
+    mediaScope = isMonth ? "Mensile" : "Giornaliera";
+
+    // Campo del valore reale e della sua anomalia
+    const fields = isMonth
+      ? {
+          max:  ["monthHigh", "monthHighAnom"],
+          min:  ["monthLow",  "monthLowAnom"],
+          mean: ["monthMean", "monthMeanAnom"]
+        }
+      : {
+          max:  ["tempHigh", "tempHighAnom"],
+          min:  ["tempLow",  "tempLowAnom"],
+          mean: ["tempMean", "tempMeanAnom"]
+        };
+
+    const [actualKey, anomKey] = fields[kind];
+
+    // BLU = valore reale
+    mediaActualValue = station[actualKey];
+
+    // ROSSO = media climatologica
+    if (isMonth && !isAnom) {
+      // media climatologica dell'intero mese
+      mediaClimValue =
+        kind === "max" ? station.tempHighClimAvg :
+        kind === "min" ? station.tempLowClimAvg :
+        getMonthMeanClim(station);
+    } else {
+      // media climatologica = valore reale - anomalia
+      mediaClimValue =
+        (station[actualKey] != null && station[anomKey] != null)
+          ? Number(station[actualKey]) - Number(station[anomKey])
+          : null;
+    }
+
+    mediaActualLabel = {
+      max: "Massima",
+      min: "Minima",
+      mean: isMonth ? "Media" : "Attuale"
+    }[kind];
+  }
+
   const fmt = v => 
     v == null || isNaN(v) ? "—" : Number(v).toFixed(1); 
 const baseColor = getColor(value, colorVariable);
@@ -1067,28 +1224,45 @@ const baseColor = getColor(value, colorVariable);
         Fonte: ${source} 
       </div> 
 
-      <div style="font-size:13px;opacity:0.75;margin-bottom:4px;"> 
+      <div style="font-size:13px;opacity:0.75;margin-bottom:${variable === "media" ? "0" : "4px"};"> 
         ${variable === "temp" ? "Temperatura" : 
           variable === "dewp" ? "Dew Point" : 
           variable === "heat" ? "Heat Index" : 
           variable === "hum" ? "Umidità" : 
+          variable === "media" ? mediaTitle :
           isRain ? "Pioggia" : ""} 
-      </div> 
+      </div>
+
+      ${variable === "media" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">${mediaScope}</div>` : ""}
 
       <div style="font-size:32px;font-weight:800;margin-bottom:6px;"> 
         ${valueStr}${isRain ? " mm" : "°"} 
       </div> 
 
       ${ 
-        (max != null || min != null) 
-          ? ` 
-          <div style="font-size:12px;line-height:1.2;"> 
-            <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span> 
-            <span style="margin:0 2px;">-</span> 
-            <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span> 
-          </div> 
-          ` 
-          : "" 
+        variable === "media"
+          ? (
+              (mediaClimValue != null || mediaActualValue != null)
+                ? `
+                <div style="font-size:12px;line-height:1.2;">
+                  <span style="color:red;font-weight:700;">Media:${fmt(mediaClimValue)}°</span>
+                  ${mediaActualValue != null ? `<span style="margin:0 2px;">-</span>
+                  <span style="color:#1e66ff;font-weight:700;">${fmt(mediaActualValue)}° ${mediaActualLabel}</span>` : ""}
+                </div>
+                `
+                : ""
+            )
+          : (
+              (max != null || min != null) 
+                ? ` 
+                <div style="font-size:12px;line-height:1.2;"> 
+                  <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span> 
+                  <span style="margin:0 2px;">-</span> 
+                  <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span> 
+                </div> 
+                ` 
+                : "" 
+            )
       } 
 
       <!-- 📊 PULSANTE GAUGES -->
@@ -1136,6 +1310,7 @@ function toggleMenu(id) {
   el.style.display = el.style.display === "block" ? "none" : "block";
 }
 
+document.getElementById("mediaButton").onclick = () => toggleMenu("mediaMenu");
 document.getElementById("tempButton").onclick = () => toggleMenu("tempMenu");
 document.getElementById("dewButton").onclick = () => toggleMenu("dewMenu");
 document.getElementById("heatButton").onclick = () => toggleMenu("heatMenu");
@@ -1190,7 +1365,48 @@ function loadSdfIcon(map, id, svgString, size = 64) {
   });
 }
 const dotIconCache = new Set();
+const pinIconCache = new Set();
 
+function getOrCreatePinIcon(map, hexColor, size = 156) {
+  const id = 'pin-' + hexColor.replace('#', '');
+  if (pinIconCache.has(id) || map.hasImage(id)) return id;
+
+  const s = size / 52;
+  const w = Math.ceil(52 * s);
+  const h = Math.ceil(68 * s);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  // Sagoma a goccia
+  ctx.beginPath();
+  ctx.moveTo(26 * s, 4 * s);
+  ctx.bezierCurveTo(14.95 * s, 4 * s, 6 * s, 13.05 * s, 6 * s, 24.1 * s);
+  ctx.bezierCurveTo(6 * s, 37.25 * s, 26 * s, 64 * s, 26 * s, 64 * s);
+  ctx.bezierCurveTo(26 * s, 64 * s, 46 * s, 37.25 * s, 46 * s, 24.1 * s);
+  ctx.bezierCurveTo(46 * s, 13.05 * s, 37.05 * s, 4 * s, 26 * s, 4 * s);
+  ctx.closePath();
+
+  // Corpo del pin: BIANCO con contorno grigio chiaro
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = 2.5 * s;
+  ctx.strokeStyle = '#999999';
+  ctx.stroke();
+
+  // Pallino centrale colorato (stesso colore usato in modalità piatta)
+  ctx.beginPath();
+  ctx.arc(26 * s, 24 * s, 15 * s, 0, Math.PI * 2);
+  ctx.fillStyle = hexColor;
+  ctx.fill();
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  map.addImage(id, imageData, { pixelRatio: 2 });
+  pinIconCache.add(id);
+  return id;
+}
 function getOrCreateDotIcon(map, hexColor, size = 128) {
   const id = 'dot-' + hexColor.replace('#', '');
   if (dotIconCache.has(id) || map.hasImage(id)) return id;
@@ -1208,7 +1424,7 @@ function getOrCreateDotIcon(map, hexColor, size = 128) {
 
   ctx.beginPath();
   ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = 'rgb(231,231,231)';   // era '#ffffff'
   ctx.fill();
 
   ctx.beginPath();
@@ -1248,7 +1464,7 @@ map.addLayer({
   type: "hillshade",
   source: "terrain",
   paint: {
-    "hillshade-exaggeration": 0.6,
+    "hillshade-exaggeration": 0.3,
     "hillshade-shadow-color": "#828282",
     "hillshade-highlight-color": "#ffffff",
     "hillshade-accent-color": "#3e3d3d"
@@ -1275,15 +1491,7 @@ map.addSource('weather-stations', {
   data: geojson,
   promoteId: 'id'
 });
-map.addLayer({
-  id: "darken-overlay",
-  type: "background",
-  paint: {
-    "background-color": "#000000",
-    "background-opacity": 0.2
-  }
-});
-  // Circle Layer (Ottimizzato per Mobile)
+ // Circle Layer (Ottimizzato per Mobile)
 map.addLayer({
   id: 'stations-marker',
   type: 'symbol',
@@ -1365,6 +1573,72 @@ const climatologiaPromise = fetch("/climatologia.json")
   });
 
 
+// Media climatologica (tmax/tmin) dal giorno 1 del mese al giorno corrente,
+// applicando un'eventuale correzione costante (stessa usata per l'anomalia del giorno).
+function computeClimAvgToDate(climateDaily, tmaxCorrection = 0, tminCorrection = 0) {
+  if (!climateDaily) return { avgMax: null, avgMin: null };
+
+  const now = new Date();
+  const today = now.getDate();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  let sumMax = 0, countMax = 0;
+  let sumMin = 0, countMin = 0;
+
+  for (let day = 1; day <= today; day++) {
+    const dayKey = month + "-" + String(day).padStart(2, "0");
+    const clim = climateDaily[dayKey];
+    if (!clim) continue;
+
+    if (clim.tmax != null) {
+      sumMax += Number(clim.tmax) + tmaxCorrection;
+      countMax++;
+    }
+    if (clim.tmin != null) {
+      sumMin += Number(clim.tmin) + tminCorrection;
+      countMin++;
+    }
+  }
+
+  return {
+    avgMax: countMax ? +(sumMax / countMax).toFixed(1) : null,
+    avgMin: countMin ? +(sumMin / countMin).toFixed(1) : null
+  };
+}
+// Media climatologica sull'INTERO mese (giorno 1 -> ultimo giorno del mese),
+// usata per "T Max Media Mese" / "T Min Media Mese" (valore mostrato, non anomalia).
+function computeClimAvgFullMonth(climateDaily, tmaxCorrection = 0, tminCorrection = 0) {
+  if (!climateDaily) return { avgMax: null, avgMin: null };
+
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const lastDay = new Date(year, month, 0).getDate(); // ultimo giorno del mese corrente
+  const monthStr = String(month).padStart(2, "0");
+
+  let sumMax = 0, countMax = 0;
+  let sumMin = 0, countMin = 0;
+
+  for (let day = 1; day <= lastDay; day++) {
+    const dayKey = monthStr + "-" + String(day).padStart(2, "0");
+    const clim = climateDaily[dayKey];
+    if (!clim) continue;
+
+    if (clim.tmax != null) {
+      sumMax += Number(clim.tmax) + tmaxCorrection;
+      countMax++;
+    }
+    if (clim.tmin != null) {
+      sumMin += Number(clim.tmin) + tminCorrection;
+      countMin++;
+    }
+  }
+
+  return {
+    avgMax: countMax ? +(sumMax / countMax).toFixed(1) : null,
+    avgMin: countMin ? +(sumMin / countMin).toFixed(1) : null
+  };
+}
 const apiKey = "e1f10a1e78da46f5b10a1e78da96f525";
 
   // fetchPws (modificata)
@@ -1478,38 +1752,50 @@ async function fetchPws(id, stationMap = stations) {
     let tempMeanAnom = null;
     let tempHighAnom = null;
     let tempLowAnom = null;
+    let tempHighClimAvg = null;
+    let tempLowClimAvg = null;
 
-
+    const climateDailyAllSES = climatologia?.genova_sestri_ponente?.daily ?? null;
 
 if (id === "ILIGURIA67" && climate) {
   const climateTmean = Number(climate.tmean) - 0.3;
   const climateTmax = Number(climate.tmax) + 0.3;
   const climateTmin = Number(climate.tmin) - 0.2;
   if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom = Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom = Number(tempLow) - climateTmin;}
+  const avg = computeClimAvgFullMonth(climateDailyAllSES, 0.3, -0.2);
+  tempHighClimAvg = avg.avgMax; tempLowClimAvg = avg.avgMin;
 }
     else if (id === "IGENOA2865" && climate) {
       const climateTmean = Number(climate.tmean) - 2.3;
       const climateTmax = Number(climate.tmax) - 1.4;
       const climateTmin = Number(climate.tmin) - 2.4;
       if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom =Number(tempLow) - climateTmin;}
+      const avg = computeClimAvgFullMonth(climateDailyAllSES, -1.4, -2.4);
+      tempHighClimAvg = avg.avgMax; tempLowClimAvg = avg.avgMin;
     }
     else if (id === "IGENOA2728" && climate) {
       const climateTmean = Number(climate.tmean) - 1.1;
       const climateTmax = Number(climate.tmax) - 0.5;
       const climateTmin = Number(climate.tmin) - 1.6;
       if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom =Number(tempLow) - climateTmin;}
+      const avg = computeClimAvgFullMonth(climateDailyAllSES, -0.5, -1.6);
+      tempHighClimAvg = avg.avgMax; tempLowClimAvg = avg.avgMin;
     }
     else if (id === "IGENOA2881" && climate) {
       const climateTmean = Number(climate.tmean) - 2.2;
       const climateTmax = Number(climate.tmax) - 0.3;
       const climateTmin = Number(climate.tmin) - 3.3;
       if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom =Number(tempLow) - climateTmin;}
+      const avg = computeClimAvgFullMonth(climateDailyAllSES, -0.3, -3.3);
+      tempHighClimAvg = avg.avgMax; tempLowClimAvg = avg.avgMin;
     }
     else if (id === "IURBE3" && climate) {
       const climateTmean = Number(climate.tmean) - 8.3;
       const climateTmax = Number(climate.tmax) - 8.3;
       const climateTmin = Number(climate.tmin) - 7.8;
       if (temp !== null) {tempMeanAnom = Number(tempMean) - climateTmean;} if (tempHigh !== null) {tempHighAnom =Number(tempHigh) - climateTmax;} if (tempLow !== null) {tempLowAnom =Number(tempLow) - climateTmin;}
+      const avg = computeClimAvgFullMonth(climateDailyAllSES, -8.3, -7.8);
+      tempHighClimAvg = avg.avgMax; tempLowClimAvg = avg.avgMin;
     }
 
 
@@ -1537,6 +1823,10 @@ if (id === "ILIGURIA67" && climate) {
       tempMeanAnom,
       tempHighAnom,
       tempLowAnom,
+
+      // Media climatologica mese in corso
+      tempHighClimAvg,
+      tempLowClimAvg,
 
 
       // ===== DEWPOINT =====
@@ -1591,15 +1881,44 @@ if (id === "ILIGURIA67" && climate) {
 const fetchOMIRL = async () => {
   try {
 
+    // ==========================================================
+    // STAZIONI OMIRL CON CLIMATOLOGIA
+    //
+    // Per aggiungere una stazione basta UNA riga:
+    //
+    //   ID_OMIRL: ["NOME_IN_CLIMATOLOGIA", correzioneMax, correzioneMin],
+    //
+    // - ID_OMIRL: l'id della stazione nel json di OMIRL (es. ROCNE)
+    // - NOME_IN_CLIMATOLOGIA: il campo "S" in climatologia.json (es. A_ROCNR)
+    // - correzioneMax / correzioneMin: scarto (°C) da sommare alla
+    //   climatologia, metti 0 se la climatologia è già quella della stazione
+    // ==========================================================
+
+    const anomalyCorrections = {
+
+      ROCNE: ["A_ROCNR", 0, 0],
+      INASV: ["A_INASV", 0, 0],
+      MIGNA: ["A_MIGNA", 0, 0],
+      IMPER: ["A_IMPER", 0, 0],
+      CCHER: ["A_CICHE", 0, 0],
+      TAVRN: ["A_TAVAR", 0, 0],
+      MTECA: ["A_MOCAP", 0, 0],
+
+    };
+
+
     // ==============================
-    // ALIAS CLIMATOLOGIE
+    // DATA IN ORA DI ROMA
     // ==============================
 
-    const SES = "genova_sestri_ponente";
-    const ALB = "albenga";
-    const LUN = "sarzana";
-    const MON = "mondovi";
-    const ACQ = "acqui";
+    const dateParts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Rome",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(new Date());
+
+    const month = dateParts.find((p) => p.type === "month").value; // "01".."12"
+    const day = Number(dateParts.find((p) => p.type === "day").value); // 1..31
 
 
     // ==============================
@@ -1608,12 +1927,71 @@ const fetchOMIRL = async () => {
 
     const climatologia = await climatologiaPromise;
 
-    const now = new Date();
+    // climatologia.json può essere un array di stazioni o una sola stazione
+    const climateList = Array.isArray(climatologia)
+      ? climatologia
+      : [climatologia];
 
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
+    // "11.2, 11.6, ..." -> [11.2, 11.6, ...]
+    const parseList = (str) =>
+      String(str ?? "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter((v) => v !== "")
+        .map(Number);
 
-    const climatologyDay = `${month}-${day}`;
+    // Climatologia di oggi per una stazione di climatologia.json:
+    //   day   = { tmax, tmin, tmean } del giorno odierno
+    //           (es. 5/10 -> 5° valore del mese 10; il 29/02 usa l'ultimo)
+    //   month = { tmax, tmin } medie dell'intero mese (campo MD)
+    // Il risultato è messo in cache, così ogni stazione è letta una volta sola.
+    const climateCache = {};
+
+    const getClimate = (name) => {
+
+      if (climateCache[name]) return climateCache[name];
+
+      const result = { day: null, month: null };
+
+      const entry = climateList.find((c) => c?.S === name);
+      const m = entry?.months?.find((x) => x.M === month);
+
+      if (!m) {
+        console.warn(
+          `⚠️ Climatologia "${name}" (mese ${month}) non trovata in climatologia.json`
+        );
+        climateCache[name] = result;
+        return result;
+      }
+
+      const maxList = parseList(m.MX);
+      const minList = parseList(m.MN);
+      const mdList = parseList(m.MD);
+
+      if (maxList.length && minList.length) {
+
+        const tmax = maxList[Math.min(day, maxList.length) - 1];
+        const tmin = minList[Math.min(day, minList.length) - 1];
+
+        if (!isNaN(tmax) && !isNaN(tmin)) {
+          result.day = {
+            tmax,
+            tmin,
+            tmean: (tmax + tmin) / 2
+          };
+        }
+      }
+
+      if (mdList.length >= 2 && !isNaN(mdList[0]) && !isNaN(mdList[1])) {
+        result.month = {
+          tmax: mdList[0],
+          tmin: mdList[1]
+        };
+      }
+
+      climateCache[name] = result;
+      return result;
+    };
 
 
     // ==============================
@@ -1633,82 +2011,6 @@ const fetchOMIRL = async () => {
     const stations = data?.stations || [];
 
     if (!stations.length) return;
-
-
-    // ==============================
-    // CORREZIONI ANOMALIE
-    // [CLIMATOLOGIA, MAX, MIN]
-    // ==============================
-
-    const anomalyCorrections = {
-
-      MGAZZ: [SES, -1.8,  -2.4],
-      RIGHI: [SES, -2.4,  -3.3],
-      CFUNZ: [SES,  0.8,  -0.2],
-      PREMA: [SES, -1.2,  -2.9],
-      CRETO: [SES, -3.3,  -7.5],
-      VIGAN: [SES, -0.9,  -4.0],
-      GEPTX: [SES,  0.2,  -4.0],
-      MOPEN: [SES, -7.2,  -7.2],
-      STILA: [SES, -0.2,  -1.4],
-      MADGR: [SES, -0.5,  -2.1],
-      FIORI: [SES, -1.6,  -3.9],
-      MELEE: [SES, -2.3,  -5.0],
-      FFRES: [SES, -4.7,  -5.4],
-      PTURC: [SES, -4.5,  -7.2],
-      CAMOG: [SES, -0.1,   0.2],
-      MTPOR: [SES, -2.6,  -4.0],
-      RAPAL: [SES,  0.9,  -3.5],
-      CHIRI: [SES,  0.3,  -0.9],
-      PRTTI: [SES,  1.0,  -4.7],
-      OGNIO: [SES, -2.9,  -3.9],
-      SALBE: [SES, -2.5,  -5.0],
-      DAVAG: [SES, -0.3,  -5.7],
-      CABAN: [SES, -3.4, -10.1],
-      ISOVE: [SES, -0.9,  -4.9],
-      MONTG: [SES, -2.2,  -8.5],
-      CAVIP: [SES,  0.2,  -0.7],
-      SLEVA: [SES, -0.4,  -2.3],
-      URVAS: [SES, -4.4,  -8.0],
-      PRAIC: [SES, -5.6,  -6.2],
-      CAMPL: [SES, -1.8,  -6.3],
-      LERCA: [SES,  0.4,  -2.7],
-      SCIAR: [SES,  1.0,  -1.1],
-      BOLSN: [SES,  0.2,  -2.7],
-      SANDA: [SES, -0.5,  -2.6],
-      VREGI: [SES, -1.8,  -4.2],
-      MIGNA: [SES, -2.0,  -5.9],
-      MTECA: [SES, -2.9,  -5.3],
-      TANOR: [SES, -4.2,  -6.0],
-      CRCFI: [SES, -2.9,  -5.6],
-      CCHER: [SES, -2.9,  -4.8],
-      BRZON: [SES, -1.0,  -4.7],
-      PRMLO: [SES, -9.8, -11.8],
-      LOCOC: [SES, -2.7, -10.1],
-      INASV: [SES,  0.3,  -0.7],
-      ELLRA: [SES,  0.6,  -5.0],
-      SANTU: [SES,  0.3,  -4.4],
-      FERRA: [SES, -0.5,  -8.7],
-      CCADB: [SES, -1.6,  -4.5],
-      VALZE: [SES, -0.1,  -8.1],
-      SSGIU: [SES, -2.5,  -6.5],
-      REPPI: [SES, -2.3,  -4.9],
-      BARGO: [SES,  0.9,  -2.6],
-      MARIN: [LUN,  0.5,  -1.9],
-      MROCC: [LUN, -2.5,  -0.3],
-      SPZIA: [LUN,  0.6,   1.0],
-      PVENE: [LUN, -0.7,   1.5],
-      CRNLO: [LUN, -0.1,   1.9],
-      MROSS: [LUN,  0.8,   1.1],
-      FRAMU: [LUN,  0.1,  -0.2],
-      MATRA: [LUN, -1.1,  -2.0],
-      VALIG: [LUN, -0.1,  -4.4],
-      CUCCA: [LUN, -4.0,  -4.7],
-      SMVAR: [LUN,  0.8,  -5.4],
-      PDVRM: [LUN,  1.7,  -5.9],
-      CAIRM: [ACQ, -2.5,  -0.7],
-
-    };
 
 
     // ==============================
@@ -1736,62 +2038,69 @@ const fetchOMIRL = async () => {
 
 
       // ==============================
-      // ANOMALIE
+      // ANOMALIE E MEDIE MENSILI
       // ==============================
 
       let tempMeanAnom = null;
       let tempHighAnom = null;
       let tempLowAnom = null;
 
-      const correction = anomalyCorrections[id];
+      // Medie climatologiche del mese (menu Medie -> "Media Mese")
+      let tempHighClimAvg = null;
+      let tempLowClimAvg = null;
+      let tempMeanClimAvg = null;
 
-      if (correction) {
+      const config = anomalyCorrections[id];
+
+      if (config) {
 
         const [
-          climateStation,
+          climateName,
           tmaxCorrection,
           tminCorrection
-        ] = correction;
+        ] = config;
 
-        const climate =
-          climatologia?.[climateStation]?.daily?.[climatologyDay];
+        const climate = getClimate(climateName);
 
-        if (climate) {
 
-          const climateTmax =
-            Number(climate.tmax) + tmaxCorrection;
+        // ----- Giorno odierno -----
 
-          const climateTmin =
-            Number(climate.tmin) + tminCorrection;
+        if (climate.day) {
 
+          const climateTmax = climate.day.tmax + tmaxCorrection;
+          const climateTmin = climate.day.tmin + tminCorrection;
 
           // MAX
 
           if (tempHigh !== null) {
-            tempHighAnom =
-              Number(tempHigh) - climateTmax;
+            tempHighAnom = Number(tempHigh) - climateTmax;
           }
-
 
           // MIN
 
           if (tempLow !== null) {
-            tempLowAnom =
-              Number(tempLow) - climateTmin;
+            tempLowAnom = Number(tempLow) - climateTmin;
           }
 
+          // MEDIA (media tra max e min climatologici del giorno)
 
-          // MEDIA
-
-          if (
-            tempMean !== null &&
-            climate.tmean != null
-          ) {
+          if (tempMean !== null) {
             tempMeanAnom =
               Number(tempMean) -
-              Number(climate.tmean);
+              (climateTmax + climateTmin) / 2;
           }
+        }
 
+
+        // ----- Media del mese (MD) -----
+
+        if (climate.month) {
+
+          tempHighClimAvg = +(climate.month.tmax + tmaxCorrection).toFixed(1);
+          tempLowClimAvg = +(climate.month.tmin + tminCorrection).toFixed(1);
+
+          // Media mensile della T media = (tmax media + tmin media) / 2
+          tempMeanClimAvg = +((tempHighClimAvg + tempLowClimAvg) / 2).toFixed(1);
         }
       }
 
@@ -1822,6 +2131,13 @@ const fetchOMIRL = async () => {
         tempMeanAnom,
         tempHighAnom,
         tempLowAnom,
+
+
+        // ===== MEDIE MENSILI =====
+
+        tempHighClimAvg,
+        tempLowClimAvg,
+        tempMeanClimAvg,
 
 
         // ===== HUMIDITY =====
@@ -1982,6 +2298,7 @@ const fetch3R = async () => {
     const SAL = "saluzzo";
     const NER = "neraissa";
     const BAR = "barant";
+    const TOR = "torino";
 
 
     // ==============================
@@ -2106,6 +2423,19 @@ const fetch3R = async () => {
       PIE_003: [BAR,  0.0,   0.0],
       PIE_S4063: [BAR, -2.2,  -2.6],
       PIE_S2898: [BAR, -2.5,  -1.5],
+      PIE_S2896: [TOR,  0.3,  -0.6],
+      PIE_256: [TOR,  0.8,  -1.4],
+      PIE_S4294: [TOR,  0.2,   0.5],
+      PIE_S3948: [TOR,  0.0,  -0.2],
+      PIE_446: [TOR,  1.4,   0.0],
+      PIE_109: [TOR,  0.1,  -1.3],
+      PIE_143: [TOR, -0.7,  -3.1],
+      PIE_146: [TOR, -2.3,  -0.3],
+      PIE_149: [NER,  1.9,   1.9],
+      PIE_150: [NER,  2.8,   0.1],
+      PIE_151: [NER,  3.3,  -0.5],
+      PIE_401: [NER,  2.5,  -1.3],
+      PIE_152: [NER,  1.5,  -0.8],
 
     };
 
@@ -2169,6 +2499,8 @@ const fetch3R = async () => {
       let tempMeanAnom = null;
       let tempHighAnom = null;
       let tempLowAnom = null;
+      let tempHighClimAvg = null;
+      let tempLowClimAvg = null;
 
 
       const correction = anomalyCorrections[id];
@@ -2240,6 +2572,12 @@ const fetch3R = async () => {
           }
 
         }
+
+        // Media climatologica dal giorno 1 al giorno corrente
+        const climateDailyAll = climatologia?.[climateStation]?.daily ?? null;
+        const avg = computeClimAvgFullMonth(climateDailyAll, tmaxCorrection, tminCorrection);
+        tempHighClimAvg = avg.avgMax;
+        tempLowClimAvg = avg.avgMin;
       }
 
 
@@ -2269,6 +2607,10 @@ const fetch3R = async () => {
         tempMeanAnom,
         tempHighAnom,
         tempLowAnom,
+
+        // Media climatologica mese in corso
+        tempHighClimAvg,
+        tempLowClimAvg,
 
 
         // ===== UMIDITÀ =====
@@ -2438,7 +2780,7 @@ const fetchCML = async () => {
       if (isNaN(lat) || isNaN(lon)) return;
 
       allStations[id] = {
-        source: "GEPO",
+        source: "Acronet",
 
         id,
         N: st.N ?? st.id,
@@ -2937,6 +3279,159 @@ const fetchDMA = async () => {
     });
   } catch (err) {
     console.error("Errore fetch IGNORETE:", err);
+  }
+};
+// =========================
+// MAPPATURA STAZIONI ARCHIVIO
+// (id interno -> codice archivio + climatologia di riferimento)
+// =========================
+const archivioStations = {
+  "Genova Aeroporto": { code: "LIMJ", climate: "genova_sestri_ponente", tmaxCorrection: 0, tminCorrection: 0 },
+  "CFUNZ": { code: "CFUNZ", climate: "genova_sestri_ponente", tmaxCorrection: 0.8, tminCorrection: -0.2 },
+  "PREMA": { code: "PREMA", climate: "genova_sestri_ponente", tmaxCorrection: -1.2, tminCorrection: -2.9 },
+  "GEPTX": { code: "GEPTX", climate: "genova_sestri_ponente", tmaxCorrection:  0.2, tminCorrection: -4.0 },
+  "CRETO": { code: "CRETO", climate: "genova_sestri_ponente", tmaxCorrection: -3.3, tminCorrection: -7.5 },
+  "MOPEN": { code: "MOPEN", climate: "genova_sestri_ponente", tmaxCorrection: -7.2, tminCorrection: -7.2 },
+  "PTURC": { code: "PTURC", climate: "genova_sestri_ponente", tmaxCorrection: -4.5, tminCorrection: -7.2 },
+  "CAMPL": { code: "CAMPL", climate: "genova_sestri_ponente", tmaxCorrection: -1.8, tminCorrection: -6.3 },
+  "FFRES": { code: "FFRES", climate: "genova_sestri_ponente", tmaxCorrection: -4.7, tminCorrection: -5.4 },
+  "MTPOR": { code: "MTPOR", climate: "genova_sestri_ponente", tmaxCorrection: -2.6, tminCorrection: -4.0 },
+  "SLEVA": { code: "SLEVA", climate: "genova_sestri_ponente", tmaxCorrection: -0.4, tminCorrection: -2.3 },
+  "LERCA": { code: "LERCA", climate: "genova_sestri_ponente", tmaxCorrection:  0.4, tminCorrection: -2.7 },
+  "SALBE": { code: "SALBE", climate: "genova_sestri_ponente", tmaxCorrection: -2.5, tminCorrection: -5.0 },
+  "MADGR": { code: "MADGR", climate: "genova_sestri_ponente", tmaxCorrection: -0.5, tminCorrection: -2.1 },
+  "MIGNA": { code: "MIGNA", climate: "genova_sestri_ponente", tmaxCorrection: -2.0, tminCorrection: -5.9 },
+  "SANTU": { code: "SANTU", climate: "genova_sestri_ponente", tmaxCorrection:  0.3, tminCorrection: -4.4 },
+  "INASV": { code: "INASV", climate: "genova_sestri_ponente", tmaxCorrection:  0.3, tminCorrection: -0.7 },
+  "SANDA": { code: "SANDA", climate: "genova_sestri_ponente", tmaxCorrection: -0.5, tminCorrection: -2.6 },
+  // usate in anomalyCorrections dentro fetchOMIRL (climate, tmaxCorrection, tminCorrection)
+};
+
+const fetchArchivioLiguria = async () => {
+
+  try {
+
+    const climatologia = await climatologiaPromise;
+
+    const now = new Date();
+    const today = now.getDate();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+
+    for (const [id, cfg] of Object.entries(archivioStations)) {
+
+      try {
+
+        const res = await fetch(
+          `https://api-stazioni-meteo.eggittof.workers.dev/archivioLiguria.json?stazione=${cfg.code}`
+        );
+
+        if (!res.ok) continue;
+
+        const data = await res.json();
+        const record = data?.stations?.find(s => s.S === cfg.code) || data?.stations?.[0];
+
+        if (!record) continue;
+
+        const tmaxCorrection = cfg.tmaxCorrection || 0;
+        const tminCorrection = cfg.tminCorrection || 0;
+
+        const mxArr = record.MX.split(",").map(v => v.trim());
+        const mnArr = record.MN.split(",").map(v => v.trim());
+
+        const climateDaily = climatologia?.[cfg.climate]?.daily || {};
+
+        let sumMax = 0, countMax = 0;
+        let sumMin = 0, countMin = 0;
+        let sumMean = 0, countMean = 0;
+
+        let sumClimTmax = 0, countClimTmax = 0;
+        let sumClimTmin = 0, countClimTmin = 0;
+        let sumClimTmean = 0, countClimTmean = 0;
+
+        for (let day = 1; day <= today; day++) {
+
+          const idx = day - 1;
+
+          const maxRaw = mxArr[idx];
+          const minRaw = mnArr[idx];
+
+          const dayKey = month + "-" + String(day).padStart(2, "0");
+          const clim = climateDaily[dayKey];
+
+          const max = (maxRaw != null && maxRaw !== "ND") ? Number(maxRaw) : null;
+          const min = (minRaw != null && minRaw !== "ND") ? Number(minRaw) : null;
+
+          if (max != null) {
+            sumMax += max;
+            countMax++;
+
+            if (clim?.tmax != null) {
+              sumClimTmax += Number(clim.tmax) + tmaxCorrection;
+              countClimTmax++;
+            }
+          }
+
+          if (min != null) {
+            sumMin += min;
+            countMin++;
+
+            if (clim?.tmin != null) {
+              sumClimTmin += Number(clim.tmin) + tminCorrection;
+              countClimTmin++;
+            }
+          }
+
+          if (max != null && min != null) {
+            sumMean += (max + min) / 2;
+            countMean++;
+
+            if (clim?.tmean != null) {
+              sumClimTmean += Number(clim.tmean);
+              countClimTmean++;
+            }
+          }
+        }
+
+        const monthHigh = countMax ? +(sumMax / countMax).toFixed(1) : null;
+        const monthLow  = countMin ? +(sumMin / countMin).toFixed(1) : null;
+        const monthMean = countMean ? +(sumMean / countMean).toFixed(1) : null;
+
+        const monthHighAnom = (monthHigh != null && countClimTmax)
+          ? +(monthHigh - (sumClimTmax / countClimTmax)).toFixed(1)
+          : null;
+
+        const monthLowAnom = (monthLow != null && countClimTmin)
+          ? +(monthLow - (sumClimTmin / countClimTmin)).toFixed(1)
+          : null;
+
+        const monthMeanAnom = (monthMean != null && countClimTmean)
+          ? +(monthMean - (sumClimTmean / countClimTmean)).toFixed(1)
+          : null;
+
+        if (!allStations[id]) {
+          console.warn(`⚠️ archivioLiguria: stazione base "${id}" non ancora presente in allStations, salto l'aggancio delle medie mensili per questo ciclo.`);
+          continue; // stazione base non ancora caricata
+        }
+
+        allStations[id] = {
+          ...allStations[id],
+          monthMean,
+          monthHigh,
+          monthLow,
+          monthMeanAnom,
+          monthHighAnom,
+          monthLowAnom
+        };
+
+        updateLayer();
+
+      } catch (err) {
+        console.error(`Errore archivioLiguria per ${id}:`, err);
+      }
+    }
+
+  } catch (err) {
+    console.error("Errore fetchArchivioLiguria:", err);
   }
 };
 const fetchComuneGenova = async () => {
@@ -3525,6 +4020,8 @@ async function fetchPWSGenova() {
       let tempMeanAnom = null;
       let tempHighAnom = null;
       let tempLowAnom = null;
+      let tempHighClimAvg = null;
+      let tempLowClimAvg = null;
 
 
 // ==========================================
@@ -3554,6 +4051,11 @@ if (id === "Genova Aeroporto" && climate) {
     tempLowAnom =
       Number(tempLow) - Number(climate.tmin);
   }
+
+  // Media climatologica dal giorno 1 al giorno corrente
+  const avgGA = computeClimAvgFullMonth(climatologia?.genova_sestri_ponente?.daily ?? null, 0, 0);
+  tempHighClimAvg = avgGA.avgMax;
+  tempLowClimAvg = avgGA.avgMin;
 }
 
 
@@ -3591,6 +4093,11 @@ else if (id === "Villanova Aeroporto") {
         Number(tempLow) - Number(albengaClimate.tmin);
     }
   }
+
+  // Media climatologica dal giorno 1 al giorno corrente
+  const avgVA = computeClimAvgFullMonth(climatologia?.albenga?.daily ?? null, 0, 0);
+  tempHighClimAvg = avgVA.avgMax;
+  tempLowClimAvg = avgVA.avgMin;
 }
 // ==========================================
 // CLIMATOLOGIA SARZANA AEROPORTO
@@ -3626,6 +4133,11 @@ else if (id === "Sarzana Aeroporto") {
         Number(tempLow) - Number(sarzanaClimate.tmin);
     }
   }
+
+  // Media climatologica dal giorno 1 al giorno corrente
+  const avgSA = computeClimAvgFullMonth(climatologia?.sarzana?.daily ?? null, 0, 0);
+  tempHighClimAvg = avgSA.avgMax;
+  tempLowClimAvg = avgSA.avgMin;
 }
       // ==========================================
       // CLIMATOLOGIA GENOVA OREGINA
@@ -3654,6 +4166,11 @@ else if (id === "Sarzana Aeroporto") {
           tempLowAnom =
             Number(tempLow) - climateTmin;
         }
+
+        // Media climatologica dal giorno 1 al giorno corrente
+        const avgGR = computeClimAvgFullMonth(climatologia?.genova_sestri_ponente?.daily ?? null, -0.9, -0.8);
+        tempHighClimAvg = avgGR.avgMax;
+        tempLowClimAvg = avgGR.avgMin;
       }
     
 
@@ -3676,6 +4193,10 @@ else if (id === "Sarzana Aeroporto") {
         tempMeanAnom,
         tempHighAnom,
         tempLowAnom,
+
+        // Media climatologica mese in corso
+        tempHighClimAvg,
+        tempLowClimAvg,
 
 
         // Dewpoint
@@ -3905,7 +4426,7 @@ document
   setRegion("liguria");
 
   // Avvio
-  function loadLiguriaData(){
+function loadLiguriaData(){
 
   Object.keys(stations).forEach(id =>
     fetchPws(id, stations)
@@ -3915,7 +4436,7 @@ document
   fetchIgnorete();
   fetchComuneGenova();
   fetchLimet();
-  fetchPWSGenova();
+  fetchPWSGenova().then(fetchArchivioLiguria);
   fetchWeatherLinkLIG();
   fetchGepo();
 }
@@ -3938,8 +4459,10 @@ function startLiguria(clear = true){
   intervals.push(setInterval(fetchIgnorete, 300000));
   intervals.push(setInterval(fetchComuneGenova, 300000));
   intervals.push(setInterval(fetchLimet, 300000));
-  intervals.push(setInterval(fetchPWSGenova, 300000));
+  intervals.push(setInterval(fetchPWSGenova, 300000));  
   intervals.push(setInterval(fetchGepo, 300000));
+  intervals.push(setInterval(fetchArchivioLiguria, 900000));
+  
 }
 
 function startPiemonte(clear = true){

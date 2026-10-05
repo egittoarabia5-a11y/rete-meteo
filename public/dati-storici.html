@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Genova · Dati storici</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e1420;
+    --paper:#f3ede0;
+    --brass:#c99a4b;
+    --storm:#4c6fa0;
+    --ember:#e2703a;
+    --glass: rgba(243,237,224,0.07);
+    --glass-strong: rgba(243,237,224,0.13);
+    --line: rgba(243,237,224,0.16);
+    --page-bg:#204a68;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Work Sans', sans-serif;
+    background-color: var(--page-bg);
+    color: var(--paper);
+    min-height:100vh;
+    overflow-x:hidden;
+    transition: background-color 3.5s ease-in-out;
+  }
+  a{color:inherit;}
+
+  .page{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 22px 60px;
+  }
+
+  /* ---------- tab di navigazione tra le pagine ---------- */
+  .page-tabs{
+    display:flex;
+    gap:8px;
+    padding: 2px 2px 16px;
+  }
+  .page-tab{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:9px 18px;
+    border-radius:100px;
+    border:1px solid var(--line);
+    background: var(--glass);
+    color: var(--paper);
+    text-decoration:none;
+    opacity:.7;
+    transition: background-color .25s ease, opacity .25s ease, border-color .25s ease;
+  }
+  .page-tab:hover{ background: var(--glass-strong); opacity:1; }
+  .page-tab.active{
+    background: var(--brass);
+    border-color: var(--brass);
+    color: var(--ink);
+    font-weight:600;
+    opacity:1;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    padding: 4px 2px 20px;
+  }
+  .station-id{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .station-id .eyebrow{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color: var(--brass);
+    opacity:.9;
+  }
+  .station-id .place{
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size:22px;
+  }
+  .live-clock{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    color: var(--paper);
+    opacity:.75;
+    text-align:right;
+  }
+  .live-clock b{color:var(--paper); opacity:1; font-weight:500;}
+
+  /* ---------- sezione principale: tabella mensile ---------- */
+  .section-title{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color: var(--brass);
+    opacity:.85;
+    margin: 10px 2px 12px;
+  }
+  .month-table-wrap{
+    background: var(--glass);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:18px 20px 20px;
+    overflow-x:auto;
+  }
+  .month-grid{
+    display:grid;
+    grid-template-columns: 0.8fr repeat(8, 1fr);
+    gap:8px 8px;
+    min-width:760px;
+  }
+  .month-head{
+    font-family:'Work Sans', sans-serif;
+    font-size:10.5px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    opacity:.5;
+    text-align:center;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .month-head.month-head-label{ text-align:left; }
+  .month-label{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    opacity:.85;
+    display:flex;
+    align-items:center;
+  }
+  .month-chip{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 4px;
+    border-radius:10px;
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size:13px;
+    background-color: var(--page-bg);
+    border:1px solid var(--line);
+    color: var(--paper);
+    z-index:0;
+    overflow:visible;
+  }
+  .month-chip::before{
+    content:"";
+    position:absolute;
+    inset:-4px;
+    border-radius:16px;
+    background-color: var(--chip-glow, transparent);
+    filter: blur(9px);
+    opacity:.28;
+    z-index:-1;
+    pointer-events:none;
+  }
+  .day-grid{
+    grid-template-columns: 0.6fr repeat(9, 1fr);
+    min-width:860px;
+  }
+
+  /* ---------- selettore anno/mese ---------- */
+  .period-selector{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:20px;
+    padding: 6px 0 18px;
+  }
+  .period-selector button{
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background: var(--glass);
+    color: var(--paper);
+    font-family:'Work Sans', sans-serif;
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: background-color .2s ease;
+  }
+  .period-selector button:hover{ background: var(--glass-strong); }
+  .period-selector .period-label{
+    font-family:'Work Sans', sans-serif;
+    font-size:16px;
+    font-weight:500;
+    min-width:130px;
+    text-align:center;
+  }
+
+  .footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:36px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    opacity:.5;
+  }
+
+  @media (max-width: 760px){
+    .page{ padding:16px 14px 44px; }
+    .live-clock{ text-align:left; }
+    .month-table-wrap{ padding:14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    * { transition-duration: 0.2s !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="page-tabs">
+    <a href="stazione-meteo.html" class="page-tab">Stazione</a>
+    <a href="dati-storici.html" class="page-tab active">Dati storici</a>
+  </div>
+
+  <div class="topbar">
+    <div class="station-id">
+      <span class="eyebrow">Centralina · GE-014</span>
+      <span class="place">Genova, Liguria</span>
+    </div>
+    <div class="live-clock">
+      <div><b id="clockTime">--:--:--</b></div>
+      <div id="clockDate">-- --- ----</div>
+    </div>
+  </div>
+
+  <div class="section-title">Temperature mensili</div>
+
+  <div class="period-selector">
+    <button id="yearPrev" aria-label="Anno precedente">‹</button>
+    <span class="period-label" id="yearLabel">2026</span>
+    <button id="yearNext" aria-label="Anno successivo">›</button>
+  </div>
+
+  <div class="month-table-wrap">
+    <div class="month-grid" id="monthTempGrid">
+      <span class="month-head month-head-label">Mese</span>
+      <span class="month-head">T Max Assoluta</span>
+      <span class="month-head">T Min Assoluta</span>
+      <span class="month-head">T Max Media</span>
+      <span class="month-head">T Min Media</span>
+      <span class="month-head">T Media</span>
+      <span class="month-head">Anomalia Max</span>
+      <span class="month-head">Anomalia Min</span>
+      <span class="month-head">Anomalia Med</span>
+    </div>
+  </div>
+
+  <div class="period-selector">
+    <button id="monthPrev" aria-label="Mese precedente">‹</button>
+    <span class="period-label" id="monthLabel">Settembre</span>
+    <button id="monthNext" aria-label="Mese successivo">›</button>
+  </div>
+
+  <div class="month-table-wrap">
+    <div class="month-grid day-grid" id="dayTempGrid">
+      <span class="month-head month-head-label">Giorno</span>
+      <span class="month-head">T Max</span>
+      <span class="month-head">T Min</span>
+      <span class="month-head">T Media</span>
+      <span class="month-head">T Max Media</span>
+      <span class="month-head">T Min Media</span>
+      <span class="month-head">T Media Media</span>
+      <span class="month-head">Anomalia Max</span>
+      <span class="month-head">Anomalia Min</span>
+      <span class="month-head">Anomalia Media</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Genova, Liguria</span>
+    <span>44.4056° N, 8.9463° E · 6 m s.l.m.</span>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   OROLOGIO REALE
+   ============================================================ */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('it-IT');
+  document.getElementById('clockDate').textContent = now.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ============================================================
+   TABELLA TEMPERATURE MENSILI — dati dimostrativi
+   ============================================================ */
+
+/* Stessa scala colore della pagina Stazione */
+function getTempColor(value){
+  if (value < -15) return "#f54dff";
+  if (value < -10) return "#c65bff";
+  if (value < -4) return "#4d54ff";
+  if (value < -2) return "#1f7eb9";
+  if (value <= 0) return "#539eb0";
+  if (value < 2) return "#67bac8";
+  if (value < 4) return "#5ac5ba";
+  if (value < 6) return "#42a37b";
+  if (value < 8) return "#538b53";
+  if (value < 10) return "#419a41";
+  if (value < 12) return "#5cb425";
+  if (value < 14) return "#76ca38";
+  if (value < 16) return "#a1d950";
+  if (value < 18) return "#eadf00";
+  if (value < 20) return "#ffcc55";
+  if (value < 22) return "#ffaf54";
+  if (value < 24) return "#fa8f4b";
+  if (value < 26) return "#f26969";
+  if (value < 28) return "#de5a5a";
+  if (value < 30) return "#b05151";
+  if (value < 32) return "#994848";
+  if (value < 34) return "#743e3e";
+  if (value < 36) return "#b874ac";
+  if (value < 38) return "#ea7bea";
+  return "#995a99";
+}
+
+/* Stessa scala colore delle anomalie della pagina Stazione */
+function getAnomalyColor(value){
+  if (value === 0) return "#d0d0d0";
+  if (value < 0) {
+    if (value > -0.5) return "#abdcff";
+    else if (value > -1) return "#a4d1fd";
+    else if (value > -1.5) return "#abbbff";
+    else if (value > -2) return "#85adff";
+    else if (value > -2.5) return "#618dff";
+    else if (value > -3) return "#4372ff";
+    else if (value > -3.5) return "#065bff";
+    else if (value > -4) return "#014cdd";
+    else if (value > -4.5) return "#3232ff";
+    else if (value > -5) return "#0034e8";
+    else if (value > -6) return "#0033ad";
+    else if (value > -7) return "#00338e";
+    else if (value > -8) return "#001d69";
+    else if (value > -9) return "#00034f";
+    else if (value > -10) return "#7e173a";
+    else if (value > -11) return "#3c177e";
+    else if (value > -12) return "#9a707e";
+    else if (value > -13) return "#9a707e";
+    else if (value > -14) return "#383838";
+    else return "#000000";
+  }
+  if (value > 0) {
+    if (value < 0.5) return "#dabbb2";
+    else if (value < 1) return "#f5bcaa";
+    else if (value < 1.5) return "#ffbea4";
+    else if (value < 2) return "#ffa28f";
+    else if (value < 2.5) return "#ff8989";
+    else if (value < 3) return "#f96262";
+    else if (value < 3.5) return "#dd4c4c";
+    else if (value < 4) return "#df4444";
+    else if (value < 4.5) return "#c04040";
+    else if (value < 5) return "#ab4646";
+    else if (value < 6) return "#974646";
+    else if (value < 7) return "#783333";
+    else if (value < 8) return "#6a3c3c";
+    else if (value < 9) return "#bb5275";
+    else if (value < 10) return "#b55b79";
+    else if (value < 11) return "#a37685";
+    else if (value < 12) return "#796e72";
+    else if (value < 13) return "#515151";
+    else return "#000000";
+  }
+  return "#d0d0d0";
+}
+
+/* Dati dimostrativi — climatologia mensile di Genova (dato finto) */
+const MONTHLY_TEMPS = [
+  { m:'Gennaio',   maxAbs:18.5, minAbs:-3.2, maxAvg:11.8, minAvg:5.2,  avg:8.5,  anomMax:0.6, anomMin:0.3, anomAvg:0.4 },
+  { m:'Febbraio',  maxAbs:19.8, minAbs:-2.5, maxAvg:12.4, minAvg:5.6,  avg:9.0,  anomMax:0.4, anomMin:0.2, anomAvg:0.3 },
+  { m:'Marzo',     maxAbs:22.6, minAbs:-0.8, maxAvg:14.8, minAvg:7.5,  avg:11.1, anomMax:0.5, anomMin:0.4, anomAvg:0.5 },
+  { m:'Aprile',    maxAbs:25.3, minAbs:3.0,  maxAvg:17.5, minAvg:10.2, avg:13.8, anomMax:0.3, anomMin:0.5, anomAvg:0.4 },
+  { m:'Maggio',    maxAbs:29.4, minAbs:7.8,  maxAvg:21.6, minAvg:14.0, avg:17.8, anomMax:0.7, anomMin:0.6, anomAvg:0.6 },
+  { m:'Giugno',    maxAbs:33.8, minAbs:12.4, maxAvg:25.7, minAvg:18.1, avg:21.9, anomMax:1.1, anomMin:0.8, anomAvg:0.9 },
+  { m:'Luglio',    maxAbs:36.9, minAbs:15.6, maxAvg:28.5, minAvg:21.0, avg:24.8, anomMax:1.4, anomMin:1.0, anomAvg:1.2 },
+  { m:'Agosto',    maxAbs:37.5, minAbs:16.2, maxAvg:28.9, minAvg:21.4, avg:25.2, anomMax:1.5, anomMin:1.1, anomAvg:1.3 },
+  { m:'Settembre', maxAbs:33.2, minAbs:12.0, maxAvg:25.1, minAvg:18.3, avg:21.7, anomMax:0.9, anomMin:0.7, anomAvg:0.8 },
+  { m:'Ottobre',   maxAbs:28.4, minAbs:7.5,  maxAvg:20.4, minAvg:14.1, avg:17.3, anomMax:0.5, anomMin:0.4, anomAvg:0.4 },
+  { m:'Novembre',  maxAbs:22.9, minAbs:1.2,  maxAvg:15.6, minAvg:9.8,  avg:12.7, anomMax:0.3, anomMin:0.2, anomAvg:0.3 },
+  { m:'Dicembre',  maxAbs:19.0, minAbs:-2.0, maxAvg:12.3, minAvg:6.0,  avg:9.2,  anomMax:0.4, anomMin:0.3, anomAvg:0.3 }
+];
+
+function monthChip(value, colorFn){
+  const span = document.createElement('span');
+  span.className = 'month-chip';
+  span.style.setProperty('--chip-glow', colorFn(value));
+  const sign = value > 0 ? '+' : '';
+  span.textContent = (colorFn === getAnomalyColor ? sign : '') + value.toFixed(1) + '°';
+  return span;
+}
+
+function renderMonthlyTable(){
+  const grid = document.getElementById('monthTempGrid');
+  MONTHLY_TEMPS.forEach(row=>{
+    const label = document.createElement('span');
+    label.className = 'month-label';
+    label.textContent = row.m;
+    grid.appendChild(label);
+
+    grid.appendChild(monthChip(row.maxAbs, getTempColor));
+    grid.appendChild(monthChip(row.minAbs, getTempColor));
+    grid.appendChild(monthChip(row.maxAvg, getTempColor));
+    grid.appendChild(monthChip(row.minAvg, getTempColor));
+    grid.appendChild(monthChip(row.avg, getTempColor));
+    grid.appendChild(monthChip(row.anomMax, getAnomalyColor));
+    grid.appendChild(monthChip(row.anomMin, getAnomalyColor));
+    grid.appendChild(monthChip(row.anomAvg, getAnomalyColor));
+  });
+}
+renderMonthlyTable();
+
+/* ============================================================
+   SELETTORE ANNO / MESE + TABELLA TEMPERATURE GIORNALIERE
+   ============================================================ */
+const MONTH_NAMES = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+let currentYear = 2026;
+let currentMonthIndex = 8; // Settembre
+
+/* Piccolo generatore pseudo-casuale ma deterministico (stesso seed = stesso
+   risultato ogni volta), usato solo per variare i dati finti giorno per giorno */
+function pseudoRandom(seed){
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x); // valore stabile tra 0 e 1
+}
+
+function daysInMonth(monthIndex, year){
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+/* Genera dati giornalieri dimostrativi per un mese, a partire dalla
+   climatologia mensile già definita in MONTHLY_TEMPS */
+function generateDailyData(monthIndex, year){
+  const month = MONTHLY_TEMPS[monthIndex];
+  const days = daysInMonth(monthIndex, year);
+  const rows = [];
+
+  for(let d = 1; d <= days; d++){
+    const seed = monthIndex * 100 + d + year * 0.001;
+
+    const maxMedia = month.maxAvg + (pseudoRandom(seed) - 0.5) * 1.5;
+    const minMedia = month.minAvg + (pseudoRandom(seed + 50) - 0.5) * 1.2;
+    const mediaMedia = month.avg + (pseudoRandom(seed + 80) - 0.5) * 1.0;
+
+    const tMax = maxMedia + month.anomMax + (pseudoRandom(seed + 100) - 0.5) * 3.0;
+    const tMin = minMedia + month.anomMin + (pseudoRandom(seed + 150) - 0.5) * 2.5;
+    const tMedia = mediaMedia + month.anomAvg + (pseudoRandom(seed + 200) - 0.5) * 2.0;
+
+    rows.push({
+      d,
+      tMax, tMin, tMedia,
+      maxMedia, minMedia, mediaMedia,
+      anomMax: tMax - maxMedia,
+      anomMin: tMin - minMedia,
+      anomMedia: tMedia - mediaMedia
+    });
+  }
+  return rows;
+}
+
+function renderDailyTable(){
+  const grid = document.getElementById('dayTempGrid');
+  // rimuove tutte le righe già presenti, tenendo solo l'intestazione (prime 10 celle)
+  while(grid.children.length > 10){ grid.removeChild(grid.lastChild); }
+
+  const rows = generateDailyData(currentMonthIndex, currentYear);
+  rows.forEach(row=>{
+    const label = document.createElement('span');
+    label.className = 'month-label';
+    label.textContent = row.d;
+    grid.appendChild(label);
+
+    grid.appendChild(monthChip(row.tMax, getTempColor));
+    grid.appendChild(monthChip(row.tMin, getTempColor));
+    grid.appendChild(monthChip(row.tMedia, getTempColor));
+    grid.appendChild(monthChip(row.maxMedia, getTempColor));
+    grid.appendChild(monthChip(row.minMedia, getTempColor));
+    grid.appendChild(monthChip(row.mediaMedia, getTempColor));
+    grid.appendChild(monthChip(row.anomMax, getAnomalyColor));
+    grid.appendChild(monthChip(row.anomMin, getAnomalyColor));
+    grid.appendChild(monthChip(row.anomMedia, getAnomalyColor));
+  });
+}
+
+function renderYearLabel(){
+  document.getElementById('yearLabel').textContent = currentYear;
+}
+function renderMonthLabel(){
+  document.getElementById('monthLabel').textContent = MONTH_NAMES[currentMonthIndex];
+}
+
+document.getElementById('yearPrev').addEventListener('click', ()=>{
+  currentYear -= 1;
+  renderYearLabel();
+  renderDailyTable(); // il numero di giorni di febbraio dipende dall'anno
+});
+document.getElementById('yearNext').addEventListener('click', ()=>{
+  currentYear += 1;
+  renderYearLabel();
+  renderDailyTable();
+});
+document.getElementById('monthPrev').addEventListener('click', ()=>{
+  currentMonthIndex = (currentMonthIndex + 11) % 12;
+  renderMonthLabel();
+  renderDailyTable();
+});
+document.getElementById('monthNext').addEventListener('click', ()=>{
+  currentMonthIndex = (currentMonthIndex + 1) % 12;
+  renderMonthLabel();
+  renderDailyTable();
+});
+
+renderYearLabel();
+renderMonthLabel();
+renderDailyTable();
+
+/* ============================================================
+   SFONDO SINCRONIZZATO CON LA CONDIZIONE METEO ATTUALE
+   — stessa logica di classificazione della pagina principale,
+   qui usata solo per scegliere il colore di sfondo coerente
+   ============================================================ */
+const LIVE_CURRENT_URL = 'https://api.weather.com/v2/pws/observations/current?apiKey=53b89abc03d14d7ab89abc03d1dd7ab6&stationId=IGENOA2897&numericPrecision=decimal&format=json&units=m';
+const LIVE_METAR_URL = 'https://api-stazioni-meteo.eggittof.workers.dev/metar.json';
+const BG_REFRESH_MS = 10 * 1000;      // come la pagina Stazione
+const METAR_REFRESH_MS = 5 * 60 * 1000; // come la pagina Stazione
+
+/* Stesso colore di sfondo per ciascuna condizione della pagina Stazione */
+const CONDITION_BG = {
+  sereno: '#204a68',
+  nuvoloso: '#565b62',
+  pioggia: '#243c4e',
+  pioviggine: '#212c33',
+  temporale: '#20242e',
+  neve: '#2c3540',
+  nebbia: '#453f34',
+  notte: '#0c1120',
+  notte_nuvolosa: '#0e131c',
+  parzialmente_nuvoloso: '#264a63',
+  pioggia_moderata: '#1a2733',
+  pioggia_forte: '#161d24',
+  nevischio: '#243138',
+  pioggia_mista_neve: '#232f36',
+  foschia: '#3a352c'
+};
+
+function classifyPrecipCondition(cur){
+  const precipRate = cur.metric.precipRate;
+  const temp = cur.metric.temp;
+  if(precipRate <= 0) return null;
+
+  if(temp <= 0.5){
+    return (precipRate < 1.5) ? 'nevischio' : 'neve';
+  }
+  if(temp <= 2.5){
+    return 'pioggia_mista_neve';
+  }
+  if(precipRate < 1) return 'pioviggine';
+  if(precipRate < 4) return 'pioggia';
+  if(precipRate < 15) return 'pioggia_moderata';
+  return 'pioggia_forte';
+}
+
+function classifySkyFromMetar(metar, isDaytime){
+  const wx = (metar.wxString || '').toUpperCase();
+  const coverTop = (metar.cover || '').toUpperCase();
+  const clouds = metar.clouds || [];
+
+  const hasVV = coverTop === 'VV' || clouds.some(c => (c.cover||'').toUpperCase() === 'VV');
+  if(wx.includes('FG') || hasVV) return 'nebbia';
+  if(wx.includes('BR') || wx.includes('HZ')) return 'foschia';
+
+  const order = { FEW:1, SCT:2, BKN:3, OVC:4 };
+  let maxCover = null;
+  clouds.forEach(c=>{
+    const cov = (c.cover||'').toUpperCase();
+    if(order[cov] && (!maxCover || order[cov] > order[maxCover])) maxCover = cov;
+  });
+
+  const isClear = coverTop === 'CAVOK' || coverTop === 'SKC' || coverTop === 'CLR' || coverTop === 'NSC' || !maxCover;
+  if(isClear) return isDaytime ? 'sereno' : 'notte';
+  if(maxCover === 'FEW' || maxCover === 'SCT') return isDaytime ? 'parzialmente_nuvoloso' : 'notte_nuvolosa';
+  return isDaytime ? 'nuvoloso' : 'notte_nuvolosa';
+}
+
+function classifySkyFromSolarRatio(cur, isDaytime){
+  if(!isDaytime) return 'notte';
+  const ratio = cur.solarRadiation / 850;
+  if(ratio > 0.65) return 'sereno';
+  if(ratio > 0.35) return 'parzialmente_nuvoloso';
+  return 'nuvoloso';
+}
+
+function classifyCondition(cur, metar){
+  const precipCondition = classifyPrecipCondition(cur);
+  if(precipCondition) return precipCondition;
+
+  const isDaytime = (cur.uv > 0 || cur.solarRadiation > 5);
+  if(metar){
+    try{
+      return classifySkyFromMetar(metar, isDaytime);
+    } catch(err){
+      console.error('METAR non leggibile, uso la stima da radiazione solare.', err);
+    }
+  }
+  return classifySkyFromSolarRatio(cur, isDaytime);
+}
+
+let cachedMetar = null;
+
+async function refreshMetar(){
+  try{
+    cachedMetar = await fetch(LIVE_METAR_URL).then(r => r.json());
+  } catch(err){
+    console.error('METAR non disponibile per lo sfondo.', err);
+    cachedMetar = null;
+  }
+}
+
+async function syncBackground(){
+  try{
+    const curPayload = await fetch(LIVE_CURRENT_URL).then(r => r.json());
+    const cur = curPayload.observations[0];
+    const key = classifyCondition(cur, cachedMetar);
+    const bg = CONDITION_BG[key] || CONDITION_BG.sereno;
+    document.documentElement.style.setProperty('--page-bg', bg);
+    document.body.style.backgroundColor = bg;
+  } catch(err){
+    console.error('Sfondo non sincronizzato, dati live non disponibili.', err);
+  }
+}
+
+refreshMetar().then(syncBackground);
+setInterval(syncBackground, BG_REFRESH_MS);
+setInterval(refreshMetar, METAR_REFRESH_MS);
+</script>
+</body>
+</html>
