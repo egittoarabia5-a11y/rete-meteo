@@ -1927,13 +1927,11 @@ if (id === "ILIGURIA67" && climate) {
 }
 const fetchOMIRL = async () => {
   try {
-
     // ==========================================================
     // STAZIONI OMIRL CON CLIMATOLOGIA
     // ==========================================================
 
     const anomalyCorrections = {
-
       ROCNE: ["A_ROCNR", 0, 0],
       INASV: ["A_INASV", 0, 0],
       MIGNA: ["A_MIGNA", 0, 0],
@@ -1959,45 +1957,37 @@ const fetchOMIRL = async () => {
       LOCOC: ["A_LOCO", 0, 0],
       ROVEG: ["A_ROVEG", 0, 0],
       SSTAV: ["A_SANTO", 0, 0],
-
     };
 
-
-    // ==============================
+    // ==========================================================
     // DATA IN ORA DI ROMA
-    // ==============================
+    // ==========================================================
 
     const dateParts = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/Rome",
       month: "2-digit",
-      day: "2-digit"
+      day: "2-digit",
     }).formatToParts(new Date());
 
-    const month =
+    const month = dateParts.find(
+      (p) => p.type === "month"
+    ).value;
+
+    const day = Number(
       dateParts.find(
-        (p) => p.type === "month"
-      ).value;
+        (p) => p.type === "day"
+      ).value
+    );
 
-    const day =
-      Number(
-        dateParts.find(
-          (p) => p.type === "day"
-        ).value
-      );
-
-
-    // ==============================
+    // ==========================================================
     // CLIMATOLOGIA
-    // ==============================
+    // ==========================================================
 
-    const climatologia =
-      await climatologiaPromise;
+    const climatologia = await climatologiaPromise;
 
-    const climateList =
-      Array.isArray(climatologia)
-        ? climatologia
-        : [climatologia];
-
+    const climateList = Array.isArray(climatologia)
+      ? climatologia
+      : [climatologia];
 
     const parseList = (str) =>
       String(str ?? "")
@@ -2006,534 +1996,329 @@ const fetchOMIRL = async () => {
         .filter((v) => v !== "")
         .map(Number);
 
-
     const climateCache = {};
 
-
     const getClimate = (name) => {
-
       if (climateCache[name]) {
         return climateCache[name];
       }
 
       const result = {
         day: null,
-        month: null
+        month: null,
       };
 
+      const entry = climateList.find(
+        (c) => c?.S === name
+      );
 
-      const entry =
-        climateList.find(
-          (c) => c?.S === name
-        );
-
-
-      const m =
-        entry?.months?.find(
-          (x) => x.M === month
-        );
-
+      const m = entry?.months?.find(
+        (x) => x.M === month
+      );
 
       if (!m) {
-
         console.warn(
-          `⚠️ Climatologia "${name}" (mese ${month}) non trovata in climatologia.json`
+          `Climatologia "${name}" (mese ${month}) non trovata`
         );
 
         climateCache[name] = result;
-
         return result;
       }
 
+      const maxList = parseList(m.MX);
+      const minList = parseList(m.MN);
+      const mdList = parseList(m.MD);
 
-      const maxList =
-        parseList(m.MX);
-
-      const minList =
-        parseList(m.MN);
-
-      const mdList =
-        parseList(m.MD);
-
-
-      if (
-        maxList.length &&
-        minList.length
-      ) {
-
+      if (maxList.length && minList.length) {
         const tmax =
-          maxList[
-            Math.min(
-              day,
-              maxList.length
-            ) - 1
-          ];
+          maxList[Math.min(day, maxList.length) - 1];
 
         const tmin =
-          minList[
-            Math.min(
-              day,
-              minList.length
-            ) - 1
-          ];
+          minList[Math.min(day, minList.length) - 1];
 
-
-        if (
-          !isNaN(tmax) &&
-          !isNaN(tmin)
-        ) {
-
+        if (!isNaN(tmax) && !isNaN(tmin)) {
           result.day = {
-
             tmax,
-
             tmin,
-
-            tmean:
-              (tmax + tmin) / 2
-
+            tmean: (tmax + tmin) / 2,
           };
         }
       }
-
 
       if (
         mdList.length >= 2 &&
         !isNaN(mdList[0]) &&
         !isNaN(mdList[1])
       ) {
-
         result.month = {
-
-          tmax:
-            mdList[0],
-
-          tmin:
-            mdList[1]
-
+          tmax: mdList[0],
+          tmin: mdList[1],
         };
       }
 
-
-      climateCache[name] =
-        result;
-
+      climateCache[name] = result;
       return result;
     };
 
-
     // ==========================================================
-    // FETCH OMIRLSSS
-    // ==========================================================
-
-    const omirlUrls = [
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl1.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl2.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl3.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl4.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl5.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl6.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl7.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl8.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl9.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl10.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl11.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl12.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl13.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl14.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl15.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl16.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl17.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl18.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl19.json",
-
-      "https://api-stazioni-meteo.eggittof.workers.dev/omirl20.json",
-
-    ];
-
-
-    const stations = [];
-
-
-    // ==========================================================
-    // FETCH IN SEQUENZA
+    // 1. FETCH INIZIALE: DATI COMPLETI
     // ==========================================================
 
-    for (
-      const url of omirlUrls
-    ) {
+    const baseUrl =
+      "https://api-stazioni-meteo.eggittof.workers.dev/omirl.json";
 
-      console.log(
-        "Fetch OMIRL:",
-        url
-      );
+    console.log("Fetch OMIRL iniziale:", baseUrl);
 
+    const baseResponse = await fetch(baseUrl);
 
-      const res =
-        await fetch(url);
-
-
-      if (!res.ok) {
-
-        throw new Error(
-          `Errore HTTP OMIRL: ${res.status} (${url})`
-        );
-      }
-
-
-      const data =
-        await res.json();
-
-
-      const batch =
-        data?.stations || [];
-
-
-      console.log(
-        `OMIRL ${url} -> ${batch.length} stazioni`
-      );
-
-
-      stations.push(
-        ...batch
+    if (!baseResponse.ok) {
+      throw new Error(
+        `Errore HTTP OMIRL iniziale: ${baseResponse.status}`
       );
     }
 
-
-    // ==========================================================
-    // CONTROLLO FINALE
-    // ==========================================================
+    const baseData = await baseResponse.json();
+    const stations = baseData?.stations || [];
 
     console.log(
-      "Totale stazioni OMIRL:",
-      stations.length
+      "OMIRL iniziale ->",
+      stations.length,
+      "stazioni"
     );
 
-
-    if (!stations.length) {
-      return;
-    }
-
-
     // ==========================================================
-    // STAZIONI
+    // ELABORAZIONE DATI INIZIALI
     // ==========================================================
 
     stations.forEach((st) => {
+      const id = st.id;
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
 
-      const id =
-        st.id;
-
-
-      const lat =
-        Number(st.lat);
-
-
-      const lon =
-        Number(st.lon);
-
-
-      if (
-        isNaN(lat) ||
-        isNaN(lon)
-      ) {
+      if (isNaN(lat) || isNaN(lon)) {
         return;
       }
 
-
-      // ==============================
-      // TEMPERATURE
-      // ==============================
-
-      const temp =
-        st.temp ?? null;
-
-      const tempHigh =
-        st.tempHigh ?? null;
-
-      const tempLow =
-        st.tempLow ?? null;
-
-      const tempMean =
-        st.tempMean ?? null;
-
+      const temp = st.temp ?? null;
+      const tempHigh = st.tempHigh ?? null;
+      const tempLow = st.tempLow ?? null;
+      const tempMean = st.tempMean ?? null;
 
       // ==============================
       // ANOMALIE
       // ==============================
 
-      let tempMeanAnom =
-        null;
+      let tempMeanAnom = null;
+      let tempHighAnom = null;
+      let tempLowAnom = null;
 
-      let tempHighAnom =
-        null;
+      let tempHighClimAvg = null;
+      let tempLowClimAvg = null;
+      let tempMeanClimAvg = null;
 
-      let tempLowAnom =
-        null;
-
-
-      // ==============================
-      // MEDIE MENSILI
-      // ==============================
-
-      let tempHighClimAvg =
-        null;
-
-      let tempLowClimAvg =
-        null;
-
-      let tempMeanClimAvg =
-        null;
-
-
-      const config =
-        anomalyCorrections[id];
-
+      const config = anomalyCorrections[id];
 
       if (config) {
-
         const [
           climateName,
           tmaxCorrection,
-          tminCorrection
+          tminCorrection,
         ] = config;
 
-
-        const climate =
-          getClimate(
-            climateName
-          );
-
+        const climate = getClimate(climateName);
 
         // ----- Giorno odierno -----
 
-        if (
-          climate.day
-        ) {
-
+        if (climate.day) {
           const climateTmax =
-            climate.day.tmax +
-            tmaxCorrection;
-
+            climate.day.tmax + tmaxCorrection;
 
           const climateTmin =
-            climate.day.tmin +
-            tminCorrection;
+            climate.day.tmin + tminCorrection;
 
-
-          // MAX
-
-          if (
-            tempHigh !== null
-          ) {
-
+          if (tempHigh !== null) {
             tempHighAnom =
-              Number(tempHigh) -
-              climateTmax;
+              Number(tempHigh) - climateTmax;
           }
 
-
-          // MIN
-
-          if (
-            tempLow !== null
-          ) {
-
+          if (tempLow !== null) {
             tempLowAnom =
-              Number(tempLow) -
-              climateTmin;
+              Number(tempLow) - climateTmin;
           }
 
-
-          // MEDIA
-
-          if (
-            tempMean !== null
-          ) {
-
+          if (tempMean !== null) {
             tempMeanAnom =
               Number(tempMean) -
-              (
-                climateTmax +
-                climateTmin
-              ) / 2;
+              (climateTmax + climateTmin) / 2;
           }
         }
-
 
         // ----- Media del mese -----
 
-        if (
-          climate.month
-        ) {
+        if (climate.month) {
+          tempHighClimAvg = +(
+            climate.month.tmax + tmaxCorrection
+          ).toFixed(1);
 
-          tempHighClimAvg =
-            +(
-              climate.month.tmax +
-              tmaxCorrection
-            ).toFixed(1);
+          tempLowClimAvg = +(
+            climate.month.tmin + tminCorrection
+          ).toFixed(1);
 
-
-          tempLowClimAvg =
-            +(
-              climate.month.tmin +
-              tminCorrection
-            ).toFixed(1);
-
-
-          tempMeanClimAvg =
-            +(
-              (
-                tempHighClimAvg +
-                tempLowClimAvg
-              ) / 2
-            ).toFixed(1);
+          tempMeanClimAvg = +(
+            (tempHighClimAvg + tempLowClimAvg) / 2
+          ).toFixed(1);
         }
       }
 
-
       // ========================================================
-      // SALVATAGGIO
+      // SALVATAGGIO DATI COMPLETI INIZIALI
       // ========================================================
 
       allStations[id] = {
-
         id,
+        source: "OMIRL",
+        N: st.id ?? null,
 
-        source:
-          "OMIRL",
-
-        N:
-          st.id ?? null,
-
-
-        // ===== TEMPERATURE =====
-
+        // Temperature
         temp,
-
         tempHigh,
-
         tempLow,
-
         tempMean,
 
-
-        // ===== ANOMALIE =====
-
+        // Anomalie
         tempMeanAnom,
-
         tempHighAnom,
-
         tempLowAnom,
 
-
-        // ===== MEDIE MENSILI =====
-
+        // Medie climatologiche mensili
         tempHighClimAvg,
-
         tempLowClimAvg,
-
         tempMeanClimAvg,
 
+        // Umidità
+        hum: st.hum ?? null,
+        humHigh: st.humHigh ?? null,
+        humLow: st.humLow ?? null,
 
-        // ===== HUMIDITY =====
+        // Vento
+        wind: st.wind ?? null,
+        windGust: st.windGust ?? null,
 
-        hum:
-          st.hum ?? null,
+        // Pioggia
+        rainRate: st.rainRate ?? null,
+        rainDaily: st.rainDaily ?? null,
 
-        humHigh:
-          st.humHigh ?? null,
+        // Dew point
+        dewp: st.dewp ?? null,
+        dewpHigh: st.dewpHigh ?? null,
+        dewpLow: st.dewpLow ?? null,
 
-        humLow:
-          st.humLow ?? null,
+        // Heat Index
+        heat: st.HI ?? null,
+        heatHigh: null,
+        heatLow: st.TempLow ?? null,
 
-
-        // ===== WIND =====
-
-        wind:
-          st.wind ?? null,
-
-        windGust:
-          st.windGust ?? null,
-
-
-        // ===== RAIN =====
-
-        rainRate:
-          st.rainRate ?? null,
-
-        rainDaily:
-          st.rainDaily ?? null,
-
-
-        // ===== DEWPOINT =====
-
-        dewp:
-          st.dewp ?? null,
-
-        dewpHigh:
-          st.dewpHigh ?? null,
-
-        dewpLow:
-          st.dewpLow ?? null,
-
-
-        // ===== HEAT INDEX =====
-
-        heat:
-          st.HI ?? null,
-
-        heatHigh:
-          null,
-
-        heatLow:
-          st.TempLow ?? null,
-
-
-        // ===== COORDINATE =====
-
+        // Coordinate
         lat,
-
-        lon
-
+        lon,
       };
-
     });
 
-
-    // ==============================
-    // AGGIORNAMENTO MAPPA
-    // ==============================
+    // ==========================================================
+    // AGGIORNA SUBITO LA MAPPA
+    // ==========================================================
 
     updateLayer();
 
-
-  } catch (err) {
-
-    console.error(
-      "Errore fetch OMIRL:",
-      err
+    console.log(
+      "OMIRL: mappa aggiornata con i dati iniziali"
     );
 
+    // ==========================================================
+    // 2. ATTESA DI 500 MS
+    // ==========================================================
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, 500)
+    );
+
+    // ==========================================================
+    // 3. FETCH SUCCESSIVI: SOLO CAMPI DA AGGIORNARE
+    // ==========================================================
+
+    const omirlUrls = Array.from(
+      { length: 20 },
+      (_, i) =>
+        `https://api-stazioni-meteo.eggittof.workers.dev/omirl${i + 1}.json`
+    );
+
+    for (const url of omirlUrls) {
+      try {
+        console.log("Aggiornamento OMIRL:", url);
+
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const batch = data?.stations || [];
+
+        let updated = 0;
+
+        batch.forEach((st) => {
+          const id = st.id;
+          const existing = allStations[id];
+
+          // Aggiorna soltanto stazioni già presenti
+          // nel fetch iniziale.
+          if (!existing) {
+            return;
+          }
+
+          // Solo temperatura e pioggia.
+          // Tutti gli altri campi restano invariati.
+          existing.temp = st.temp ?? existing.temp;
+          existing.tempHigh =
+            st.tempHigh ?? existing.tempHigh;
+          existing.tempLow =
+            st.tempLow ?? existing.tempLow;
+          existing.rainRate =
+            st.rainRate ?? existing.rainRate;
+          existing.rainDaily =
+            st.rainDaily ?? existing.rainDaily;
+
+          updated++;
+        });
+
+        console.log(
+          `OMIRL ${url} -> ${updated} stazioni aggiornate`
+        );
+
+        // Aggiorna la mappa dopo ogni batch.
+        updateLayer();
+
+      } catch (err) {
+        // Un batch fallito non blocca i successivi.
+        console.error(
+          `Errore aggiornamento ${url}:`,
+          err
+        );
+      }
+
+      // 500 ms tra un batch e il successivo.
+      await new Promise((resolve) =>
+        setTimeout(resolve, 500)
+      );
+    }
+
+    console.log(
+      "OMIRL: aggiornamento progressivo completato"
+    );
+
+  } catch (err) {
+    console.error("Errore fetch OMIRL:", err);
   }
 };
 const fetchMeteoTrentino = async () => {
