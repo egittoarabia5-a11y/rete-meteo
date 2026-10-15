@@ -34,7 +34,8 @@
 #mediaMenu button[data-mode*="max-mean"] {
   color: #8b0000;
 }
-
+#mediaMenu button[data-var="rainClim"] { color: #3d9bff; }
+#mediaMenu button:disabled { color: #999; cursor: default; }
 #mediaMenu button[data-mode*="min-mean"] {
   color: #00008b;
 }
@@ -382,7 +383,15 @@
       <button data-var="media" data-mode="month-min-mean">T Min Media Mese</button>
       <button data-var="media" data-mode="month-min-mean-anom">Anomalia Mensile</button>
     </div>
+<div class="varRow2">
+  <button data-var="rainClim" data-mode="year">Prec Media Annuale</button>
+  <button disabled>---</button>
+</div>
 
+<div class="varRow2">
+  <button data-var="rainClim" data-mode="today">Prec Media ad oggi</button>
+  <button data-var="rainClim" data-mode="today-anom">Anomalia</button>
+</div>
   </div>
 </div>
 
@@ -595,7 +604,7 @@ function clearPreviousRegionStations() {
 let currentVariable = "temp";
 let modes = {
   temp: "current", dewp: "current", heat: "current", 
-  hum: "current", rainDaily: "current", rainRate: "current", rainYearly: "current",
+  hum: "current", rainDaily: "current", rainRate: "current", rainYearly: "current", rainClim: "current",
   media: "current-mean"
 };
 const mediaAnomModes = [
@@ -616,7 +625,8 @@ let activePopup = null;
 // ================= COLORI =================
 function getColor(variable, value) {
   if (value === null) return "#808080";
-
+if (variable === "rainClim") return getColor("rainDaily", value / 10);
+if (variable === "rainAnom") return getColor("anom", value / RAIN_ANOM_DIV);
   if (variable === "hum") {
     if (value < 20) return "#b44141";
     else if (value < 30) return "#ff6262";
@@ -636,9 +646,22 @@ function getColor(variable, value) {
     else if (value < 10) return "#6ca561";
     else if (value < 20) return "#65d050";
     else if (value < 30) return "#4dc8ff";
-    else if (value < 50) return "#4da9ff";
+    else if (value < 40) return "#3394ee";
+    else if (value < 50) return "#0d78dc";
+    else if (value < 75) return "#0d54dc";
+    else if (value < 100) return "#0d30dc";
+    else if (value < 150) return "#0720a0";
+    else if (value < 200) return "#5a01ba";
+    else if (value < 250) return "#8501ba";
+    else if (value < 300) return "#b301ba";
+    else if (value < 400) return "#8f1c7a";
+    else if (value < 500) return "#5e2052";
+    else if (value < 600) return "#31182c";
+    else if (value < 700) return "#21171f";
+    else if (value < 800) return "#000000";
     return "#2c278e";
   }
+  
 if (variable === "anom") {
 
   if (value === null || isNaN(value)) return "#808080";
@@ -795,6 +818,16 @@ const get = (base) => {
   if (currentVariable === "temp") { 
     value = get("temp"); 
   } 
+else if (currentVariable === "rainClim") {
+  if (mode === "year") value = st.rainClimYear;
+  else if (mode === "today") value = st.rainClimAcc;
+  else if (mode === "today-anom") {
+    value = (st.rainYearly != null && st.rainClimAcc != null)
+      ? Number(st.rainYearly) - Number(st.rainClimAcc)
+      : null;
+    colorVariable = "rainAnom";
+  }
+}
    else if (currentVariable === "media") {
 
     // ===== GIORNALIERE (climatologiche, riprese da Temperatura) =====
@@ -868,7 +901,8 @@ const get = (base) => {
   } 
 
   const isAnom =
-    currentVariable === "media" && mediaAnomModes.includes(mode);
+  (currentVariable === "media" && mediaAnomModes.includes(mode)) ||
+  (currentVariable === "rainClim" && mode === "today-anom");
 
   return { 
     value, 
@@ -890,7 +924,39 @@ const get = (base) => {
 }// ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
+// Quanti px in meno per il testo delle medie pluviometriche (Media Annuale / Media ad oggi)
+const RAIN_MEAN_ICON_SCALE = 1;
+
+function getIconSizeExpr(scale = 1) {
+  const m = isMobileScreen;
+  return [
+    'interpolate', ['linear'], ['zoom'],
+    4,  (m ? 0.3  : 0.30) * scale,
+    7,  (m ? 0.52 : 0.55) * scale,
+    10, (m ? 0.6  : 0.65) * scale,
+    14, (m ? 0.7  : 0.75) * scale
+  ];
+}
+
+let markerKey = "";
 function updateLayer() {
+  // NUOVO: medie pluviometriche (Media Annuale / Media ad oggi), non l'anomalia
+  const isRainMean =
+    currentVariable === "rainClim" &&
+    (modes.rainClim === "year" || modes.rainClim === "today");
+
+  // NUOVO: cerchio più grande solo per le medie pluviometriche
+  const markerStateKey = isRainMean + "-" + is3D;
+
+  if (markerStateKey !== markerKey && map.getLayer('stations-marker')) {
+    const sc = isRainMean ? RAIN_MEAN_ICON_SCALE : 1;
+
+    map.setLayoutProperty('stations-marker', 'icon-size', getIconSizeExpr(sc));
+    map.setLayoutProperty('stations-marker', 'text-offset', is3D ? [0, -2.2 * sc] : [0, 0]);
+
+    markerKey = markerStateKey;
+  }
+
   const currentZoom = map.getZoom();
 
   geojson.features = Object.values(allStations)
@@ -904,7 +970,10 @@ function updateLayer() {
 
       let textDisplay = "";
       if (value !== null) {
-        textDisplay = currentZoom < 6 ? Math.round(value).toString() : valueStr;
+        // NUOVO: niente decimali sul pallino nelle medie pluviometriche (il popup li mantiene)
+        textDisplay = (currentZoom < 6 || isRainMean)
+          ? Math.round(value).toString()
+          : valueStr;
       }
 
      const iconId = is3D
@@ -943,158 +1012,167 @@ function normalizeVariable(v) {
   return v;
 }
 
+const getColorMain = getColor;
+ 
 function showPopup(feature) { 
-
+ 
   if (!feature?.properties) return; 
-
+ 
   const props = feature.properties; 
-
+ 
   const id = props.id; 
   const name = props.name; 
   const source = props.source; 
-
+ 
   if (activePopup) activePopup.remove(); 
-
+ 
   const station = allStations[id] || {}; 
-
+ 
   const variable = normalizeVariable(currentVariable); 
-const currentMode = modes[currentVariable];
-
-const isAnom =
-  currentVariable === "media" &&
-  mediaAnomModes.includes(currentMode);
-
-const colorVariable = isAnom ? "anom" : variable;
+  const currentMode = modes[currentVariable];
+ 
+  const isAnom =
+    currentVariable === "media" &&
+    mediaAnomModes.includes(currentMode);
+ 
+  const colorVariable = isAnom ? "anom" : variable;
   const value = Number(props.value); 
   const valueStr = props.valueStr ?? "—"; 
-
-  const isRain = variable === "rainDaily" || variable === "rainRate"; 
-
+ 
+  // NUOVO: rainClim conta come pioggia (unità "mm")
+  const isRain =
+    variable === "rainDaily" ||
+    variable === "rainRate" ||
+    variable === "rainClim";
+ 
   const getColor = (v, variable) => {
-
-  if (v == null || isNaN(v)) return "#808080";
-
-  // =========================
-  // SCALA ANOMALIE
-  // =========================
-  if (variable === "anom") {
-
-    // NEUTRO
-    if (v === 0) return "#d0d0d0";
-
-    // ANOMALIA NEGATIVA
-    if (v < 0) {
-      if (v > -0.5) return "#abdcff";
-      else if (v > -1) return "#a4d1fd";
-      else if (v > -1.5) return "#abbbff";
-      else if (v > -2) return "#85adff";
-      else if (v > -2.5) return "#618dff";
-      else if (v > -3) return "#4372ff";
-      else if (v > -3.5) return "#065bff";
-      else if (v > -4) return "#014cdd";
-      else if (v > -4.5) return "#3232ff";
-      else if (v > -5) return "#0034e8";
-      else if (v > -6) return "#0033ad";
-      else if (v > -7) return "#00338e";
-      else if (v > -8) return "#001d69";
-      else if (v > -9) return "#00034f";
-      else if (v > -10) return "#7e173a";
-      else if (v > -11) return "#3c177e";
-      else if (v > -12) return "#9a707e";
-      else if (v > -13) return "#9a707e";
-      else if (v > -14) return "#383838";
-      else return "#000000";
+ 
+    // NUOVO: la media pluviometrica usa la scala pioggia x10 dei marker
+    if (variable === "rainClim") return getColorMain("rainClim", v);
+ 
+    if (v == null || isNaN(v)) return "#808080";
+ 
+    // =========================
+    // SCALA ANOMALIE
+    // =========================
+    if (variable === "anom") {
+ 
+      // NEUTRO
+      if (v === 0) return "#d0d0d0";
+ 
+      // ANOMALIA NEGATIVA
+      if (v < 0) {
+        if (v > -0.5) return "#abdcff";
+        else if (v > -1) return "#a4d1fd";
+        else if (v > -1.5) return "#abbbff";
+        else if (v > -2) return "#85adff";
+        else if (v > -2.5) return "#618dff";
+        else if (v > -3) return "#4372ff";
+        else if (v > -3.5) return "#065bff";
+        else if (v > -4) return "#014cdd";
+        else if (v > -4.5) return "#3232ff";
+        else if (v > -5) return "#0034e8";
+        else if (v > -6) return "#0033ad";
+        else if (v > -7) return "#00338e";
+        else if (v > -8) return "#001d69";
+        else if (v > -9) return "#00034f";
+        else if (v > -10) return "#7e173a";
+        else if (v > -11) return "#3c177e";
+        else if (v > -12) return "#9a707e";
+        else if (v > -13) return "#9a707e";
+        else if (v > -14) return "#383838";
+        else return "#000000";
+      }
+ 
+      // ANOMALIA POSITIVA
+      if (v > 0) {
+        if (v < 0.5) return "#dabbb2";
+        else if (v < 1) return "#f5bcaa";
+        else if (v < 1.5) return "#ffbea4";
+        else if (v < 2) return "#ffa28f";
+        else if (v < 2.5) return "#ff8989";
+        else if (v < 3) return "#f96262";
+        else if (v < 3.5) return "#dd4c4c";
+        else if (v < 4) return "#df4444";
+        else if (v < 4.5) return "#c04040";
+        else if (v < 5) return "#ab4646";
+        else if (v < 6) return "#974646";
+        else if (v < 7) return "#783333";
+        else if (v < 8) return "#6a3c3c";
+        else if (v < 9) return "#bb5275";
+        else if (v < 10) return "#b55b79";
+        else if (v < 11) return "#a37685";
+        else if (v < 12) return "#796e72";
+        else if (v < 13) return "#515151";
+        else return "#000000";
+      }
+ 
+      return "#d0d0d0";
     }
-
-    // ANOMALIA POSITIVA
-    if (v > 0) {
-      if (v < 0.5) return "#dabbb2";
-      else if (v < 1) return "#f5bcaa";
-      else if (v < 1.5) return "#ffbea4";
-      else if (v < 2) return "#ffa28f";
-      else if (v < 2.5) return "#ff8989";
-      else if (v < 3) return "#f96262";
-      else if (v < 3.5) return "#dd4c4c";
-      else if (v < 4) return "#df4444";
-      else if (v < 4.5) return "#c04040";
-      else if (v < 5) return "#ab4646";
-      else if (v < 6) return "#974646";
-      else if (v < 7) return "#783333";
-      else if (v < 8) return "#6a3c3c";
-      else if (v < 9) return "#bb5275";
-      else if (v < 10) return "#b55b79";
-      else if (v < 11) return "#a37685";
-      else if (v < 12) return "#796e72";
-      else if (v < 13) return "#515151";
-      else return "#000000";
+ 
+    // =========================
+    // UMIDITÀ
+    // =========================
+    if (variable === "hum") {
+      if (v < 20) return "#b44141";
+      else if (v < 30) return "#ff6262";
+      else if (v < 40) return "#ff9d56";
+      else if (v < 50) return "#f1d800";
+      else if (v < 60) return "#65d050";
+      else if (v < 70) return "#6ca561";
+      else if (v < 80) return "#4dc8ff";
+      else if (v < 90) return "#4da9ff";
+      return "#4d54ff";
     }
-
-    return "#d0d0d0";
-  }
-
-  // =========================
-  // UMIDITÀ
-  // =========================
-  if (variable === "hum") {
-    if (v < 20) return "#b44141";
-    else if (v < 30) return "#ff6262";
-    else if (v < 40) return "#ff9d56";
-    else if (v < 50) return "#f1d800";
-    else if (v < 60) return "#65d050";
-    else if (v < 70) return "#6ca561";
-    else if (v < 80) return "#4dc8ff";
-    else if (v < 90) return "#4da9ff";
-    return "#4d54ff";
-  }
-
-  // =========================
-  // PIOGGIA
-  // =========================
-  if (variable === "rainDaily" || variable === "rainRate") {
-    if (v === 0) return "#808080";
-    else if (v < 2) return "#f9ae6c";
-    else if (v < 5) return "#f9966c";
-    else if (v < 10) return "#6ca561";
-    else if (v < 20) return "#65d050";
-    else if (v < 30) return "#4dc8ff";
-    else if (v < 50) return "#4da9ff";
-    return "#2c278e";
-  }
-
-  // =========================
-  // TEMPERATURA / DEWPOINT / HEAT
-  // =========================
-  if (v < -15) return "#f54dff";
-  if (v < -10) return "#c65bff";
-  if (v < -4) return "#4d54ff";
-  if (v < -2) return "#1f7eb9";
-  if (v <= 0) return "#539eb0";
-  if (v < 2) return "#67bac8";
-  if (v < 4) return "#5ac5ba";
-  if (v < 6) return "#42a37b";
-  if (v < 8) return "#538b53";
-  if (v < 10) return "#43af43";
-  if (v < 12) return "#7dd049";
-  if (v < 14) return "#abd84b";
-  if (v < 16) return "#b6bf35";
-  if (v < 18) return "#dec800";
-  if (v < 20) return "#ffcc55";
-  if (v < 22) return "#ffaf54";
-  if (v < 24) return "#fa8f4b";
-  if (v < 26) return "#f26969";
-  if (v < 28) return "#de5a5a";
-  if (v < 30) return "#b05151";
-  if (v < 32) return "#994848";
-  if (v < 34) return "#743e3e";
-  if (v < 36) return "#b874b8";
-  if (v < 38) return "#ea7bea";
-  if (v < 40) return "#995a99";
-  if (v < 42) return "#747474";
-  if (v < 44) return "#5a433e";
-  if (v < 46) return "#785c55";
-  return "#9b8987";
-};
-
+ 
+    // =========================
+    // PIOGGIA
+    // =========================
+    if (variable === "rainDaily" || variable === "rainRate") {
+      if (v === 0) return "#808080";
+      else if (v < 2) return "#f9ae6c";
+      else if (v < 5) return "#f9966c";
+      else if (v < 10) return "#6ca561";
+      else if (v < 20) return "#65d050";
+      else if (v < 30) return "#4dc8ff";
+      else if (v < 50) return "#4da9ff";
+      return "#2c278e";
+    }
+ 
+    // =========================
+    // TEMPERATURA / DEWPOINT / HEAT
+    // =========================
+    if (v < -15) return "#f54dff";
+    if (v < -10) return "#c65bff";
+    if (v < -4) return "#4d54ff";
+    if (v < -2) return "#1f7eb9";
+    if (v <= 0) return "#539eb0";
+    if (v < 2) return "#67bac8";
+    if (v < 4) return "#5ac5ba";
+    if (v < 6) return "#42a37b";
+    if (v < 8) return "#538b53";
+    if (v < 10) return "#43af43";
+    if (v < 12) return "#7dd049";
+    if (v < 14) return "#abd84b";
+    if (v < 16) return "#b6bf35";
+    if (v < 18) return "#dec800";
+    if (v < 20) return "#ffcc55";
+    if (v < 22) return "#ffaf54";
+    if (v < 24) return "#fa8f4b";
+    if (v < 26) return "#f26969";
+    if (v < 28) return "#de5a5a";
+    if (v < 30) return "#b05151";
+    if (v < 32) return "#994848";
+    if (v < 34) return "#743e3e";
+    if (v < 36) return "#b874b8";
+    if (v < 38) return "#ea7bea";
+    if (v < 40) return "#995a99";
+    if (v < 42) return "#747474";
+    if (v < 44) return "#5a433e";
+    if (v < 46) return "#785c55";
+    return "#9b8987";
+  };
+ 
   const hexToRgba = (hex, a = 0.3) => { 
     const h = hex.replace("#", ""); 
     const r = parseInt(h.substring(0, 2), 16); 
@@ -1102,65 +1180,65 @@ const colorVariable = isAnom ? "anom" : variable;
     const b = parseInt(h.substring(4, 6), 16); 
     return `rgba(${r},${g},${b},${a})`; 
   }; 
-
+ 
   let max = null; 
   let min = null; 
-
+ 
   if (variable === "temp") { 
     max = station.tempHigh; 
     min = station.tempLow; 
   } 
-
+ 
   if (variable === "dewp") { 
     max = station.dewpHigh; 
     min = station.dewpLow; 
   } 
-
+ 
   if (variable === "heat") { 
     max = station.heatHigh; 
     min = station.heatLow; 
   } 
-
+ 
   if (variable === "hum") { 
     max = station.humHigh; 
     min = station.humLow; 
   } 
-
+ 
   if (variable === "rainDaily") { 
     max = station.rainDaily; 
   } 
-
+ 
   if (variable === "rainRate") { 
     max = station.rainRate; 
   } 
-
+ 
   if (variable === "rainYearly") { 
     max = station.rainYearly; 
   } 
-
+ 
   // Popup delle medie: in rosso la media climatologica, in blu il valore reale
   let mediaClimValue = null;
   let mediaActualValue = null;
   let mediaActualLabel = "";
   let mediaTitle = "";
   let mediaScope = "";
-
+ 
   if (variable === "media") {
-
+ 
     const modeParts = currentMode.split("-");
     const isMonth = modeParts[0] === "month";
     const kind = modeParts.includes("max") ? "max"
                : modeParts.includes("min") ? "min"
                : "mean";
-
+ 
     // Titolo: "Anomalia massime" / "Media clim. minime" / ...
     mediaTitle =
       (isAnom ? "Anomalia " : "Media clim. ") +
       { max: "massime", min: "minime", mean: "medie" }[kind];
-
+ 
     // Sotto il titolo: "Giornaliera" o "Mensile"
     mediaScope = isMonth ? "Mensile" : "Giornaliera";
-
+ 
     // Campo del valore reale e della sua anomalia
     const fields = isMonth
       ? {
@@ -1173,12 +1251,12 @@ const colorVariable = isAnom ? "anom" : variable;
           min:  ["tempLow",  "tempLowAnom"],
           mean: ["tempMean", "tempMeanAnom"]
         };
-
+ 
     const [actualKey, anomKey] = fields[kind];
-
+ 
     // BLU = valore reale
     mediaActualValue = station[actualKey];
-
+ 
     // ROSSO = media climatologica
     if (isMonth && !isAnom) {
       // media climatologica dell'intero mese
@@ -1193,52 +1271,55 @@ const colorVariable = isAnom ? "anom" : variable;
           ? Number(station[actualKey]) - Number(station[anomKey])
           : null;
     }
-
+ 
     mediaActualLabel = {
       max: "Massima",
       min: "Minima",
       mean: isMonth ? "Media" : "Attuale"
     }[kind];
   }
-
+ 
   const fmt = v => 
     v == null || isNaN(v) ? "—" : Number(v).toFixed(1); 
-const baseColor = getColor(value, colorVariable);
+  const baseColor = getColor(value, colorVariable);
   const overlay = hexToRgba(baseColor, 0.3); 
-
+ 
   // 📊 URL GAUGES
   const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(source)}&name=${encodeURIComponent(name)}`;
-
+ 
   const html = ` 
     <div style=" 
       font-family:Inter,sans-serif; 
       text-align:center; 
       color:black; 
     "> 
-
+ 
       <div style="font-weight:700;font-size:15px;line-height:1.1;"> 
         ${name} 
       </div> 
-
+ 
       <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;"> 
         Fonte: ${source} 
       </div> 
-
-      <div style="font-size:13px;opacity:0.75;margin-bottom:${variable === "media" ? "0" : "4px"};"> 
+ 
+      <div style="font-size:13px;opacity:0.75;margin-bottom:${(variable === "media" || variable === "rainClim") ? "0" : "4px"};"> 
         ${variable === "temp" ? "Temperatura" : 
           variable === "dewp" ? "Dew Point" : 
           variable === "heat" ? "Heat Index" : 
           variable === "hum" ? "Umidità" : 
           variable === "media" ? mediaTitle :
+          variable === "rainClim" ? "Media pluviometrica" :
           isRain ? "Pioggia" : ""} 
       </div>
-
+ 
       ${variable === "media" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">${mediaScope}</div>` : ""}
-
+ 
+      ${variable === "rainClim" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">Dal 1° gennaio</div>` : ""}
+ 
       <div style="font-size:32px;font-weight:800;margin-bottom:6px;"> 
         ${valueStr}${isRain ? " mm" : "°"} 
       </div> 
-
+ 
       ${ 
         variable === "media"
           ? (
@@ -1264,7 +1345,7 @@ const baseColor = getColor(value, colorVariable);
                 : "" 
             )
       } 
-
+ 
       <!-- 📊 PULSANTE GAUGES -->
       <div style="margin-top:6px;">
         <button
@@ -1284,10 +1365,10 @@ const baseColor = getColor(value, colorVariable);
           📊 Gauges
         </button>
       </div>
-
+ 
     </div> 
   `; 
-
+ 
   activePopup = new maplibregl.Popup({ 
     closeButton: true, 
     closeOnClick: true, 
@@ -1297,15 +1378,14 @@ const baseColor = getColor(value, colorVariable);
     .setLngLat(feature.geometry.coordinates) 
     .setHTML(html) 
     .addTo(map); 
-
+ 
   // 🎨 GRIGIO + OVERLAY COLORATO 30% 
   const el = activePopup._content; 
   if (el) { 
     el.style.backgroundColor = "#e6e6e6"; 
     el.style.backgroundImage = `linear-gradient(${overlay}, ${overlay})`; 
   } 
-}// ================= UI BUTTONS =================
-function toggleMenu(id) {
+}function toggleMenu(id) {
   const el = document.getElementById(id);
   el.style.display = el.style.display === "block" ? "none" : "block";
 }
@@ -1592,27 +1672,32 @@ const climatologiaPromise = fetch("/climatologia.json")
       entry.months.forEach(m => {
 
         const mx = parseList(m.MX);
-        const mn = parseList(m.MN);
-        const n = Math.max(mx.length, mn.length);
+const mn = parseList(m.MN);
+const ac = parseList(m.AC);
+const n = Math.max(mx.length, mn.length, ac.length);
 
-        for (let i = 0; i < n; i++) {
+for (let i = 0; i < n; i++) {
+  const tmax = mx[i];
+  const tmin = mn[i];
+  const acc  = ac[i];
+  const d = {};
 
-          const tmax = mx[i];
-          const tmin = mn[i];
+  if (!isNaN(tmax) && !isNaN(tmin)) {
+    d.tmax = tmax;
+    d.tmin = tmin;
+    d.tmean = (tmax + tmin) / 2;
+  }
+  if (!isNaN(acc)) d.acc = acc;
 
-          if (isNaN(tmax) || isNaN(tmin)) continue;
+  if (Object.keys(d).length) {
+    daily[m.M + "-" + String(i + 1).padStart(2, "0")] = d;
+  }
+}
 
-          daily[m.M + "-" + String(i + 1).padStart(2, "0")] = {
-            tmax,
-            tmin,
-            tmean: (tmax + tmin) / 2
-          };
-        }
-
-        // Il 29/02 usa i valori del 28/02
-        if (m.M === "02" && daily["02-28"] && !daily["02-29"]) {
-          daily["02-29"] = { ...daily["02-28"] };
-        }
+// Il 29/02 usa le temperature del 28/02 (l'accumulo ha già il suo valore)
+if (m.M === "02" && daily["02-28"]) {
+  daily["02-29"] = { ...daily["02-28"], ...(daily["02-29"] ?? {}) };
+}
       });
 
       list[entry.S] = { daily };
@@ -1925,18 +2010,39 @@ if (id === "ILIGURIA67" && climate) {
 
   }
 }
+// =====================================================================
+// fetchOMIRL  (modificata: aggiunta media pluviometrica rainClimAcc)
+// Le righe nuove sono marcate con  // NUOVO
+// =====================================================================
 const fetchOMIRL = async () => {
   try {
     // ==========================================================
     // STAZIONI OMIRL CON CLIMATOLOGIA
     // ==========================================================
-
+ 
     const anomalyCorrections = {
       ROCNE: ["A_ROCNR", 0, 0],
       INASV: ["A_INASV", 0, 0],
+      FIORI: ["A_FIORI", 0, 0],
+      MELEE: ["A_MELEE", 0, 0],
+      GIACO: ["A_GIACO", 0, 0],
+      PVENE: ["A_PVENE", 0, 0],
+      LEVAN: ["A_LEVAN", 0, 0],
+      VALIG: ["A_VALIG", 0, 0],
+      PIGNA: ["A_PIGNA", 0, 0],
+      DOLCE: ["A_DOLCE", 0, 0],
+      CASRB: ["A_CASRB", 0, 0],
       MIGNA: ["A_MIGNA", 0, 0],
       IMPER: ["A_IMPER", 0, 0],
+      CCHER: ["A_CCHER", 0, 0],
+      ELLRA: ["A_ELLRA", 0, 0],
+      XXMIG: ["A_XXMIG", 0, 0],
       TAVRN: ["A_TAVAR", 0, 0],
+      TOGAR: ["A_BRUGN", 0, 0],
+      CABAN: ["A_CABAN", 0, 0],
+      MANIE: ["A_MANIE", 0, 0],
+      BELEN: ["A_COLBE", 0, 0],
+      VIGAN: ["A_VIGAN", 0, 0],
       MTECA: ["A_MOCAP", 0, 0],
       CCORM: ["A_CALIC", 0, 0],
       AIROL: ["A_AIROL", 0, 0],
@@ -1946,6 +2052,7 @@ const fetchOMIRL = async () => {
       SREMO: ["A_SANRE", 0, 0],
       ISOVE: ["A_ISOVE", 0, 0],
       ALASS: ["A_ALASS", 0, 0],
+      ISBLL: ["A_ISBLL", 0, 0],
       VERZI: ["A_VERZI", 0, 0],
       SMVAR: ["A_SANTA", 0, 0],
       SPZIA: ["A_LASPE", 0, 0],
@@ -1954,88 +2061,105 @@ const fetchOMIRL = async () => {
       BRUGN: ["A_DIGA", 0, 0],
       BUSAL: ["A_BUSAL", 0, 0],
       CAIRM: ["A_CAIRO", 0, 0],
+      OSIGL: ["A_OSIGL", 0, 0],
+      PIAMP: ["A_PIAMP", 0, 0],
+      VALZE: ["A_VALZE", 0, 0],
       LOCOC: ["A_LOCO", 0, 0],
       ROVEG: ["A_ROVEG", 0, 0],
-      SSTAV: ["A_SANTO", 0, 0],
+      SSTAV: ["A_SSTAV", 0, 0],
+      CRORE: ["A_CRORE", 0, 0],
+      SZIGN: ["A_SZIGN", 0, 0],
+      SRZAN: ["A_SRZAN", 0, 0],
+      BESTA: ["A_BESTA", 0, 0],
+      CNAVA: ["A_CNAVA", 0, 0],
     };
-
+ 
     // ==========================================================
     // DATA IN ORA DI ROMA
     // ==========================================================
-
+ 
     const dateParts = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/Rome",
       month: "2-digit",
       day: "2-digit",
     }).formatToParts(new Date());
-
+ 
     const month = dateParts.find(
       (p) => p.type === "month"
     ).value;
-
+ 
     const day = Number(
       dateParts.find(
         (p) => p.type === "day"
       ).value
     );
-
+ 
     // ==========================================================
     // CLIMATOLOGIA
     // ==========================================================
-
+ 
     const climatologia = await climatologiaPromise;
-
+ 
     const climateList = Array.isArray(climatologia)
       ? climatologia
       : [climatologia];
-
+ 
     const parseList = (str) =>
       String(str ?? "")
         .split(",")
         .map((v) => v.trim())
         .filter((v) => v !== "")
         .map(Number);
-
+ 
     const climateCache = {};
-
+ 
     const getClimate = (name) => {
       if (climateCache[name]) {
         return climateCache[name];
       }
-
-      const result = {
-        day: null,
-        month: null,
-      };
-
+ 
+const result = {
+  day: null,
+  month: null,
+  rainAcc: null,
+  rainYear: null,   // NUOVO
+};
+ 
       const entry = climateList.find(
         (c) => c?.S === name
       );
+ // media annuale = ultimo valore di AC di dicembre (31/12)
+const decAc = parseList(
+  entry?.months?.find((x) => x.M === "12")?.AC
+);
 
+if (decAc.length) {
+  result.rainYear = decAc[decAc.length - 1];
+}
       const m = entry?.months?.find(
         (x) => x.M === month
       );
-
+ 
       if (!m) {
         console.warn(
           `Climatologia "${name}" (mese ${month}) non trovata`
         );
-
+ 
         climateCache[name] = result;
         return result;
       }
-
+ 
       const maxList = parseList(m.MX);
       const minList = parseList(m.MN);
       const mdList = parseList(m.MD);
-
+ 
       if (maxList.length && minList.length) {
         const tmax =
           maxList[Math.min(day, maxList.length) - 1];
-
+ 
         const tmin =
           minList[Math.min(day, minList.length) - 1];
-
+ 
         if (!isNaN(tmax) && !isNaN(tmin)) {
           result.day = {
             tmax,
@@ -2044,7 +2168,7 @@ const fetchOMIRL = async () => {
           };
         }
       }
-
+ 
       if (
         mdList.length >= 2 &&
         !isNaN(mdList[0]) &&
@@ -2055,230 +2179,252 @@ const fetchOMIRL = async () => {
           tmin: mdList[1],
         };
       }
-
+ 
+      // NUOVO: accumulo medio del giorno odierno (chiave AC del mese)
+      const acList = parseList(m.AC);
+ 
+      if (acList.length) {
+        const acc = acList[Math.min(day, acList.length) - 1];
+ 
+        if (!isNaN(acc)) {
+          result.rainAcc = acc;
+        }
+      }
+ 
       climateCache[name] = result;
       return result;
     };
-
+ 
     // ==========================================================
     // 1. FETCH INIZIALE: DATI COMPLETI
     // ==========================================================
-
+ 
     const baseUrl =
       "https://api-stazioni-meteo.eggittof.workers.dev/omirl.json";
-
+ 
     console.log("Fetch OMIRL iniziale:", baseUrl);
-
+ 
     const baseResponse = await fetch(baseUrl);
-
+ 
     if (!baseResponse.ok) {
       throw new Error(
         `Errore HTTP OMIRL iniziale: ${baseResponse.status}`
       );
     }
-
+ 
     const baseData = await baseResponse.json();
     const stations = baseData?.stations || [];
-
+ 
     console.log(
       "OMIRL iniziale ->",
       stations.length,
       "stazioni"
     );
-
+ 
     // ==========================================================
     // ELABORAZIONE DATI INIZIALI
     // ==========================================================
-
+ 
     stations.forEach((st) => {
       const id = st.id;
       const lat = Number(st.lat);
       const lon = Number(st.lon);
-
+ 
       if (isNaN(lat) || isNaN(lon)) {
         return;
       }
-
+ 
       const temp = st.temp ?? null;
       const tempHigh = st.tempHigh ?? null;
       const tempLow = st.tempLow ?? null;
       const tempMean = st.tempMean ?? null;
-
+ 
       // ==============================
       // ANOMALIE
       // ==============================
-
+ 
       let tempMeanAnom = null;
       let tempHighAnom = null;
       let tempLowAnom = null;
-
+ 
       let tempHighClimAvg = null;
       let tempLowClimAvg = null;
       let tempMeanClimAvg = null;
-
+ 
+      let rainClimAcc = null;
+let rainClimYear = null;    // NUOVO
       const config = anomalyCorrections[id];
-
+ 
       if (config) {
         const [
           climateName,
           tmaxCorrection,
           tminCorrection,
         ] = config;
-
+ 
         const climate = getClimate(climateName);
-
+ 
+        // ----- Pioggia: accumulo medio da gennaio a oggi -----   // NUOVO
+rainClimAcc = climate.rainAcc;
+rainClimYear = climate.rainYear;   // NUOVO                             // NUOVO
+ 
         // ----- Giorno odierno -----
-
+ 
         if (climate.day) {
           const climateTmax =
             climate.day.tmax + tmaxCorrection;
-
+ 
           const climateTmin =
             climate.day.tmin + tminCorrection;
-
+ 
           if (tempHigh !== null) {
             tempHighAnom =
               Number(tempHigh) - climateTmax;
           }
-
+ 
           if (tempLow !== null) {
             tempLowAnom =
               Number(tempLow) - climateTmin;
           }
-
+ 
           if (tempMean !== null) {
             tempMeanAnom =
               Number(tempMean) -
               (climateTmax + climateTmin) / 2;
           }
         }
-
+ 
         // ----- Media del mese -----
-
+ 
         if (climate.month) {
           tempHighClimAvg = +(
             climate.month.tmax + tmaxCorrection
           ).toFixed(1);
-
+ 
           tempLowClimAvg = +(
             climate.month.tmin + tminCorrection
           ).toFixed(1);
-
+ 
           tempMeanClimAvg = +(
             (tempHighClimAvg + tempLowClimAvg) / 2
           ).toFixed(1);
         }
       }
-
+ 
       // ========================================================
       // SALVATAGGIO DATI COMPLETI INIZIALI
       // ========================================================
-
+ 
       allStations[id] = {
         id,
         source: "OMIRL",
         N: st.id ?? null,
-
+ 
         // Temperature
         temp,
         tempHigh,
         tempLow,
         tempMean,
-
+ 
         // Anomalie
         tempMeanAnom,
         tempHighAnom,
         tempLowAnom,
-
+ 
         // Medie climatologiche mensili
         tempHighClimAvg,
         tempLowClimAvg,
         tempMeanClimAvg,
-
+ 
+        // Media pluviometrica (accumulo medio da gennaio)
+        rainClimAcc,
+rainClimYear,                       // NUOVO
+rainYearly: st.rainYearly ?? null,  // NUOVO (serve per l'anomalia)                                              // NUOVO
+ 
         // Umidità
         hum: st.hum ?? null,
         humHigh: st.humHigh ?? null,
         humLow: st.humLow ?? null,
-
+ 
         // Vento
         wind: st.wind ?? null,
         windGust: st.windGust ?? null,
-
+ 
         // Pioggia
         rainRate: st.rainRate ?? null,
         rainDaily: st.rainDaily ?? null,
-
+ 
         // Dew point
         dewp: st.dewp ?? null,
         dewpHigh: st.dewpHigh ?? null,
         dewpLow: st.dewpLow ?? null,
-
+ 
         // Heat Index
         heat: st.HI ?? null,
         heatHigh: null,
         heatLow: st.TempLow ?? null,
-
+ 
         // Coordinate
         lat,
         lon,
       };
     });
-
+ 
     // ==========================================================
     // AGGIORNA SUBITO LA MAPPA
     // ==========================================================
-
+ 
     updateLayer();
-
+ 
     console.log(
       "OMIRL: mappa aggiornata con i dati iniziali"
     );
-
+ 
     // ==========================================================
     // 2. ATTESA DI 500 MS
     // ==========================================================
-
+ 
     await new Promise((resolve) =>
       setTimeout(resolve, 500)
     );
-
+ 
     // ==========================================================
     // 3. FETCH SUCCESSIVI: SOLO CAMPI DA AGGIORNARE
     // ==========================================================
-
+ 
     const omirlUrls = Array.from(
       { length: 20 },
       (_, i) =>
         `https://api-stazioni-meteo.eggittof.workers.dev/omirl${i + 1}.json`
     );
-
+ 
     for (const url of omirlUrls) {
       try {
         console.log("Aggiornamento OMIRL:", url);
-
+ 
         const res = await fetch(url);
-
+ 
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
-
+ 
         const data = await res.json();
         const batch = data?.stations || [];
-
+ 
         let updated = 0;
-
+ 
         batch.forEach((st) => {
           const id = st.id;
           const existing = allStations[id];
-
+ 
           // Aggiorna soltanto stazioni già presenti
           // nel fetch iniziale.
           if (!existing) {
             return;
           }
-
+ 
           // Solo temperatura e pioggia.
-          // Tutti gli altri campi restano invariati.
+          // Tutti gli altri campi (compreso rainClimAcc) restano invariati.
           existing.temp = st.temp ?? existing.temp;
           existing.tempHigh =
             st.tempHigh ?? existing.tempHigh;
@@ -2288,17 +2434,17 @@ const fetchOMIRL = async () => {
             st.rainRate ?? existing.rainRate;
           existing.rainDaily =
             st.rainDaily ?? existing.rainDaily;
-
+ 
           updated++;
         });
-
+ 
         console.log(
           `OMIRL ${url} -> ${updated} stazioni aggiornate`
         );
-
+ 
         // Aggiorna la mappa dopo ogni batch.
         updateLayer();
-
+ 
       } catch (err) {
         // Un batch fallito non blocca i successivi.
         console.error(
@@ -2306,17 +2452,17 @@ const fetchOMIRL = async () => {
           err
         );
       }
-
+ 
       // 500 ms tra un batch e il successivo.
       await new Promise((resolve) =>
         setTimeout(resolve, 500)
       );
     }
-
+ 
     console.log(
       "OMIRL: aggiornamento progressivo completato"
     );
-
+ 
   } catch (err) {
     console.error("Errore fetch OMIRL:", err);
   }
