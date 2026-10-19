@@ -146,6 +146,19 @@
   object-fit: cover;
   transform: translate(-50%, -50%);
 }
+.menuDivider {
+  height: 1px;
+  background: #cfcfcf;
+  margin: 0;
+}
+
+/* di base le voci "solo telefono" sono nascoste */
+.mobileOnly { display: none; }
+
+@media (max-width: 767px) {
+  .desktopOnly { display: none !important; }  /* pulsanti Dew e Heat */
+  .mobileOnly { display: block; }             /* voci extra e divisori */
+}
 #tempButton img{
   width: 85%;
   height: 85%;
@@ -412,16 +425,28 @@
     <img src="https://i.ibb.co/wFphv6Nw/1780391956635.png" alt="Temperatura">
   </button>
 
-  <div class="dropdownMenu" id="tempMenu">
-    <button data-var="temp" data-mode="current">Temperatura</button>
-    <button data-var="temp" data-mode="max">Massimo</button>
-    <button data-var="temp" data-mode="min">Minimo</button>
-  </div>
+<div class="dropdownMenu" id="tempMenu">
+  <button data-var="temp" data-mode="current">Temperatura</button>
+  <button data-var="temp" data-mode="max">Temp. Max</button>
+  <button data-var="temp" data-mode="min">Temp. Min</button>
+
+  <div class="menuDivider mobileOnly"></div>
+
+  <button class="mobileOnly" data-var="dewp" data-mode="current">Dew Point</button>
+  <button class="mobileOnly" data-var="dewp" data-mode="max">Dew Max</button>
+  <button class="mobileOnly" data-var="dewp" data-mode="min">Dew Min</button>
+
+  <div class="menuDivider mobileOnly"></div>
+
+  <button class="mobileOnly" data-var="heat" data-mode="current">Heat Index</button>
+  <button class="mobileOnly" data-var="heat" data-mode="max">Heat Max</button>
+  <button class="mobileOnly" data-var="heat" data-mode="min">Heat Min</button>
+</div>
 </div>
 
   <!-- DEWPOINT -->
-  <div class="dropdown">
-    <button class="varButton" id="dewButton">
+  <div class="dropdown desktopOnly">
+  <button class="varButton" id="dewButton">
       <img src="https://i.ibb.co/GfMNyGcY/dew.png">
     </button>
 
@@ -432,7 +457,7 @@
     </div>
   </div>
 
-  <div class="dropdown">
+<div class="dropdown desktopOnly">
   <button class="varButton" id="heatButton">
     <img src="https://i.ibb.co/YFJfQ5Tt/HEAT.png">
   </button>
