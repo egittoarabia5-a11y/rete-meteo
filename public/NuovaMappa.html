@@ -458,6 +458,16 @@
     <button data-var="rainYearly" data-mode="current">Annuale</button>
   </div>
 </div>
+<div class="dropdown">
+  <button class="varButton" id="windButton">
+    <img src="vento.jpg" alt="Vento">
+  </button>
+
+  <div class="dropdownMenu" id="windMenu">
+    <button data-var="wind" data-mode="current">Vento</button>
+    <button data-var="wind" data-mode="gust">Raffica</button>
+  </div>
+</div>
 </div>
 <div id="pitchToggle">
   Rilievi
@@ -607,8 +617,9 @@ function clearPreviousRegionStations() {
 }
 let currentVariable = "temp";
 let modes = {
-  temp: "current", dewp: "current", heat: "current", 
+  temp: "current", dewp: "current", heat: "current",
   hum: "current", rainDaily: "current", rainRate: "current", rainYearly: "current", rainClim: "current",
+  wind: "current",
   media: "current-mean"
 };
 const mediaAnomModes = [
@@ -632,6 +643,7 @@ function getColor(variable, value) {
 if (variable === "rainClim") return getColor("rainDaily", value / 10);
 if (variable === "rainClimMonth") return getColor("rainDaily", value);   // NUOVO (valori mensili, senza /10)
 if (variable === "rainAnom") return getColor("anom", value / RAIN_ANOM_DIV);
+if (variable === "wind") return getColor("rainDaily", value);   // NUOVO: stessi colori della pioggia
   if (variable === "hum") {
     if (value < 20) return "#b44141";
     else if (value < 30) return "#ff6262";
@@ -823,6 +835,11 @@ const get = (base) => {
   if (currentVariable === "temp") { 
     value = get("temp"); 
   } 
+else if (currentVariable === "wind") {
+  value = windExcluded.has(st.id)
+    ? null
+    : (mode === "gust" ? st.windGust : st.wind);
+}
 else if (currentVariable === "rainClim") {
   if (mode === "year") value = st.rainClimYear;
   else if (mode === "today") value = st.rainClimAcc;
@@ -938,7 +955,29 @@ const isAnom =
 // ================= UPDATE LAYER =================
 // Quanti px in meno per il testo delle medie pluviometriche (Media Annuale / Media ad oggi)
 const RAIN_MEAN_ICON_SCALE = 1;
+// Stazioni da NON mostrare nella variabile vento
+const windExcluded = new Set([
+  "IGENOA2897",
+]);
+const WIND_ICON_SCALE = 1;   // ingrandisci/riduci il marker del vento
 
+const windCardinals = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];
+const cardinalToDeg = {
+  N:0, NNE:22.5, NE:45, ENE:67.5, E:90, ESE:112.5, SE:135, SSE:157.5,
+  S:180, SSW:202.5, SSO:202.5, SW:225, SO:225, WSW:247.5, OSO:247.5,
+  W:270, O:270, WNW:292.5, ONO:292.5, NW:315, NO:315, NNW:337.5, NNO:337.5
+};
+
+// accetta gradi (numero o stringa) oppure sigle tipo "NNO"; altrimenti null
+function parseWindDir(d) {
+  if (d == null || d === "") return null;
+  const n = Number(d);
+  if (!isNaN(n)) return ((n % 360) + 360) % 360;
+  return cardinalToDeg[String(d).trim().toUpperCase()] ?? null;
+}
+function windDirLabel(deg) {
+  return windCardinals[Math.round(deg / 22.5) % 16];
+}
 function getIconSizeExpr(scale = 1) {
   const m = isMobileScreen;
   return [
@@ -1058,20 +1097,26 @@ function applyRainClimOverrides() {
 }
 let markerKey = "";
 function updateLayer() {
-
   applyRainClimOverrides();
-  // NUOVO: medie pluviometriche (Media Annuale / Media ad oggi), non l'anomalia
-const isRainMean =
-  currentVariable === "rainClim" &&
-  (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month");
-  // NUOVO: cerchio più grande solo per le medie pluviometriche
-  const markerStateKey = isRainMean + "-" + is3D;
+
+  const isRainMean =
+    currentVariable === "rainClim" &&
+    (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month");
+
+  const isWind = currentVariable === "wind";
+
+  const markerStateKey = isRainMean + "-" + is3D + "-" + isWind;
 
   if (markerStateKey !== markerKey && map.getLayer('stations-marker')) {
-    const sc = isRainMean ? RAIN_MEAN_ICON_SCALE : 1;
+    const sc = isWind ? WIND_ICON_SCALE : (isRainMean ? RAIN_MEAN_ICON_SCALE : 1);
+    const pin = is3D && !isWind;   // il vento non usa mai il pin: resta centrato
 
     map.setLayoutProperty('stations-marker', 'icon-size', getIconSizeExpr(sc));
-    map.setLayoutProperty('stations-marker', 'text-offset', is3D ? [0, -2.2 * sc] : [0, 0]);
+    map.setLayoutProperty('stations-marker', 'icon-anchor', pin ? 'bottom' : 'center');
+    map.setLayoutProperty('stations-marker', 'text-anchor', pin ? 'bottom' : 'center');
+    map.setLayoutProperty('stations-marker', 'text-offset', pin ? [0, -2.2 * sc] : [0, 0]);
+    // col vento l'icona ruota con la mappa (direzione geografica)
+    map.setLayoutProperty('stations-marker', 'icon-rotation-alignment', isWind ? 'map' : 'viewport');
 
     markerKey = markerStateKey;
   }
@@ -1082,28 +1127,38 @@ const isRainMean =
     .map(st => {
       const { value, color, valueStr } = getValueAndColor(st);
 
-      // Se non c'è valore (stazione offline), escludi del tutto la stazione: niente pallino
       if (value === null) {
         return null;
       }
 
-            let textDisplay = "";
+      let textDisplay = "";
       if (value !== null) {
-        // niente decimali sul pallino nelle medie pluviometriche (il popup li mantiene)
         textDisplay = (currentZoom < 6 || isRainMean)
           ? Math.round(value).toString()
           : valueStr;
 
-        // NUOVO: asterisco sotto il valore per le medie pluviometriche non ufficiali
-        // asterisco sotto il valore, con riga vuota sopra per tenere il numero al centro
         if (currentVariable === "rainClim" && st.rainClimRef != null) {
           textDisplay = "\n" + textDisplay + "\n*";
         }
       }
 
-     const iconId = is3D
-  ? getOrCreatePinIcon(map, color)
-  : getOrCreateDotIcon(map, color);
+      let iconId;
+      let rot = 0;
+
+      if (isWind) {
+        const dir = parseWindDir(st.windDir);
+        if (dir != null) {
+          iconId = getOrCreateWindIcon(map, color);
+          rot = (dir + 180) % 360;               // la punta va verso dove va il vento
+        } else {
+          iconId = getOrCreateDotIcon(map, color);   // direzione sconosciuta: pallino
+        }
+      } else {
+        iconId = is3D
+          ? getOrCreatePinIcon(map, color)
+          : getOrCreateDotIcon(map, color);
+      }
+
       return {
         type: "Feature",
         geometry: { type: "Point", coordinates: [st.lon, st.lat] },
@@ -1115,11 +1170,12 @@ const isRainMean =
           valueStr,
           textDisplay,
           color,
-          icon: iconId
+          icon: iconId,
+          rot                                     // NUOVO
         }
       };
     })
-    .filter(f => f !== null); // 👈 rimuove le stazioni senza anomalia
+    .filter(f => f !== null);
 
   const source = map.getSource('weather-stations');
   if (source) source.setData(geojson);
@@ -1166,7 +1222,7 @@ function showPopup(feature) {
   const isAnom =
     currentVariable === "media" &&
     mediaAnomModes.includes(currentMode);
-
+const isWind = variable === "wind";
   // Modi pluviometrici mensili
   const isRainMonth = variable === "rainClim" && currentMode === "month";
   const isRainMonthAnom = variable === "rainClim" && currentMode === "month-anom";
@@ -1196,7 +1252,7 @@ function showPopup(feature) {
     if (variable === "rainClimMonth") return getColorMain("rainClimMonth", v);
 
     if (v == null || isNaN(v)) return "#808080";
-
+if (variable === "wind") return getColorMain("wind", v);
     // =========================
     // SCALA ANOMALIE
     // =========================
@@ -1458,7 +1514,10 @@ function showPopup(feature) {
 
   // 📊 URL GAUGES
   const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(source)}&name=${encodeURIComponent(name)}`;
-
+const windDirDeg = isWind ? parseWindDir(station.windDir) : null;
+const windNote = (isWind && windDirDeg != null)
+  ? `<div style="font-size:12px;line-height:1.2;">Da ${windDirLabel(windDirDeg)} (${Math.round(windDirDeg)}°)</div>`
+  : "";
   const html = `
     <div style="
       font-family:Inter,sans-serif;
@@ -1480,6 +1539,7 @@ function showPopup(feature) {
           variable === "heat" ? "Heat Index" :
           variable === "hum" ? "Umidità" :
           variable === "media" ? mediaTitle :
+          variable === "wind" ? (currentMode === "gust" ? "Raffica" : "Vento") :
           variable === "rainClim" ? rainClimTitle :
           isRain ? "Pioggia" : ""}
       </div>
@@ -1489,9 +1549,8 @@ function showPopup(feature) {
       ${variable === "rainClim" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">${rainClimScope}</div>` : ""}
 
       <div style="font-size:32px;font-weight:800;margin-bottom:6px;">
-        ${valueStr}${isRain ? " mm" : "°"}
+        ${valueStr}${isRain ? " mm" : isWind ? " km/h" : "°"}
       </div>
-
       ${
         variable === "media"
           ? (
@@ -1517,7 +1576,7 @@ function showPopup(feature) {
                 : ""
             )
       }
-
+${windNote}
       ${rainNote}
 
       <!-- 📊 PULSANTE GAUGES -->
@@ -1571,6 +1630,7 @@ document.getElementById("dewButton").onclick = () => toggleMenu("dewMenu");
 document.getElementById("heatButton").onclick = () => toggleMenu("heatMenu");
 document.getElementById("humButton").onclick = () => toggleMenu("humMenu");
 document.getElementById("rainButton").onclick = () => toggleMenu("rainMenu");
+document.getElementById("windButton").onclick = () => toggleMenu("windMenu");
 
 document.querySelectorAll(".dropdownMenu button").forEach(btn => {
   btn.onclick = () => {
@@ -1622,6 +1682,44 @@ function loadSdfIcon(map, id, svgString, size = 64) {
 const dotIconCache = new Set();
 const pinIconCache = new Set();
 const isMobileScreen = window.matchMedia("(max-width: 767px)").matches;
+const windIconCache = new Set();
+
+// Goccia con la punta verso l'alto (rotazione 0). La ruota poi icon-rotate.
+// Il centro del corpo coincide col centro dell'immagine: il numero resta centrato.
+function getOrCreateWindIcon(map, hexColor, size = 200) {
+  const id = 'wind-' + hexColor.replace('#', '');
+  if (windIconCache.has(id) || map.hasImage(id)) return id;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.28;            // raggio del corpo
+  const d = size * 0.44;            // distanza della punta dal centro
+  const a = Math.PI / 2 - Math.acos(r / d);   // punto di tangenza
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - d);                                            // punta
+  ctx.lineTo(cx + r * Math.cos(-a), cy + r * Math.sin(-a));          // tangente destra
+  ctx.arc(cx, cy, r, -a, Math.PI + a, false);                        // gobba
+  ctx.closePath();
+
+  ctx.fillStyle = hexColor;
+  ctx.fill();
+
+  ctx.lineWidth = size * 0.055;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+
+  const imageData = ctx.getImageData(0, 0, size, size);
+  map.addImage(id, imageData, { pixelRatio: 2 });
+  windIconCache.add(id);
+  return id;
+}
 function getOrCreatePinIcon(map, hexColor, size = 156) {
   const id = 'pin-' + hexColor.replace('#', '');
   if (pinIconCache.has(id) || map.hasImage(id)) return id;
@@ -1751,9 +1849,12 @@ map.addLayer({
   id: 'stations-marker',
   type: 'symbol',
   source: 'weather-stations',
-  layout: {
-    'text-line-height': 0.8,   // NUOVO: avvicina il * al numero (default 1.2)
-    'icon-image': ['get', 'icon'],
+layout: {
+  'text-line-height': 0.8,
+  'icon-image': ['get', 'icon'],
+  'icon-rotate': ['get', 'rot'],              // NUOVO
+  'icon-rotation-alignment': 'viewport',      // NUOVO (diventa 'map' col vento)
+  'icon-pitch-alignment': 'viewport',
     'icon-size': [
       'interpolate', ['linear'], ['zoom'],
       4,  isMobile ? 0.3 : 0.30,
@@ -2565,6 +2666,7 @@ const fetchOMIRL = async () => {
         // Vento
         wind: st.wind ?? null,
         windGust: st.windGust ?? null,
+        windDir: st.windDir ?? null,
 
         // Pioggia
         rainRate: st.rainRate ?? null,
@@ -4290,6 +4392,7 @@ const fetchLimet = async () => {
 
         wind: st.V ?? null,
         windGust: st.VR ?? null,
+        windDir: st.VD ?? null,
 
 
         // ===== RAIN =====
