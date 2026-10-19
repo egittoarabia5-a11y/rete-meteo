@@ -387,6 +387,10 @@
   <button data-var="rainClim" data-mode="year">Prec Media Annuale</button>
   <button disabled>---</button>
 </div>
+<div class="varRow2">
+  <button data-var="rainClim" data-mode="month">Prec Media Mensile</button>
+  <button data-var="rainClim" data-mode="month-anom">Anomalia</button>
+</div>
 
 <div class="varRow2">
   <button data-var="rainClim" data-mode="today">Prec Media ad oggi</button>
@@ -626,6 +630,7 @@ let activePopup = null;
 function getColor(variable, value) {
   if (value === null) return "#808080";
 if (variable === "rainClim") return getColor("rainDaily", value / 10);
+if (variable === "rainClimMonth") return getColor("rainDaily", value);   // NUOVO (valori mensili, senza /10)
 if (variable === "rainAnom") return getColor("anom", value / RAIN_ANOM_DIV);
   if (variable === "hum") {
     if (value < 20) return "#b44141";
@@ -821,6 +826,14 @@ const get = (base) => {
 else if (currentVariable === "rainClim") {
   if (mode === "year") value = st.rainClimYear;
   else if (mode === "today") value = st.rainClimAcc;
+  else if (mode === "month") {                                   // NUOVO
+    value = st.rainClimMonth;
+    colorVariable = "rainClimMonth";
+  }
+  else if (mode === "month-anom") {                              // NUOVO (per ora sempre 0)
+    value = st.rainClimMonth != null ? 0 : null;
+    colorVariable = "anom";
+  }
   else if (mode === "today-anom") {
     value = (st.rainYearly != null && st.rainClimAcc != null)
       ? Number(st.rainYearly) - Number(st.rainClimAcc)
@@ -900,10 +913,9 @@ else if (currentVariable === "rainClim") {
     if (isNaN(value)) value = null; 
   } 
 
-  const isAnom =
+const isAnom =
   (currentVariable === "media" && mediaAnomModes.includes(mode)) ||
-  (currentVariable === "rainClim" && mode === "today-anom");
-
+  (currentVariable === "rainClim" && (mode === "today-anom" || mode === "month-anom"));
   return { 
     value, 
     color: getColor(colorVariable, value), 
@@ -972,8 +984,52 @@ const rainClimOverrides = {
   "CMELO": { rete: "OMIRL", ref: "OSIGL", refRete: "OMIRL", mul: 1.147, anni: 24, var: 23 },
   "PIAMP": { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 1.021, anni: 24, var: 23 },
   "URVAS": { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 1.088, anni: 11, var: 47 },
+  "CRAIN": { rete: "OMIRL", ref: "IMPER", refRete: "OMIRL", mul: 1.102, anni: 12, var: 41 },
+  "CABAN": { rete: "OMIRL", ref: "CABAN", refRete: "OMIRL", mul: 1.307, anni: 11, var: 47 },
+  "SEBOR": { rete: "OMIRL", ref: "SREMO", refRete: "OMIRL", mul: 1.295, anni: 11, var: 47 },
+  "CLROS": { rete: "OMIRL", ref: "SREMO", refRete: "OMIRL", mul: 1.255, anni: 11, var: 47 },
+  "REPPI": { rete: "OMIRL", ref: "STALE", refRete: "OMIRL", mul: 0.958, anni: 13, var: 41 },
+  "SCURT": { rete: "OMIRL", ref: "STALE", refRete: "OMIRL", mul: 0.948, anni: 11, var: 47 },
+  "TAGLT": { rete: "OMIRL", ref: "VALIG", refRete: "OMIRL", mul: 0.965, anni: 19, var: 31 },
+  "CUCCA": { rete: "OMIRL", ref: "SMVAR", refRete: "OMIRL", mul: 1.301, anni: 19, var: 31 },
+  "SEGOD": { rete: "OMIRL", ref: "SMVAR", refRete: "OMIRL", mul: 1.059, anni: 22, var: 26 },
+  "CASON": { rete: "OMIRL", ref: "SMVAR", refRete: "OMIRL", mul: 0.945, anni: 22, var: 26 },
+  "PDVRM": { rete: "OMIRL", ref: "CCORM", refRete: "OMIRL", mul: 0.874, anni: 19, var: 31 },
+  "PIGNO": { rete: "OMIRL", ref: "SPZIA", refRete: "OMIRL", mul: 1.519, anni: 12, var: 43 },
+  "RICCO": { rete: "OMIRL", ref: "SPZIA", refRete: "OMIRL", mul: 1.557, anni: 12, var: 43 },
+  "MROCC": { rete: "OMIRL", ref: "SRZAN", refRete: "OMIRL", mul: 0.868, anni: 22, var: 26 },
+  "LUNIS": { rete: "OMIRL", ref: "SRZAN", refRete: "OMIRL", mul: 0.914, anni: 13, var: 39 },
+  "MARIN": { rete: "OMIRL", ref: "SRZAN", refRete: "OMIRL", mul: 0.792, anni: 20, var: 28 },
+  "BARGO": { rete: "OMIRL", ref: "CAVIP", refRete: "OMIRL", mul: 1.349, anni: 12, var: 43 },
+  "CARRO": { rete: "OMIRL", ref: "SMVAR", refRete: "OMIRL", mul: 1.038, anni: 12, var: 43 },
+  "CERPG": { rete: "OMIRL", ref: "SREMO", refRete: "OMIRL", mul: 1.609, anni: 19, var: 32 },
+  "BRGEL": { rete: "OMIRL", ref: "GIACO", refRete: "OMIRL", mul: 1.1, anni: 19, var: 32 },
+  "TRIOR": { rete: "OMIRL", ref: "SREMO", refRete: "OMIRL", mul: 1.779, anni: 22, var: 26 },
   "Urbe S.Pietro": { rete: "LIMET", ref: "FIORI", refRete: "OMIRL", mul: 0.956, anni: 15, var: 43 },
   "Prato": { rete: "Comune di Genova", ref: "VIGAN", refRete: "OMIRL", mul: 0.88, anni: 25, var: 21 },
+  "SALBE": { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 1.029, anni: 20, var: 21 },                                      // NUOVO
+  "DAVAG": { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 1.026, anni: 20, var: 21 },                                      // NUOVO
+  "STILA": { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 0.717, anni: 15, var: 27 },                                     // NUOVO
+  "CFUNZ": { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 0.562, anni: 20, var: 21 },                                    // NUOVO
+      CAMOG: { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 0.7, anni: 11, var: 37 },                                        // NUOVO
+      MADGR: { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 0.683, anni: 19, var: 29 },                                      // NUOVO
+      GEPEG: { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 0.7, anni: 20, var: 28 },                                      // NUOVO
+      MOPEN: { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 0.967, anni: 11, var: 41 },                                    // NUOVO
+      PRAIC: { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 0.952, anni: 12, var: 41 },                                    // NUOVO
+      MTPOR: { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 0.668, anni: 15, var: 27 },                                   // NUOVO
+      ROSGL: { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 0.720, anni: 20, var: 28 },                                   // NUOVO
+      CAMPL: { rete: "OMIRL", ref: "FIORI", refRete: "OMIRL", mul: 0.875, anni: 15, var: 35 },                                   // NUOVO
+      RAPAL: { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 0.775, anni: 12, var: 49 },                                   // NUOVO
+      SMARG: { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 0.617, anni: 11, var: 55 },                                   // NUOVO
+      OGNIO: { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 1.091, anni: 13, var: 42 },                                   // NUOVO
+      SEGIA: { rete: "OMIRL", ref: "VIGAN", refRete: "OMIRL", mul: 1.176, anni: 11, var: 61 },                                   // NUOVO
+      PRTTI: { rete: "OMIRL", ref: "CCHER", refRete: "OMIRL", mul: 0.801, anni: 13, var: 55 },                                   // NUOVO
+      BRZON: { rete: "OMIRL", ref: "GIACO", refRete: "OMIRL", mul: 0.853, anni: 18, var: 34 },                                   // NUOVO
+      MROSS: { rete: "OMIRL", ref: "LEVAN", refRete: "OMIRL", mul: 1.036, anni: 19, var: 25 },                                   // NUOVO
+      CRNLO: { rete: "OMIRL", ref: "LEVAN", refRete: "OMIRL", mul: 0.931, anni: 18, var: 29 },                                   // NUOVO
+      FRAMU: { rete: "OMIRL", ref: "LEVAN", refRete: "OMIRL", mul: 0.998, anni: 13, var: 38 },                                   // NUOVO
+      CAVIP: { rete: "OMIRL", ref: "LEVAN", refRete: "OMIRL", mul: 1.126, anni: 17, var: 38 },                                    // NUOVO
+      BRGEL: { rete: "OMIRL", ref: "CCHER", refRete: "OMIRL", mul: 1.053, anni: 17, var: 47 },                                  // NUOVO
   // ESEMPI per altre reti:
   // "Nome Stazione LIMET": { rete: "LIMET", ref: "VIGAN", refRete: "OMIRL", mul: 0.9, anni: 10, var: 30 },
   // "Nome Stazione Acronet": { rete: "Acronet", ref: "FIORI", refRete: "OMIRL", mul: 0.8, anni: 8, var: 40 },
@@ -990,9 +1046,11 @@ function applyRainClimOverrides() {
     // valori ufficiali del riferimento (non quelli già moltiplicati)
     const baseAcc  = refSt.rainClimAccOfficial  ?? refSt.rainClimAcc;
     const baseYear = refSt.rainClimYearOfficial ?? refSt.rainClimYear;
+    const baseMonth = refSt.rainClimMonthOfficial ?? refSt.rainClimMonth;
 
     st.rainClimAcc  = baseAcc  != null ? baseAcc  * ov.mul : null;
     st.rainClimYear = baseYear != null ? baseYear * ov.mul : null;
+    st.rainClimMonth = baseMonth != null ? baseMonth * ov.mul : null;
     st.rainClimRef   = ov.ref;
     st.rainClimYears = ov.anni;
     st.rainClimVar   = ov.var;
@@ -1003,10 +1061,9 @@ function updateLayer() {
 
   applyRainClimOverrides();
   // NUOVO: medie pluviometriche (Media Annuale / Media ad oggi), non l'anomalia
-  const isRainMean =
-    currentVariable === "rainClim" &&
-    (modes.rainClim === "year" || modes.rainClim === "today");
-
+const isRainMean =
+  currentVariable === "rainClim" &&
+  (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month");
   // NUOVO: cerchio più grande solo per le medie pluviometriche
   const markerStateKey = isRainMean + "-" + is3D;
 
@@ -1086,52 +1143,68 @@ const getColorMain = getColor;
 // showPopup
 // Le righe nuove/cambiate sono marcate con  // NUOVO
 // =====================================================================
-function showPopup(feature) { 
- 
-  if (!feature?.properties) return; 
- 
-  const props = feature.properties; 
- 
-  const id = props.id; 
-  const name = props.name; 
-  const source = props.source; 
- 
-  if (activePopup) activePopup.remove(); 
- 
-  const station = allStations[id] || {}; 
- 
-  const variable = normalizeVariable(currentVariable); 
+// =====================================================================
+// showPopup
+// =====================================================================
+function showPopup(feature) {
+
+  if (!feature?.properties) return;
+
+  const props = feature.properties;
+
+  const id = props.id;
+  const name = props.name;
+  const source = props.source;
+
+  if (activePopup) activePopup.remove();
+
+  const station = allStations[id] || {};
+
+  const variable = normalizeVariable(currentVariable);
   const currentMode = modes[currentVariable];
- 
+
   const isAnom =
     currentVariable === "media" &&
     mediaAnomModes.includes(currentMode);
- 
-  const colorVariable = isAnom ? "anom" : variable;
-  const value = Number(props.value); 
-  const valueStr = props.valueStr ?? "—"; 
- 
+
+  // Modi pluviometrici mensili
+  const isRainMonth = variable === "rainClim" && currentMode === "month";
+  const isRainMonthAnom = variable === "rainClim" && currentMode === "month-anom";
+  const isRainMonthAny = isRainMonth || isRainMonthAnom;
+
+  const colorVariable =
+    isAnom ? "anom"
+    : isRainMonth ? "rainClimMonth"
+    : isRainMonthAnom ? "anom"
+    : variable;
+
+  const value = Number(props.value);
+  const valueStr = props.valueStr ?? "—";
+
   // rainClim conta come pioggia (unità "mm")
   const isRain =
     variable === "rainDaily" ||
     variable === "rainRate" ||
     variable === "rainClim";
- 
+
   const getColor = (v, variable) => {
- 
+
     // la media pluviometrica usa la scala pioggia x10 dei marker
     if (variable === "rainClim") return getColorMain("rainClim", v);
- 
+
+    // la media pluviometrica mensile usa la scala pioggia senza x10
+    if (variable === "rainClimMonth") return getColorMain("rainClimMonth", v);
+
     if (v == null || isNaN(v)) return "#808080";
- 
+
     // =========================
     // SCALA ANOMALIE
     // =========================
     if (variable === "anom") {
- 
+
       // NEUTRO
       if (v === 0) return "#d0d0d0";
- 
+
       // ANOMALIA NEGATIVA
       if (v < 0) {
         if (v > -0.5) return "#abdcff";
@@ -1155,7 +1228,7 @@ function showPopup(feature) {
         else if (v > -14) return "#383838";
         else return "#000000";
       }
- 
+
       // ANOMALIA POSITIVA
       if (v > 0) {
         if (v < 0.5) return "#dabbb2";
@@ -1178,10 +1251,10 @@ function showPopup(feature) {
         else if (v < 13) return "#515151";
         else return "#000000";
       }
- 
+
       return "#d0d0d0";
     }
- 
+
     // =========================
     // UMIDITÀ
     // =========================
@@ -1196,7 +1269,7 @@ function showPopup(feature) {
       else if (v < 90) return "#4da9ff";
       return "#4d54ff";
     }
- 
+
     // =========================
     // PIOGGIA
     // =========================
@@ -1210,7 +1283,7 @@ function showPopup(feature) {
       else if (v < 50) return "#4da9ff";
       return "#2c278e";
     }
- 
+
     // =========================
     // TEMPERATURA / DEWPOINT / HEAT
     // =========================
@@ -1244,73 +1317,73 @@ function showPopup(feature) {
     if (v < 46) return "#785c55";
     return "#9b8987";
   };
- 
-  const hexToRgba = (hex, a = 0.3) => { 
-    const h = hex.replace("#", ""); 
-    const r = parseInt(h.substring(0, 2), 16); 
-    const g = parseInt(h.substring(2, 4), 16); 
-    const b = parseInt(h.substring(4, 6), 16); 
-    return `rgba(${r},${g},${b},${a})`; 
-  }; 
- 
-  let max = null; 
-  let min = null; 
- 
-  if (variable === "temp") { 
-    max = station.tempHigh; 
-    min = station.tempLow; 
-  } 
- 
-  if (variable === "dewp") { 
-    max = station.dewpHigh; 
-    min = station.dewpLow; 
-  } 
- 
-  if (variable === "heat") { 
-    max = station.heatHigh; 
-    min = station.heatLow; 
-  } 
- 
-  if (variable === "hum") { 
-    max = station.humHigh; 
-    min = station.humLow; 
-  } 
- 
-  if (variable === "rainDaily") { 
-    max = station.rainDaily; 
-  } 
- 
-  if (variable === "rainRate") { 
-    max = station.rainRate; 
-  } 
- 
-  if (variable === "rainYearly") { 
-    max = station.rainYearly; 
-  } 
- 
+
+  const hexToRgba = (hex, a = 0.3) => {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
+  let max = null;
+  let min = null;
+
+  if (variable === "temp") {
+    max = station.tempHigh;
+    min = station.tempLow;
+  }
+
+  if (variable === "dewp") {
+    max = station.dewpHigh;
+    min = station.dewpLow;
+  }
+
+  if (variable === "heat") {
+    max = station.heatHigh;
+    min = station.heatLow;
+  }
+
+  if (variable === "hum") {
+    max = station.humHigh;
+    min = station.humLow;
+  }
+
+  if (variable === "rainDaily") {
+    max = station.rainDaily;
+  }
+
+  if (variable === "rainRate") {
+    max = station.rainRate;
+  }
+
+  if (variable === "rainYearly") {
+    max = station.rainYearly;
+  }
+
   // Popup delle medie: in rosso la media climatologica, in blu il valore reale
   let mediaClimValue = null;
   let mediaActualValue = null;
   let mediaActualLabel = "";
   let mediaTitle = "";
   let mediaScope = "";
- 
+
   if (variable === "media") {
- 
+
     const modeParts = currentMode.split("-");
     const isMonth = modeParts[0] === "month";
     const kind = modeParts.includes("max") ? "max"
                : modeParts.includes("min") ? "min"
                : "mean";
- 
+
     // Titolo: "Anomalia massime" / "Media clim. minime" / ...
     mediaTitle =
       (isAnom ? "Anomalia " : "Media clim. ") +
       { max: "massime", min: "minime", mean: "medie" }[kind];
- 
+
     // Sotto il titolo: "Giornaliera" o "Mensile"
     mediaScope = isMonth ? "Mensile" : "Giornaliera";
- 
+
     // Campo del valore reale e della sua anomalia
     const fields = isMonth
       ? {
@@ -1323,12 +1396,12 @@ function showPopup(feature) {
           min:  ["tempLow",  "tempLowAnom"],
           mean: ["tempMean", "tempMeanAnom"]
         };
- 
+
     const [actualKey, anomKey] = fields[kind];
- 
+
     // BLU = valore reale
     mediaActualValue = station[actualKey];
- 
+
     // ROSSO = media climatologica
     if (isMonth && !isAnom) {
       // media climatologica dell'intero mese
@@ -1343,71 +1416,83 @@ function showPopup(feature) {
           ? Number(station[actualKey]) - Number(station[anomKey])
           : null;
     }
- 
+
     mediaActualLabel = {
       max: "Massima",
       min: "Minima",
       mean: isMonth ? "Media" : "Attuale"
     }[kind];
   }
- 
-  const fmt = v => 
-    v == null || isNaN(v) ? "—" : Number(v).toFixed(1); 
-  const baseColor = getColor(value, colorVariable);
-  const overlay = hexToRgba(baseColor, 0.3); 
 
-  // NUOVO: media pluviometrica non ufficiale (stazioni con moltiplicatore)
+  const fmt = v =>
+    v == null || isNaN(v) ? "—" : Number(v).toFixed(1);
+  const baseColor = getColor(value, colorVariable);
+  const overlay = hexToRgba(baseColor, 0.3);
+
+  // Media pluviometrica non ufficiale (stazioni con moltiplicatore)
   const isUnofficialRain =
     variable === "rainClim" && station.rainClimRef != null;
 
-  // NUOVO: nota sotto il valore (asterisco, sottolineato, stazione di riferimento)
+  // Titolo della media pluviometrica
+  const rainClimTitle =
+    isRainMonthAnom
+      ? "Anomalia pluviometrica" + (isUnofficialRain ? "*" : "")
+      : "Media pluviometrica" + (isUnofficialRain ? "*" : "");
+
+  // Sottotitolo della media pluviometrica
+  const rainClimScope = isRainMonthAny
+    ? "Somma del mese intero"
+    : "Dal 1° gennaio";
+
+  // Nota sotto il valore (asterisco, sottolineato, stazione di riferimento)
+  // Il margine di errore è calcolato sul dato annuale: non si mostra per il mese
   const rainNote = isUnofficialRain
     ? `
       <div style="font-size:11px;line-height:1.3;margin-top:4px;opacity:0.85;">
         <div>* : <u>Media non ufficiale</u> - Media calcolata negli ultimi ${station.rainClimYears} anni</div>
         <div>Stazione di riferimento: ${station.rainClimRef}</div>
-        <div>Margine di errore: ±${station.rainClimVar} mm circa</div>
+        ${isRainMonthAny ? "" : `<div>Margine di errore: ±${station.rainClimVar} mm circa</div>`}
       </div>
     `
     : "";
- 
+
   // 📊 URL GAUGES
   const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(source)}&name=${encodeURIComponent(name)}`;
- 
-  const html = ` 
-    <div style=" 
-      font-family:Inter,sans-serif; 
-      text-align:center; 
-      color:black; 
-    "> 
- 
-      <div style="font-weight:700;font-size:15px;line-height:1.1;"> 
-        ${name} 
-      </div> 
- 
-      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;"> 
-        Fonte: ${source} 
-      </div> 
- 
-      <div style="font-size:13px;opacity:0.75;margin-bottom:${(variable === "media" || variable === "rainClim") ? "0" : "4px"};"> 
-        ${variable === "temp" ? "Temperatura" : 
-          variable === "dewp" ? "Dew Point" : 
-          variable === "heat" ? "Heat Index" : 
-          variable === "hum" ? "Umidità" : 
-          variable === "media" ? mediaTitle :
-          variable === "rainClim" ? ("Media pluviometrica" + (isUnofficialRain ? "*" : "")) :
-          isRain ? "Pioggia" : ""} 
+
+  const html = `
+    <div style="
+      font-family:Inter,sans-serif;
+      text-align:center;
+      color:black;
+    ">
+
+      <div style="font-weight:700;font-size:15px;line-height:1.1;">
+        ${name}
       </div>
- 
+
+      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;">
+        Fonte: ${source}
+      </div>
+
+      <div style="font-size:13px;opacity:0.75;margin-bottom:${(variable === "media" || variable === "rainClim") ? "0" : "4px"};">
+        ${variable === "temp" ? "Temperatura" :
+          variable === "dewp" ? "Dew Point" :
+          variable === "heat" ? "Heat Index" :
+          variable === "hum" ? "Umidità" :
+          variable === "media" ? mediaTitle :
+          variable === "rainClim" ? rainClimTitle :
+          isRain ? "Pioggia" : ""}
+      </div>
+
       ${variable === "media" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">${mediaScope}</div>` : ""}
- 
-      ${variable === "rainClim" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">Dal 1° gennaio</div>` : ""}
- 
-      <div style="font-size:32px;font-weight:800;margin-bottom:6px;"> 
-        ${valueStr}${isRain ? " mm" : "°"} 
-      </div> 
- 
-      ${ 
+
+      ${variable === "rainClim" ? `<div style="font-size:11px;opacity:0.6;margin-bottom:4px;">${rainClimScope}</div>` : ""}
+
+      <div style="font-size:32px;font-weight:800;margin-bottom:6px;">
+        ${valueStr}${isRain ? " mm" : "°"}
+      </div>
+
+      ${
         variable === "media"
           ? (
               (mediaClimValue != null || mediaActualValue != null)
@@ -1421,20 +1506,20 @@ function showPopup(feature) {
                 : ""
             )
           : (
-              (max != null || min != null) 
-                ? ` 
-                <div style="font-size:12px;line-height:1.2;"> 
-                  <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span> 
-                  <span style="margin:0 2px;">-</span> 
-                  <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span> 
-                </div> 
-                ` 
-                : "" 
+              (max != null || min != null)
+                ? `
+                <div style="font-size:12px;line-height:1.2;">
+                  <span style="color:red;font-weight:700;">Max:${fmt(max)}°</span>
+                  <span style="margin:0 2px;">-</span>
+                  <span style="color:#1e66ff;font-weight:700;">${fmt(min)}° Min</span>
+                </div>
+                `
+                : ""
             )
-      } 
+      }
 
       ${rainNote}
- 
+
       <!-- 📊 PULSANTE GAUGES -->
       <div style="margin-top:6px;">
         <button
@@ -1454,26 +1539,26 @@ function showPopup(feature) {
           📊 Gauges
         </button>
       </div>
- 
-    </div> 
-  `; 
- 
-  activePopup = new maplibregl.Popup({ 
-    closeButton: true, 
-    closeOnClick: true, 
-    offset: 20, 
-    className: "clean-popup" 
-  }) 
-    .setLngLat(feature.geometry.coordinates) 
-    .setHTML(html) 
-    .addTo(map); 
- 
-  // 🎨 GRIGIO + OVERLAY COLORATO 30% 
-  const el = activePopup._content; 
-  if (el) { 
-    el.style.backgroundColor = "#e6e6e6"; 
-    el.style.backgroundImage = `linear-gradient(${overlay}, ${overlay})`; 
-  } 
+
+    </div>
+  `;
+
+  activePopup = new maplibregl.Popup({
+    closeButton: true,
+    closeOnClick: true,
+    offset: 20,
+    className: "clean-popup"
+  })
+    .setLngLat(feature.geometry.coordinates)
+    .setHTML(html)
+    .addTo(map);
+
+  // 🎨 GRIGIO + OVERLAY COLORATO 30%
+  const el = activePopup._content;
+  if (el) {
+    el.style.backgroundColor = "#e6e6e6";
+    el.style.backgroundImage = `linear-gradient(${overlay}, ${overlay})`;
+  }
 }
 function toggleMenu(id) {
   const el = document.getElementById(id);
@@ -2110,6 +2195,11 @@ if (id === "ILIGURIA67" && climate) {
 // Medie pluviometriche "non ufficiali": vedi rainClimOverrides
 // Le righe nuove/cambiate sono marcate con  // NUOVO
 // =====================================================================
+// =====================================================================
+// fetchOMIRL
+// Le medie pluviometriche "non ufficiali" sono ora gestite dalla tabella
+// globale rainClimOverrides + applyRainClimOverrides() (chiamata in updateLayer)
+// =====================================================================
 const fetchOMIRL = async () => {
   try {
     // ==========================================================
@@ -2132,9 +2222,9 @@ const fetchOMIRL = async () => {
       CCHER: ["A_CCHER", 0, 0],
       ELLRA: ["A_ELLRA", 0, 0],
       XXMIG: ["A_XXMIG", 0, 0],
-      CRORE: ["A_CRORE", 0, 0],
       TAVRN: ["A_TAVAR", 0, 0],
       TOGAR: ["A_BRUGN", 0, 0],
+      CABAN: ["A_CABAN", 0, 0],
       MANIE: ["A_MANIE", 0, 0],
       BELEN: ["A_COLBE", 0, 0],
       VIGAN: ["A_VIGAN", 0, 0],
@@ -2165,42 +2255,6 @@ const fetchOMIRL = async () => {
       BESTA: ["A_BESTA", 0, 0],
       CNAVA: ["A_CNAVA", 0, 0],
     };
-
-    // ==========================================================  // NUOVO
-    // MEDIE PLUVIOMETRICHE "NON UFFICIALI"                         // NUOVO
-    // stazione: {                                                  // NUOVO
-    //   ref:  id OMIRL della stazione di riferimento               // NUOVO
-    //   mul:  moltiplicatore applicato ai valori del riferimento   // NUOVO
-    //   anni: anni su cui è calcolata la media (solo per popup)    // NUOVO
-    // }                                                            // NUOVO
-    // Per aggiungerne altre basta una riga.                        // NUOVO
-    // ==========================================================  // NUOVO
-    const rainClimOverrides = {                                    // NUOVO
-      SALBE: { ref: "VIGAN", mul: 1.029, anni: 20, var: 21 },                                    // NUOVO
-      STILA: { ref: "VIGAN", mul: 0.717, anni: 15, var: 27 },                                     // NUOVO
-      CFUNZ: { ref: "VIGAN", mul: 0.568, anni: 21, var: 21 },                                    // NUOVO
-      CRETO: { ref: "VIGAN", mul: 0.725, anni: 22, var: 19 },                                 // NUOVO
-      GEBOL: { ref: "ISOVE", mul: 0.693, anni: 24, var: 19 },                                 // NUOVO
-      GEPTX: { ref: "ISOVE", mul: 0.787, anni: 22, var: 27 },                                 // NUOVO
-      VREGI: { ref: "ISOVE", mul: 0.746, anni: 22, var: 27 },                                        // NUOVO
-      CAMOG: { ref: "VIGAN", mul: 0.7, anni: 11, var: 37 },                                        // NUOVO
-      MADGR: { ref: "FIORI", mul: 0.683, anni: 19, var: 29 },                                      // NUOVO
-      GEPEG: { ref: "FIORI", mul: 0.7, anni: 20, var: 28 },                                      // NUOVO
-      MOPEN: { ref: "FIORI", mul: 0.967, anni: 11, var: 41 },                                    // NUOVO
-      PRAIC: { ref: "FIORI", mul: 0.952, anni: 12, var: 41 },                                    // NUOVO
-      ROSGL: { ref: "FIORI", mul: 0.720, anni: 20, var: 28 },                                   // NUOVO
-      CAMPL: { ref: "FIORI", mul: 0.875, anni: 15, var: 35 },                                   // NUOVO
-      RAPAL: { ref: "VIGAN", mul: 0.775, anni: 12, var: 49 },                                   // NUOVO
-      OGNIO: { ref: "VIGAN", mul: 1.091, anni: 13, var: 42 },                                   // NUOVO
-      SEGIA: { ref: "VIGAN", mul: 1.176, anni: 11, var: 61 },                                   // NUOVO
-      PRTTI: { ref: "CCHER", mul: 0.801, anni: 13, var: 55 },                                   // NUOVO
-      MROSS: { ref: "LEVAN", mul: 1.036, anni: 19, var: 25 },                                   // NUOVO
-      CRNLO: { ref: "LEVAN", mul: 0.931, anni: 18, var: 29 },                                   // NUOVO
-      FRAMU: { ref: "LEVAN", mul: 0.998, anni: 13, var: 38 },                                   // NUOVO
-      CAVIP: { ref: "LEVAN", mul: 1.126, anni: 17, var: 38 },                                  // NUOVO
-      CABAN: { ref: "CABAN", mul: 1.3076, anni: 100, var: 10 },// <-- anni: metti il valore reale
-      // ESEMPIO: XXXXX: { ref: "ALASS", mul: 0.8, anni: 5 },
-    };                                                              // NUOVO
 
     // ==========================================================
     // DATA IN ORA DI ROMA
@@ -2251,6 +2305,7 @@ const fetchOMIRL = async () => {
         month: null,
         rainAcc: null,
         rainYear: null,
+        rainMonth: null,   // NUOVO
       };
 
       const entry = climateList.find(
@@ -2319,6 +2374,25 @@ const fetchOMIRL = async () => {
         if (!isNaN(acc)) {
           result.rainAcc = acc;
         }
+
+        // NUOVO: media mensile = AC ultimo giorno del mese
+        //        - AC ultimo giorno del mese precedente
+        const lastAc = acList[acList.length - 1];
+        let prevAc = 0;
+
+        if (month !== "01") {
+          const prevM = String(Number(month) - 1).padStart(2, "0");
+          const prevList = parseList(
+            entry?.months?.find((x) => x.M === prevM)?.AC
+          );
+          prevAc = prevList.length
+            ? prevList[prevList.length - 1]
+            : null;
+        }
+
+        if (!isNaN(lastAc) && prevAc != null && !isNaN(prevAc)) {
+          result.rainMonth = lastAc - prevAc;
+        }
       }
 
       climateCache[name] = result;
@@ -2383,9 +2457,7 @@ const fetchOMIRL = async () => {
 
       let rainClimAcc = null;
       let rainClimYear = null;
-      let rainClimRef = null;     // NUOVO
-      let rainClimYears = null;     // NUOVO
-      let rainClimVar = null;   // NUOVO
+      let rainClimMonth = null;   // NUOVO
 
       const config = anomalyCorrections[id];
 
@@ -2401,6 +2473,7 @@ const fetchOMIRL = async () => {
         // ----- Pioggia: accumulo medio da gennaio a oggi -----
         rainClimAcc = climate.rainAcc;
         rainClimYear = climate.rainYear;
+        rainClimMonth = climate.rainMonth;   // NUOVO
 
         // ----- Giorno odierno -----
 
@@ -2445,32 +2518,6 @@ const fetchOMIRL = async () => {
         }
       }
 
-      // ----- Media pluviometrica non ufficiale ---------------   // NUOVO
-      // (fuori da "if (config)": la stazione può non avere        // NUOVO
-      //  una climatologia propria, es. FFRES)                     // NUOVO
-      const rainOv = rainClimOverrides[id];                        // NUOVO
-
-      if (rainOv) {                                                // NUOVO
-        const refCfg = anomalyCorrections[rainOv.ref];             // NUOVO
-        const refClimate = getClimate(                             // NUOVO
-          refCfg ? refCfg[0] : rainOv.ref                          // NUOVO
-        );                                                         // NUOVO
-
-        rainClimAcc =                                              // NUOVO
-          refClimate.rainAcc != null                               // NUOVO
-            ? refClimate.rainAcc * rainOv.mul                      // NUOVO
-            : null;                                                // NUOVO
-
-        rainClimYear =                                             // NUOVO
-          refClimate.rainYear != null                              // NUOVO
-            ? refClimate.rainYear * rainOv.mul                     // NUOVO
-            : null;                                                // NUOVO
-
-        rainClimRef = rainOv.ref;                                  // NUOVO
-        rainClimYears = rainOv.anni;                                   // NUOVO
-        rainClimVar = rainOv.var;                                   // NUOVO
-      }                                                            // NUOVO
-
       // ========================================================
       // SALVATAGGIO DATI COMPLETI INIZIALI
       // ========================================================
@@ -2499,12 +2546,16 @@ const fetchOMIRL = async () => {
         // Media pluviometrica (accumulo medio da gennaio)
         rainClimAcc,
         rainClimYear,
-        rainClimAccOfficial: rainClimAcc,     // NUOVO
-        rainClimYearOfficial: rainClimYear,   // NUOVO
-        rainClimRef,
-        rainClimYears,
-        rainClimVar,                        // NUOVO
-        rainYearly: st.rainYearly ?? null,  // serve per l'anomalia
+        rainClimMonth,                         // NUOVO
+        // Valori ufficiali: non vengono toccati da applyRainClimOverrides()
+        rainClimAccOfficial: rainClimAcc,      // NUOVO
+        rainClimYearOfficial: rainClimYear,    // NUOVO
+        rainClimMonthOfficial: rainClimMonth,  // NUOVO
+        // Riferimento/anni/margine: li imposta applyRainClimOverrides()
+        rainClimRef: null,
+        rainClimYears: null,
+        rainClimVar: null,
+        rainYearly: st.rainYearly ?? null,     // serve per l'anomalia
 
         // Umidità
         hum: st.hum ?? null,
@@ -2632,8 +2683,7 @@ const fetchOMIRL = async () => {
   } catch (err) {
     console.error("Errore fetch OMIRL:", err);
   }
-};
-const fetchMeteoTrentino = async () => {
+};const fetchMeteoTrentino = async () => {
 
   try {
 
