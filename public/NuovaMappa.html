@@ -495,10 +495,15 @@
     <img src="/vento.jpg" alt="Vento">
   </button>
 
-  <div class="dropdownMenu" id="windMenu">
-    <button data-var="wind" data-mode="current">Vento</button>
-    <button data-var="wind" data-mode="gust">Raffica</button>
-  </div>
+<div class="dropdownMenu" id="windMenu">
+  <button data-var="wind" data-mode="current">Vento</button>
+  <button data-var="wind" data-mode="gust">Raffica</button>
+
+  <div class="menuDivider"></div>
+
+  <button data-var="wind" data-mode="current-plus">Vento (+)</button>
+  <button data-var="wind" data-mode="gust-plus">Raffica (+)</button>
+</div>
 </div>
 </div>
 <div id="pitchToggle">
@@ -868,9 +873,16 @@ const get = (base) => {
     value = get("temp"); 
   } 
 else if (currentVariable === "wind") {
-  value = windExcluded.has(st.id)
-    ? null
-    : (mode === "gust" ? st.windGust : st.wind);
+  const isPlus = mode.endsWith("-plus");
+  const isGust = mode.startsWith("gust");
+
+  if (windExcluded.has(st.id)) {
+    value = null;
+  } else if (isPlus && WindInterestingStations[st.id]?.rete !== st.source) {
+    value = null;   // nelle modalità (+) solo le stazioni dell'elenco
+  } else {
+    value = isGust ? st.windGust : st.wind;
+  }
 }
 else if (currentVariable === "rainClim") {
   if (mode === "year") value = st.rainClimYear;
@@ -1019,6 +1031,65 @@ function getIconSizeExpr(scale = 1) {
     10, (m ? 0.6  : 0.65) * scale,
     14, (m ? 0.7  : 0.75) * scale
   ];
+}
+const WindInterestingStations = {
+  "FFRES": { rete: "OMIRL"},
+  "MTPOR": { rete: "OMIRL"},
+  "MOPEN": { rete: "OMIRL"},
+  "MTECA": { rete: "OMIRL"},
+  "TOGAR": { rete: "OMIRL"},
+  "STBUR": { rete: "OMIRL"},
+  "CCADB": { rete: "OMIRL"},
+  "PTURC": { rete: "OMIRL"},
+  "TANOR": { rete: "OMIRL"},
+  "MSETT": { rete: "OMIRL"},
+  "TAGLT": { rete: "OMIRL"},
+  "CASON": { rete: "OMIRL"},
+  "CAMOG": { rete: "OMIRL"},
+  "CFUNZ": { rete: "OMIRL"},
+  "INASV": { rete: "OMIRL"},
+  "MMAUR": { rete: "OMIRL"},
+  "PNTCA": { rete: "OMIRL"},
+  "PFEAR": { rete: "OMIRL"},
+  "BOACM": { rete: "OMIRL"},
+  "FRAMU": { rete: "OMIRL"},
+  "RIGHI": { rete: "OMIRL"},
+  "MROCC": { rete: "OMIRL"},
+  "PVENE": { rete: "OMIRL"},
+  "LUNIS": { rete: "OMIRL"},
+  "LEVAN": { rete: "OMIRL"},
+  "Genova Voltri Tramontana Surf": { rete: "LIMET"},
+  "Genova Erzelli": { rete: "LIMET"},
+  "Cogoleto": { rete: "LIMET"},
+  "Savona Zinola": { rete: "LIMET"},
+  "Rifugio La Terza": { rete: "LIMET"},
+  "Monte Beigua": { rete: "LIMET"},
+  "Rifugio Monte Caucaso": { rete: "LIMET"},
+  "Ameglia": { rete: "LIMET"},
+  "Rapallo Lungomare": { rete: "LIMET"},
+  "Moneglia": { rete: "LIMET"},
+  "Sori": { rete: "IGNORETE"},
+  "Genova - Ponte Parodi": { rete: "IGNORETE"},
+  "Sestri Levante - Loc. Riva Trigoso": { rete: "IGNORETE"},
+  "Savona - Loc Natarella": { rete: "IGNORETE"},
+  "Roccavignale - Loc Girogrande": { rete: "IGNORETE"},
+  "Genova - CEP": { rete: "IGNORETE"},
+  "Genova Staglieno": { rete: "IGNORETE"},
+  "Noli": { rete: "IGNORETE"},
+  "Borghetto Santo Spirito C.so Giotto": { rete: "IGNORETE"},
+  "Cisano sul Neva - Loc. Cenesi": { rete: "IGNORETE"},
+  "Albenga - Reg. Torre Pernice": { rete: "IGNORETE"},
+  "Ceriale - Loc. Pineo": { rete: "IGNORETE"},
+  "Sant'Olcese - Loc Torrazza": { rete: "IGNORETE"},
+  "CAMIN": { rete: "Acronet"},
+  "ARGEN": { rete: "Acronet"},
+  "CANMC": { rete: "Acronet"},
+  "S. Martino": { rete: "Comune di Genova"},
+  "Sampierdarena": { rete: "Comune di Genova"},
+  "Scarpino": { rete: "Comune di Genova"},
+  "Bavari": { rete: "Comune di Genova"},
+  "Nervi": { rete: "Comune di Genova"},
+  "LIMJ": { rete: "AERIS"},
 }
 // ==========================================================
 // MEDIE PLUVIOMETRICHE "NON UFFICIALI" (valide per tutte le reti)
@@ -1571,7 +1642,7 @@ const windNote = (isWind && windDirDeg != null)
           variable === "heat" ? "Heat Index" :
           variable === "hum" ? "Umidità" :
           variable === "media" ? mediaTitle :
-          variable === "wind" ? (currentMode === "gust" ? "Raffica" : "Vento") :
+          variable === "wind" ? (currentMode.startsWith("gust") ? "Raffica" : "Vento") :
           variable === "rainClim" ? rainClimTitle :
           isRain ? "Pioggia" : ""}
       </div>
