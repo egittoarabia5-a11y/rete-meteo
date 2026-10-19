@@ -1070,6 +1070,7 @@ const WindInterestingStations = {
   "Moneglia": { rete: "LIMET"},
   "Sori": { rete: "IGNORETE"},
   "Genova - Ponte Parodi": { rete: "IGNORETE"},
+  "IVARAZ2": { rete: "Wunderground"},
   "Sestri Levante - Loc. Riva Trigoso": { rete: "IGNORETE"},
   "Savona - Loc Natarella": { rete: "IGNORETE"},
   "Roccavignale - Loc Girogrande": { rete: "IGNORETE"},
@@ -2604,19 +2605,21 @@ const fetchOMIRL = async () => {
     };
 
     // ==========================================================
-    // 1. FETCH INIZIALE: DATI COMPLETI
+    // FETCH UNICO: DATI COMPLETI (temperatura, umidità, vento
+    // da OMIRL; pioggia giornaliera da MeteoHub dove le
+    // coordinate coincidono)
     // ==========================================================
 
     const baseUrl =
       "https://api-stazioni-meteo.eggittof.workers.dev/omirl.json";
 
-    console.log("Fetch OMIRL iniziale:", baseUrl);
+    console.log("Fetch OMIRL:", baseUrl);
 
     const baseResponse = await fetch(baseUrl);
 
     if (!baseResponse.ok) {
       throw new Error(
-        `Errore HTTP OMIRL iniziale: ${baseResponse.status}`
+        `Errore HTTP OMIRL: ${baseResponse.status}`
       );
     }
 
@@ -2624,13 +2627,20 @@ const fetchOMIRL = async () => {
     const stations = baseData?.stations || [];
 
     console.log(
-      "OMIRL iniziale ->",
+      "OMIRL ->",
       stations.length,
       "stazioni"
     );
 
+    if (baseData?.meteohub) {
+      console.log(
+        `OMIRL: MeteoHub ${baseData.meteohub.ok ? "ok" : "ERRORE"} - ` +
+        `${baseData.meteohub.matched}/${baseData.meteohub.stations} abbinate`
+      );
+    }
+
     // ==========================================================
-    // ELABORAZIONE DATI INIZIALI
+    // ELABORAZIONE DATI
     // ==========================================================
 
     stations.forEach((st) => {
@@ -2723,7 +2733,7 @@ const fetchOMIRL = async () => {
       }
 
       // ========================================================
-      // SALVATAGGIO DATI COMPLETI INIZIALI
+      // SALVATAGGIO DATI
       // ========================================================
 
       allStations[id] = {
@@ -2771,12 +2781,13 @@ const fetchOMIRL = async () => {
         windGust: st.windGust ?? null,
         windDir: st.windDir ?? null,
 
-        // Pioggia
+        // Pioggia (rainDaily da MeteoHub se abbinata, altrimenti OMIRL)
         rainRate: st.rainRate ?? null,
         rainDaily: st.rainDaily ?? null,
+        rainSource: st.rainSource ?? null,
 
-        // Dew point
-        dewp: st.dewp ?? null,
+        // Dew point (il worker lo chiama dewPoint)
+        dewp: st.dewp ?? st.dewPoint ?? null,
         dewpHigh: st.dewpHigh ?? null,
         dewpLow: st.dewpLow ?? null,
 
@@ -2792,98 +2803,12 @@ const fetchOMIRL = async () => {
     });
 
     // ==========================================================
-    // AGGIORNA SUBITO LA MAPPA
+    // AGGIORNA LA MAPPA
     // ==========================================================
 
     updateLayer();
 
-    console.log(
-      "OMIRL: mappa aggiornata con i dati iniziali"
-    );
-
-    // ==========================================================
-    // 2. ATTESA DI 500 MS
-    // ==========================================================
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, 500)
-    );
-
-    // ==========================================================
-    // 3. FETCH SUCCESSIVI: SOLO CAMPI DA AGGIORNARE
-    // ==========================================================
-
-    const omirlUrls = Array.from(
-      { length: 20 },
-      (_, i) =>
-        `https://api-stazioni-meteo.eggittof.workers.dev/omirl${i + 1}.json`
-    );
-
-    for (const url of omirlUrls) {
-      try {
-        console.log("Aggiornamento OMIRL:", url);
-
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
-        const batch = data?.stations || [];
-
-        let updated = 0;
-
-        batch.forEach((st) => {
-          const id = st.id;
-          const existing = allStations[id];
-
-          // Aggiorna soltanto stazioni già presenti
-          // nel fetch iniziale.
-          if (!existing) {
-            return;
-          }
-
-          // Solo temperatura e pioggia.
-          // Tutti gli altri campi (comprese le medie pluviometriche
-          // e i campi rainClimRef/rainClimYears) restano invariati.
-          existing.temp = st.temp ?? existing.temp;
-          existing.tempHigh =
-            st.tempHigh ?? existing.tempHigh;
-          existing.tempLow =
-            st.tempLow ?? existing.tempLow;
-          existing.rainRate =
-            st.rainRate ?? existing.rainRate;
-          existing.rainDaily =
-            st.rainDaily ?? existing.rainDaily;
-
-          updated++;
-        });
-
-        console.log(
-          `OMIRL ${url} -> ${updated} stazioni aggiornate`
-        );
-
-        // Aggiorna la mappa dopo ogni batch.
-        updateLayer();
-
-      } catch (err) {
-        // Un batch fallito non blocca i successivi.
-        console.error(
-          `Errore aggiornamento ${url}:`,
-          err
-        );
-      }
-
-      // 500 ms tra un batch e il successivo.
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    console.log(
-      "OMIRL: aggiornamento progressivo completato"
-    );
+    console.log("OMIRL: mappa aggiornata");
 
   } catch (err) {
     console.error("Errore fetch OMIRL:", err);
