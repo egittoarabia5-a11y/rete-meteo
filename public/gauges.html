@@ -143,6 +143,20 @@
             transition: background-color .2s ease, color .2s ease;
         }
 
+        .chart-tab-group {
+            flex: 0 0 auto;
+            align-self: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+            padding: 0 2px 0 8px;
+        }
+
+        .chart-tab-group:first-child { padding-left: 0; }
+
         .chart-tab:hover { background: rgb(140, 140, 140); }
 
         .chart-tab.active {
@@ -560,7 +574,104 @@ async function fetchIGNORETE(stationId) {
 }
 
 
+/* =========================================
+   FETCH LIMET
+   Due file con stazioni diverse: si cerca prima in limet.json,
+   e solo se la stazione non c'è si passa a limet2.json.
+   La stazione si riconosce dal NOME (campo N), non da un ID.
+   I numeri arrivano come stringhe con la virgola ("20,4"): toNum li gestisce.
+========================================= */
+
+const LIMET_URLS = [
+    "https://api-stazioni-meteo.eggittof.workers.dev/limet.json",
+    "https://api-stazioni-meteo.eggittof.workers.dev/limet2.json"
+];
+
+async function fetchLIMET(stationName) {
+
+    const wanted = String(stationName).trim().toLowerCase();
+
+    let raw = null;
+    let foundIn = null;
+    const problems = [];
+
+    for (const url of LIMET_URLS) {
+
+        try {
+
+            const res = await fetch(url + "?_=" + Date.now());
+
+            if (!res.ok) {
+                problems.push("HTTP " + res.status + " da " + url);
+                continue;
+            }
+
+            const json = await res.json();
+
+            const list = Array.isArray(json) ? json : (json.stations || []);
+
+            raw = list.find(function (s) {
+                return s && String(s.N ?? "").trim().toLowerCase() === wanted;
+            });
+
+            if (raw) {
+                foundIn = url;
+                break;          // trovata: non serve il secondo file
+            }
+
+        } catch (err) {
+            problems.push(String(err.message || err) + " (" + url + ")");
+        }
+    }
+
+    if (!raw) {
+        throw new Error(
+            "Stazione LIMET non trovata: " + stationName +
+            (problems.length ? " [" + problems.join("; ") + "]" : "")
+        );
+    }
+
+    return {
+
+        source: "LIMET",
+        id: raw.N,
+        file: foundIn,
+
+        // Temperatura
+        temp: toNum(raw.T),
+        tempHigh: toNum(raw.TH),
+        tempLow: toNum(raw.TL),
+
+        // Umidità
+        hum: toNum(raw.H),
+        humHigh: toNum(raw.HH),
+        humLow: toNum(raw.HL),
+
+        // Dew point e heat index
+        dewp: toNum(raw.D),
+        dewpHigh: toNum(raw.DH),
+        dewpLow: toNum(raw.DL),
+        heat: toNum(raw.HI),
+
+        // Vento (V = velocità, VR = raffica; la direzione non è nel file)
+        wind: toNum(raw.V),
+        windGust: toNum(raw.VR),
+        windDir: null,
+
+        // Pioggia
+        rainRate: toNum(raw.RR),
+        rainDaily: toNum(raw.R),
+
+        // Pressione
+        pressure: toNum(raw.P),
+
+        raw
+    };
+}
+
+
 const FETCHERS = {
+    limet: fetchLIMET,
     ignorete: fetchIGNORETE,
     omirl: fetchOMIRL
     // limet: fetchLimet,
@@ -701,7 +812,9 @@ const CHART = {
     colorFn: getRainColor
 };
 
-const BLOCK_MIN = 180;        // 3 ore per riquadro
+const BLOCK_MIN = 360;                      // 6 ore per riquadro
+const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 4 riquadri al giorno
+const GRID_MIN = 30;                        // linee verticali ogni 30 minuti
 
 
 /* =========================================
@@ -732,7 +845,9 @@ const chartRange   = document.getElementById("chartRange");
 
 /* =========================================
    GRAFICO: stato
-   dayValues[m] = valore al minuto m del giorno (0..1439), null se manca
+   Due giorni: [0] = ieri, [1] = oggi.
+   dayValues[g][m] = valore al minuto m (0..1439) del giorno g, null se manca.
+   Riquadri 0-3 = ieri (00-06 … 18-24), riquadri 4-7 = oggi.
 ========================================= */
 
 function pad2(n) { return String(n).padStart(2, "0"); }
@@ -744,23 +859,51 @@ function minutesNow() {
     return n.getHours() * 60 + n.getMinutes();
 }
 
-let chartDay = new Date();
-let chartBlock = Math.floor(minutesNow() / BLOCK_MIN);
-const dayValues = new Array(1440).fill(null);
+// mezzanotte locale di oggi (offset 0) o di un altro giorno (-1 = ieri)
+function dayStart(offset) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + offset);
+    return d;
+}
+
+let chartDays = [dayStart(-1), dayStart(0)];
+
+const dayValues = [
+    new Array(1440).fill(null),
+    new Array(1440).fill(null)
+];
+
+// all'apertura si vede il riquadro dell'ora attuale (di oggi)
+let chartBlock = BLOCKS_PER_DAY + Math.floor(minutesNow() / BLOCK_MIN);
+
 let chartGeom = null;
 
 
 /* =========================================
-   GRAFICO: tab 00-03 … 21-24
+   GRAFICO: tab  Ieri 00-06 … 18-24  |  Oggi 00-06 … 18-24
 ========================================= */
 
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < BLOCKS_PER_DAY * 2; i++) {
+
+    // etichetta del gruppo prima del primo riquadro di ogni giorno
+    if (i % BLOCKS_PER_DAY === 0) {
+        const lab = document.createElement("span");
+        lab.className = "chart-tab-group";
+        lab.textContent = (i === 0) ? "Ieri" : "Oggi";
+        chartTabs.appendChild(lab);
+    }
+
+    const k = i % BLOCKS_PER_DAY;
+    const hFrom = k * BLOCK_MIN / 60;
+    const hTo = (k + 1) * BLOCK_MIN / 60;
 
     const b = document.createElement("button");
 
     b.type = "button";
     b.className = "chart-tab";
-    b.textContent = pad2(i * 3) + "-" + pad2(i * 3 + 3);
+    b.dataset.block = String(i);
+    b.textContent = pad2(hFrom) + "-" + pad2(hTo);
 
     b.addEventListener("click", function () {
         chartBlock = i;
@@ -772,8 +915,8 @@ for (let i = 0; i < 8; i++) {
 }
 
 function updateTabs() {
-    Array.from(chartTabs.children).forEach(function (b, i) {
-        b.classList.toggle("active", i === chartBlock);
+    chartTabs.querySelectorAll(".chart-tab").forEach(function (b) {
+        b.classList.toggle("active", Number(b.dataset.block) === chartBlock);
     });
 }
 
@@ -791,7 +934,11 @@ function renderChart() {
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    const startMin = chartBlock * BLOCK_MIN;
+    // giorno (0 = ieri, 1 = oggi) e minuti del riquadro visibile
+    const dayIdx = Math.floor(chartBlock / BLOCKS_PER_DAY);
+    const values = dayValues[dayIdx];
+
+    const startMin = (chartBlock % BLOCKS_PER_DAY) * BLOCK_MIN;
     const endMin = startMin + BLOCK_MIN;
     const lastIdx = Math.min(endMin, 1439);
 
@@ -800,7 +947,7 @@ function renderChart() {
     // ----- scala verticale (sui dati del riquadro visibile)
     const vals = [];
     for (let m = startMin; m <= lastIdx; m++) {
-        if (dayValues[m] !== null) vals.push(dayValues[m]);
+        if (values[m] !== null) vals.push(values[m]);
     }
 
     const hasData = vals.length > 0;
@@ -831,7 +978,7 @@ function renderChart() {
 
     for (let m = startMin; m <= lastIdx; m++) {
 
-        const v = dayValues[m];
+        const v = values[m];
 
         if (v === null) {
             if (cur.length) segments.push(cur);
@@ -866,10 +1013,10 @@ function renderChart() {
         svg += '<text class="cg-label" x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + (Math.round(g * 10) / 10) + '</text>';
     }
 
-    // ----- griglia verticale: ogni 10 minuti, etichetta ogni 30 (60 su schermi stretti)
-    const labelEvery = W < 520 ? 60 : 30;
+    // ----- griglia verticale: ogni 30 minuti, etichetta ogni ora (ogni 2 ore su schermi stretti)
+    const labelEvery = W < 520 ? 120 : 60;
 
-    for (let m = startMin; m <= endMin; m += 10) {
+    for (let m = startMin; m <= endMin; m += GRID_MIN) {
         const x = xFor(m).toFixed(1);
         const isLabel = (m - startMin) % labelEvery === 0;
         svg += '<line class="cg-line ' + (isLabel ? "" : "v") + '" x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (H - padB) + '"/>';
@@ -882,7 +1029,7 @@ function renderChart() {
 
     // ----- linea "ora" (solo se il riquadro contiene l'ora attuale di oggi)
     const nowMin = minutesNow();
-    const isToday = chartDay.toDateString() === new Date().toDateString();
+    const isToday = dayIdx === 1 && chartDays[1].toDateString() === new Date().toDateString();
 
     if (isToday && nowMin >= startMin && nowMin <= endMin) {
         const xn = xFor(nowMin).toFixed(1);
@@ -916,10 +1063,11 @@ function renderChart() {
     chartSvg.setAttribute("viewBox", "0 0 " + W + " " + H);
     chartSvg.innerHTML = svg;
 
-    chartGeom = { W, H, padL, padR, padT, padB, plotW, startMin, endMin, lastIdx, xFor, yFor };
+    chartGeom = { W, H, padL, padR, padT, padB, plotW, startMin, endMin, lastIdx, dayIdx, xFor, yFor };
 
     chartRange.textContent =
-        chartDay.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) +
+        (dayIdx === 0 ? "Ieri" : "Oggi") + " · " +
+        chartDays[dayIdx].toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) +
         " · " + fmtMin(startMin) + " – " + fmtMin(endMin);
 
     chartTooltip.classList.remove("visible");
@@ -959,16 +1107,18 @@ function onChartPointer(e) {
     let m = Math.round(g.startMin + (x - g.padL) / g.plotW * BLOCK_MIN);
     m = Math.max(g.startMin, Math.min(g.lastIdx, m));
 
+    const values = dayValues[g.dayIdx];
+
     // se manca il dato, cerca il più vicino entro 3 minuti
     let found = null;
 
     for (let d = 0; d <= 3 && found === null; d++) {
-        if (dayValues[m - d] !== undefined && dayValues[m - d] !== null && m - d >= g.startMin) found = m - d;
-        else if (dayValues[m + d] !== undefined && dayValues[m + d] !== null && m + d <= g.lastIdx) found = m + d;
+        if (values[m - d] !== undefined && values[m - d] !== null && m - d >= g.startMin) found = m - d;
+        else if (values[m + d] !== undefined && values[m + d] !== null && m + d <= g.lastIdx) found = m + d;
     }
 
     const mm = (found !== null) ? found : m;
-    const v = (found !== null) ? dayValues[found] : null;
+    const v = (found !== null) ? values[found] : null;
     const cx = g.xFor(mm);
 
     const cross = document.getElementById("chartCross");
@@ -1018,32 +1168,45 @@ chartSvg.addEventListener("pointerleave", hideChartCursor);
        ...
    ]);
 
-   Sono accettati solo i punti del giorno mostrato (oggi).
+   Ogni punto va nel suo giorno in base alla data (ora locale): ieri
+   finisce nei riquadri 0-3, oggi nei riquadri 4-7. I punti di altri
+   giorni vengono ignorati. Un punto con solo "m" (minuto) conta come oggi.
 ========================================= */
 
-function pointMinute(p) {
+// → [giorno (0 ieri, 1 oggi), minuto del giorno] oppure null
+function pointSlot(p) {
 
-    if (typeof p.m === "number") return p.m;
+    if (typeof p.m === "number") return [1, p.m];
 
     const t = (typeof p.t === "string") ? p.t.replace(" ", "T") : p.t;
     const d = new Date(t);
 
     if (isNaN(d.getTime())) return null;
-    if (d.toDateString() !== chartDay.toDateString()) return null;
 
-    return d.getHours() * 60 + d.getMinutes();
+    const ds = d.toDateString();
+
+    for (let i = 0; i < 2; i++) {
+        if (chartDays[i].toDateString() === ds) {
+            return [i, d.getHours() * 60 + d.getMinutes()];
+        }
+    }
+
+    return null;
 }
 
 function setChartData(points) {
 
-    dayValues.fill(null);
+    dayValues[0].fill(null);
+    dayValues[1].fill(null);
 
     (points || []).forEach(function (p) {
 
-        const m = pointMinute(p);
+        const slot = pointSlot(p);
         const v = toNum(p.v);
 
-        if (m !== null && m >= 0 && m < 1440 && v !== null) dayValues[m] = v;
+        if (slot && slot[1] >= 0 && slot[1] < 1440 && v !== null) {
+            dayValues[slot[0]][slot[1]] = v;
+        }
     });
 
     renderChart();
@@ -1072,53 +1235,67 @@ window.stationChart = {
 const ARCHIVE_URL = "https://archivio-eventi.eggittof.workers.dev/export?format=stations&src=";
 
 // rete del link → parametro "src" dell'archivio (altre reti si aggiungono qui)
+// Ogni rete ha un ELENCO di fonti: si provano in ordine e si usa la prima
+// che contiene la stazione (LIMET: limet1, poi limet2).
 const ARCHIVE_SRC = {
-    omirl: "omirl",
-    ignorete: "ignorete"
+    omirl:    ["omirl"],
+    ignorete: ["ignorete"],
+    limet:    ["limet1", "limet2"]
 };
 
 async function loadChartFromArchive() {
 
-    const src = ARCHIVE_SRC[stationContext.network];
+    const sources = ARCHIVE_SRC[stationContext.network];
 
-    if (!stationContext.found || !src) return;
+    if (!stationContext.found || !sources) return;
 
-    try {
+    // ieri + oggi: dalla mezzanotte locale di ieri (espressa in UTC)
+    const from = chartDays[0].toISOString().slice(0, 19) + "Z";
 
-        // solo i dati di oggi (dalla mezzanotte locale, espressa in UTC)
-        const d0 = new Date();
-        d0.setHours(0, 0, 0, 0);
-        const from = d0.toISOString().slice(0, 19) + "Z";
+    const wanted = String(stationContext.stationId).trim().toUpperCase();
 
-        const res = await fetch(
-            ARCHIVE_URL + encodeURIComponent(src) + "&from=" + encodeURIComponent(from)
-        );
+    for (const src of sources) {
 
-        if (!res.ok) throw new Error("Archivio HTTP " + res.status);
+        try {
 
-        const json = await res.json();
+            const res = await fetch(
+                // limit=5000: due giorni sono fino a 2880 righe, il default del worker è 2000
+                ARCHIVE_URL + encodeURIComponent(src) + "&from=" + encodeURIComponent(from) + "&limit=5000"
+            );
 
-        // chiave stazione, senza distinguere maiuscole/minuscole
-        const key = Object.keys(json.stations || {}).find(
-            k => k.trim().toUpperCase() === String(stationContext.stationId).trim().toUpperCase()
-        );
+            if (!res.ok) throw new Error("Archivio HTTP " + res.status + " (" + src + ")");
 
-        if (!key) throw new Error("Stazione assente nell'archivio: " + stationContext.stationId);
+            const json = await res.json();
 
-        const values = String(json.stations[key]).split(",");
+            // chiave stazione, senza distinguere maiuscole/minuscole
+            const key = Object.keys(json.stations || {}).find(
+                k => k.trim().toUpperCase() === wanted
+            );
 
-        const points = [];
+            if (!key) {
+                console.warn("Grafico: stazione assente in archivio " + src + ": " + stationContext.stationId);
+                continue;   // prova la fonte successiva
+            }
 
-        (json.times || []).forEach(function (t, i) {
-            points.push({ t: t, v: values[i] });
-        });
+            const values = String(json.stations[key]).split(",");
 
-        setChartData(points);
+            const points = [];
 
-    } catch (err) {
+            (json.times || []).forEach(function (t, i) {
+                points.push({ t: t, v: values[i] });
+            });
 
-        console.error("Grafico: caricamento archivio fallito:", err);
+            setChartData(points);
+
+            return;
+
+        } catch (err) {
+
+            console.error("Grafico: caricamento archivio fallito (" + src + "):", err);
+        }
     }
+
+    console.error("Grafico: stazione non trovata in nessuna fonte dell'archivio:", stationContext.stationId);
 }
 
 loadChartFromArchive();
@@ -1139,11 +1316,22 @@ if (window.ResizeObserver) {
 
 setInterval(function () {
 
-    // a mezzanotte si riparte dal nuovo giorno
-    if (chartDay.toDateString() !== new Date().toDateString()) {
-        chartDay = new Date();
-        dayValues.fill(null);
-        chartBlock = Math.floor(minutesNow() / BLOCK_MIN);
+    // a mezzanotte: oggi diventa ieri e si riparte con un oggi vuoto
+    if (chartDays[1].toDateString() !== new Date().toDateString()) {
+
+        const newDays = [dayStart(-1), dayStart(0)];
+
+        // se la pagina era aperta da ieri, i suoi dati diventano "ieri"
+        if (chartDays[1].toDateString() === newDays[0].toDateString()) {
+            dayValues[0] = dayValues[1];
+        } else {
+            dayValues[0] = new Array(1440).fill(null);
+        }
+
+        dayValues[1] = new Array(1440).fill(null);
+
+        chartDays = newDays;
+        chartBlock = BLOCKS_PER_DAY + Math.floor(minutesNow() / BLOCK_MIN);
         updateTabs();
     }
 

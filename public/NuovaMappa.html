@@ -488,7 +488,12 @@
     <button data-var="rainDaily" data-mode="current">Giornaliera</button>
     <button data-var="rainRate" data-mode="current">Rate</button>
     <button data-var="rainYearly" data-mode="current">Annuale</button>
+
+<div class="menuDivider"></div>
+<button data-var="riverLevel" data-mode="current">Livello Fiumi</button>
+<button data-var="riverLevel" data-mode="max">Livello Max</button>
   </div>
+  
 </div>
 <div class="dropdown">
   <button class="varButton" id="windButton">
@@ -962,6 +967,9 @@ else if (currentVariable === "rainClim") {
       colorVariable = "anom";
     }
   }
+  else if (currentVariable === "riverLevel") {
+  value = (mode === "max") ? st.riverMax : st.riverLevel;
+}
   else if (currentVariable === "dewp") value = get("dewp"); 
   else if (currentVariable === "heat") value = get("heat"); 
   else if (currentVariable === "hum") value = get("hum"); 
@@ -977,23 +985,18 @@ else if (currentVariable === "rainClim") {
 const isAnom =
   (currentVariable === "media" && mediaAnomModes.includes(mode)) ||
   (currentVariable === "rainClim" && (mode === "today-anom" || mode === "month-anom"));
-  return { 
-    value, 
-    color: getColor(colorVariable, value), 
-
-    valueStr:
-      value !== null
-        ? (
-            isAnom
-              ? (
-                  value > 0
-                    ? `+${value.toFixed(1)}`
-                    : value.toFixed(1)
-                )
-              : value.toFixed(1)
-          )
-        : ""
-  }; 
+return {
+  value,
+  color: currentVariable === "riverLevel"
+    ? getRiverIncrementColor(st.riverIncrement)
+    : getColor(colorVariable, value),
+  valueStr:
+    value !== null
+      ? (currentVariable === "riverLevel"
+          ? value.toFixed(2)
+          : isAnom ? (value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)) : value.toFixed(1))
+      : ""
+}; 
 }// ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
 // ================= UPDATE LAYER =================
@@ -1003,6 +1006,14 @@ const RAIN_MEAN_ICON_SCALE = 1;
 const windExcluded = new Set([
   "IGENOA2897",
 ]);
+// increment -> colore. Per ora solo 0 (verde); da completare.
+const riverIncrementColors = {
+  0: "#65d050",
+};
+function getRiverIncrementColor(inc) {
+  if (inc == null) return "#808080";
+  return riverIncrementColors[inc] ?? "#808080";   // increment non in lista = grigio
+}
 const WIND_ICON_SCALE = 1;   // ingrandisci/riduci il marker del vento
 
 const windCardinals = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSO","SO","OSO","O","ONO","NO","NNO"];
@@ -1348,7 +1359,7 @@ const isWind = variable === "wind";
     variable === "rainClim";
 
   const getColor = (v, variable) => {
-
+if (variable === "riverLevel") return getRiverIncrementColor(station.riverIncrement);
     // la media pluviometrica usa la scala pioggia x10 dei marker
     if (variable === "rainClim") return getColorMain("rainClim", v);
 
@@ -2405,6 +2416,7 @@ if (id === "ILIGURIA67" && climate) {
 // Le medie pluviometriche "non ufficiali" sono ora gestite dalla tabella
 // globale rainClimOverrides + applyRainClimOverrides() (chiamata in updateLayer)
 // =====================================================================
+
 const fetchOMIRL = async () => {
   try {
     // ==========================================================
@@ -2775,7 +2787,10 @@ const fetchOMIRL = async () => {
         hum: st.hum ?? null,
         humHigh: st.humHigh ?? null,
         humLow: st.humLow ?? null,
-
+        // Fiumi (dal worker: F, FM, FI)
+        riverLevel: st.F ?? null,
+        riverMax: st.FM ?? null,
+        riverIncrement: st.FI ?? null,
         // Vento
         wind: st.wind ?? null,
         windGust: st.windGust ?? null,
