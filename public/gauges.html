@@ -410,6 +410,15 @@
     transition: background-color 3.5s ease-in-out;
     pointer-events:none;
   }
+
+  .two-col-section{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:0 16px;
+  }
+  .two-col-section .col{
+    min-width:0;
+  }
   /* ---------- footer ---------- */
   .footer{
     display:flex;
@@ -437,6 +446,7 @@
     .avg-grid{ font-size:12px; gap:6px 6px; }
     .avg-chip{ font-size:12px; padding:7px 4px; }
     .avg-row-label{ font-size:11.5px; }
+    .two-col-section{ grid-template-columns: 1fr; gap:24px 0; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -454,7 +464,7 @@
   }
   .averages-panel{ margin-bottom:8px; }
 
-  /* ---------- grafico pioggia (6 ore per riquadro, ieri + oggi) ---------- */
+  /* ---------- grafico pioggia (12 ore per riquadro, ieri + oggi) ---------- */
   .chart-tabs{
     display:flex;
     gap:8px;
@@ -710,34 +720,70 @@
     </div>
   </div>
 
-  <!-- MEDIE (per ora vuote) -->
-  <div class="section-title">Medie</div>
-  <div class="averages-panel">
-    <div class="avg-grid">
-      <span class="avg-row-label avg-head"></span>
-      <span class="avg-head">Giorn.</span>
-      <span class="avg-head">Mese</span>
-      <span class="avg-head">Anno</span>
+  <!-- MEDIE / ANOMALIE (per ora vuote) -->
+  <div class="two-col-section">
+    <div class="col">
+      <div class="section-title">Medie</div>
+      <div class="averages-panel">
+        <div class="avg-grid">
+          <span class="avg-row-label avg-head"></span>
+          <span class="avg-head">Giorn.</span>
+          <span class="avg-head">Mese</span>
+          <span class="avg-head">Anno</span>
 
-      <span class="avg-row-label">Temp. massima</span>
-      <span class="avg-chip" id="avgTempMaxDaily">--°</span>
-      <span class="avg-chip" id="avgTempMaxMonthly">--°</span>
-      <span class="avg-chip" id="avgTempMaxYearly">--°</span>
+          <span class="avg-row-label">Temp. massima</span>
+          <span class="avg-chip" id="avgTempMaxDaily">--°</span>
+          <span class="avg-chip" id="avgTempMaxMonthly">--°</span>
+          <span class="avg-chip" id="avgTempMaxYearly">--°</span>
 
-      <span class="avg-row-label">Temp. minima</span>
-      <span class="avg-chip" id="avgTempMinDaily">--°</span>
-      <span class="avg-chip" id="avgTempMinMonthly">--°</span>
-      <span class="avg-chip" id="avgTempMinYearly">--°</span>
+          <span class="avg-row-label">Temp. minima</span>
+          <span class="avg-chip" id="avgTempMinDaily">--°</span>
+          <span class="avg-chip" id="avgTempMinMonthly">--°</span>
+          <span class="avg-chip" id="avgTempMinYearly">--°</span>
 
-      <span class="avg-row-label">Temperatura</span>
-      <span class="avg-chip" id="avgTempDaily">--°</span>
-      <span class="avg-chip" id="avgTempMonthly">--°</span>
-      <span class="avg-chip" id="avgTempYearly">--°</span>
+          <span class="avg-row-label">Temperatura</span>
+          <span class="avg-chip" id="avgTempDaily">--°</span>
+          <span class="avg-chip" id="avgTempMonthly">--°</span>
+          <span class="avg-chip" id="avgTempYearly">--°</span>
 
-      <span class="avg-row-label">Precipitazioni</span>
-      <span class="avg-chip" id="avgPrecipDaily">-- mm</span>
-      <span class="avg-chip" id="avgPrecipMonthly">-- mm</span>
-      <span class="avg-chip" id="avgPrecipYearly">-- mm</span>
+          <span class="avg-row-label">Precipitazioni</span>
+          <span class="avg-chip" id="avgPrecipDaily">-- mm</span>
+          <span class="avg-chip" id="avgPrecipMonthly">-- mm</span>
+          <span class="avg-chip" id="avgPrecipYearly">-- mm</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="section-title">Anomalie</div>
+      <div class="averages-panel">
+        <div class="avg-grid">
+          <span class="avg-row-label avg-head"></span>
+          <span class="avg-head">Giorn.</span>
+          <span class="avg-head">Mese</span>
+          <span class="avg-head">Anno</span>
+
+          <span class="avg-row-label">Temp. massima</span>
+          <span class="avg-chip" id="anomTempMaxDaily">--°</span>
+          <span class="avg-chip" id="anomTempMaxMonthly">--°</span>
+          <span class="avg-chip" id="anomTempMaxYearly">--°</span>
+
+          <span class="avg-row-label">Temp. minima</span>
+          <span class="avg-chip" id="anomTempMinDaily">--°</span>
+          <span class="avg-chip" id="anomTempMinMonthly">--°</span>
+          <span class="avg-chip" id="anomTempMinYearly">--°</span>
+
+          <span class="avg-row-label">Temperatura</span>
+          <span class="avg-chip" id="anomTempDaily">--°</span>
+          <span class="avg-chip" id="anomTempMonthly">--°</span>
+          <span class="avg-chip" id="anomTempYearly">--°</span>
+
+          <span class="avg-row-label">Precipitazioni</span>
+          <span class="avg-chip" id="anomPrecipDaily">-- mm</span>
+          <span class="avg-chip" id="anomPrecipMonthly">-- mm</span>
+          <span class="avg-chip" id="anomPrecipYearly">-- mm</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1928,9 +1974,9 @@ async function refreshData() {
 
 function createChart(CHART) {
 
-const BLOCK_MIN = 360;                      // 6 ore per riquadro
+const BLOCK_MIN = 720;                      // 6 ore per riquadro
 const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 4 riquadri al giorno
-const GRID_MIN = 30;                        // linee verticali ogni 30 minuti
+const GRID_MIN = 60;                        // linee verticali ogni 30 minuti
 
 
 /* =========================================
@@ -2129,7 +2175,7 @@ function renderChart() {
     }
 
     // ----- griglia verticale: ogni 30 minuti, etichetta ogni ora (ogni 2 ore su schermi stretti)
-    const labelEvery = W < 520 ? 120 : 60;
+    const labelEvery = W < 520 ? 180 : 120;
 
     for (let m = startMin; m <= endMin; m += GRID_MIN) {
         const x = xFor(m).toFixed(1);
@@ -2331,7 +2377,7 @@ const api = {
     setData: setChartData,
     clear: function () { setChartData([]); },
     setBlock: function (i) {
-        chartBlock = Math.max(0, Math.min(7, i));
+        chartBlock = Math.max(0, Math.min(BLOCKS_PER_DAY * 2 - 1, i));
         updateTabs();
         renderChart();
     },
