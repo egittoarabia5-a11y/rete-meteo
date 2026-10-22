@@ -1,254 +1,1480 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stazione meteo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e1420;
+    --page-bg:#0e1420;
+    --paper:#f3ede0;
+    --brass:#c99a4b;
+    --storm:#4c6fa0;
+    --ember:#e2703a;
+    --glass: rgba(243,237,224,0.07);
+    --glass-strong: rgba(243,237,224,0.13);
+    --line: rgba(243,237,224,0.16);
 
-    <title>Stazione meteo</title>
+    /* dynamic, overwritten per scenario */
+    --sky-top:#6fb6e8;
+    --sky-bottom:#dceffb;
+    --accent:#e8a23a;
+    --accent-soft: rgba(232,162,58,0.35);
+    --text-on-sky:#12202b;
+    --card-tint: rgba(255,255,255,0.5);
+  }
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Work Sans', sans-serif;
+    background-color: var(--page-bg);
+    color: var(--paper);
+    min-height:100vh;
+    overflow-x:hidden;
+    transition: background-color 3.5s ease-in-out;
+  }
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  a{color:inherit;}
 
-    <style>
+  /* ---------- layout shell ---------- */
+  .page{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 22px 60px;
+  }
 
-        * { box-sizing: border-box; }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #000;
-            font-family: "Inter", sans-serif;
-        }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    padding: 4px 2px 20px;
+  }
+  .station-id{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .station-id .eyebrow{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color: var(--brass);
+    opacity:.9;
+  }
+  .station-id .place{
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size:22px;
+  }
+  .live-clock{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    color: var(--paper);
+    opacity:.75;
+    text-align:right;
+  }
+  .live-clock b{color:var(--paper); opacity:1; font-weight:500;}
 
-        /* SFONDO STAZIONE */
-        #stationBackground {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            display: block;
-            z-index: 0;
-        }
+  /* ---------- indicatore stato live ---------- */
+  .live-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding: 0 2px 18px;
+    font-family:'Work Sans', sans-serif;
+    font-size:12px;
+    opacity:.75;
+  }
+  .status-dot{
+    width:8px; height:8px;
+    border-radius:50%;
+    background:#57c26a;
+    box-shadow:0 0 0 0 rgba(87,194,106,0.55);
+    animation: statusPulse 2s infinite;
+  }
+  .status-dot.offline{
+    background:#e2543f;
+    animation:none;
+    box-shadow:none;
+  }
+  @keyframes statusPulse{
+    0%{ box-shadow:0 0 0 0 rgba(87,194,106,0.5); }
+    70%{ box-shadow:0 0 0 6px rgba(87,194,106,0); }
+    100%{ box-shadow:0 0 0 0 rgba(87,194,106,0); }
+  }
 
-        /* BARRA SUPERIORE */
-        .top-bar {
-            position: fixed;
-            top: 14px;
-            left: 14px;
-            right: 14px;
-            height: 64px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0 24px;
-            border-radius: 32px;
-            background: rgb(160, 160, 160);
-            border: 1px solid #d6d6d6;
-            color: white;
-            z-index: 99999;
-        }
+  /* ---------- dissolvenza quando un valore cambia ---------- */
+  .fade-value{
+    transition: opacity .18s ease;
+  }
+  .fade-value.fading{
+    opacity: .12;
+  }
 
-        .station-name {
-            font-size: 26px;
-            font-weight: 600;
-            letter-spacing: -0.03em;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-        }
+  /* ---------- HERO wrap + glow (bias lighting) ---------- */
+  .hero-wrap{
+    position:relative;
+  }
+  .hero-glow{
+    position:absolute;
+    inset:-60px;
+    border-radius:64px;
+    filter: blur(70px);
+    opacity:.85;
+    z-index:0;
+    transition: background-color 3.5s ease-in-out;
+    pointer-events:none;
+  }
 
-        /* AREA CONTENUTI (qui andranno i grafici) */
-        #content {
-            position: fixed;
-            top: 95px;
-            left: 10%;
-            right: 10%;
-            bottom: 14px;
-            z-index: 900;
-            overflow-y: auto;
-        }
+  /* ---------- HERO / atmosfera ---------- */
+  .hero{
+    position:relative;
+    z-index:1;
+    border-radius:28px;
+    overflow:hidden;
+    background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+    min-height: 420px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    padding: 28px 32px 32px;
+    transition: background 3.5s ease-in-out;
+    isolation:isolate;
+  }
+  .hero canvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+  }
+  .temp-overlay{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    mix-blend-mode: soft-light;
+    opacity:.6;
+    transition: background-color 3.5s ease-in-out;
+    pointer-events:none;
+  }
+  .hero-vignette{
+    position:absolute;
+    inset:0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.28) 100%);
+    z-index:2;
+    pointer-events:none;
+  }
+  .hero-content{
+    position:relative;
+    z-index:3;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    flex-wrap:wrap;
+    color: var(--text-on-sky);
+  }
+  .temp-block{ display:flex; flex-direction:column; }
+  .condition-label{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    opacity:.75;
+    margin-bottom:4px;
+  }
+  .temp-row{
+    display:flex;
+    align-items:stretch;
+    gap:12px;
+  }
+  .temp-main{
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size: clamp(72px, 13vw, 148px);
+    line-height:.9;
+    display:flex;
+    align-items:flex-start;
+    gap:4px;
+  }
+  .temp-main .deg{
+    font-size:.35em;
+    font-weight:400;
+    margin-top:.12em;
+  }
+  .minmax-stack{
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    align-items:flex-start;
+    padding: clamp(8px, 2vw, 20px) 0;
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size: clamp(18px, 3vw, 28px);
+  }
+  .mm-max{ color:#d9432c; }
+  .mm-min{ color:#2c6fd9; }
+  .temp-sub{
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    opacity:.8;
+    margin-top:6px;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .temp-sub b{font-weight:500;}
 
-        /* MODALITÀ TELEFONO */
-        @media (max-width: 700px) {
+  .hero-icon-note{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:10px;
+    text-align:right;
+  }
+  .sky-figure{
+    width:92px; height:92px;
+  }
 
-            html, body {
-                overflow-x: hidden;
-                overflow-y: auto;
-                background: #e8dfc8;
-            }
+  /* ---------- pannelli generici ---------- */
+  .section-title{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color: var(--brass);
+    opacity:.85;
+    margin: 34px 2px 12px;
+  }
 
-            #stationBackground { content: url("beige.webp"); }
+  /* ---------- strumenti: riquadri rettangolari ---------- */
+  .instruments{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:12px;
+  }
+  .instrument-card{
+    position:relative;
+    background-color: var(--page-bg);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    gap:8px;
+    min-height:76px;
+    overflow:visible;
+    z-index:0;
+    transition: background-color 3.5s ease-in-out;
+  }
+  .instrument-card::before{
+    content:"";
+    position:absolute;
+    inset:-4px;
+    border-radius:18px;
+    background-color: var(--card-glow, transparent);
+    filter: blur(9px);
+    opacity:.28;
+    z-index:-1;
+    transition: background-color 3.5s ease-in-out;
+    pointer-events:none;
+  }
+  .instrument-card .ic-label{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+    opacity:.6;
+    font-weight:500;
+  }
+  .instrument-card .ic-row{
+    display:flex;
+    align-items:stretch;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .instrument-card .ic-value{
+    font-family:'Work Sans', sans-serif;
+    font-size:22px;
+    font-weight:500;
+    display:flex;
+    align-items:baseline;
+    gap:5px;
+    color: var(--paper);
+  }
+  .instrument-card .ic-value .unit{
+    font-size:13px;
+    font-weight:400;
+    opacity:.6;
+  }
+  .instrument-card .ic-minmax{
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    align-items:flex-end;
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size:12px;
+  }
+  .instrument-card .ic-max{ color:#e2543f; }
+  .instrument-card .ic-min{ color:#3f8fe2; }
+  .instrument-card .ic-max-inline{
+    display:flex;
+    align-items:center;
+    gap:2px;
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size:13px;
+    color:#e2543f;
+    align-self:flex-end;
+  }
+  .instrument-card .ic-sub{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    opacity:.55;
+  }
 
-            .top-bar {
-                position: relative;
-                top: 10px;
-                left: 10px;
-                right: auto;
-                width: calc(100% - 20px);
-                height: auto;
-                min-height: 64px;
-                padding: 12px 16px;
-                border-radius: 20px;
-            }
+  /* ---------- medie: tabella a righe con chip colorati ---------- */
+  .averages-panel{
+    background: var(--glass);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:18px 20px 20px;
+  }
+  .avg-grid{
+    display:grid;
+    grid-template-columns: 1.3fr repeat(3, 1fr);
+    gap:8px 10px;
+    align-items:center;
+  }
+  .avg-head{
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+    opacity:.5;
+    text-align:center;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .avg-row-label{
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    opacity:.85;
+  }
+  .avg-row-label.avg-head{ text-align:left; opacity:.5; }
+  .avg-chip{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    padding:8px 6px;
+    border-radius:10px;
+    font-family:'Work Sans', sans-serif;
+    font-weight:500;
+    font-size:14px;
+    background-color: var(--page-bg);
+    border:1px solid var(--line);
+    color: var(--paper);
+    z-index:0;
+    overflow:visible;
+    transition: background-color 3.5s ease-in-out;
+  }
+  .avg-chip .chip-date{
+    font-family:'Work Sans', sans-serif;
+    font-size:9.5px;
+    font-weight:400;
+    opacity:.55;
+  }
+  .avg-chip::before{
+    content:"";
+    position:absolute;
+    inset:-4px;
+    border-radius:16px;
+    background-color: var(--card-glow, transparent);
+    filter: blur(9px);
+    opacity:.28;
+    z-index:-1;
+    transition: background-color 3.5s ease-in-out;
+    pointer-events:none;
+  }
+  /* ---------- footer ---------- */
+  .footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:36px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    opacity:.5;
+  }
 
-            .station-name {
-                font-size: 17px;
-                line-height: 1.35;
-                white-space: normal;
-                overflow: visible;
-                text-overflow: clip;
-            }
+  /* ---------- responsive ---------- */
+  @media (max-width: 760px){
+    .page{ padding:16px 14px 44px; }
+    .hero{ min-height:360px; padding:22px 20px 24px; }
+    .hero-content{ align-items:flex-start; flex-direction:column-reverse; }
+    .hero-icon-note{ align-items:flex-start; text-align:left; flex-direction:row; align-items:center; }
+    .instruments{ grid-template-columns: repeat(2, 1fr); gap:10px; }
+    .live-clock{ text-align:left; }
+    .hero-glow{ inset:-26px; filter: blur(38px); border-radius:48px; }
+    .avg-grid{ font-size:12px; gap:6px 6px; }
+    .avg-chip{ font-size:12px; padding:7px 4px; }
+    .avg-row-label{ font-size:11.5px; }
+  }
 
-            #content {
-                position: relative;
-                top: auto; left: auto; right: auto; bottom: auto;
-                width: 100%;
-                margin-top: 24px;
-                padding: 0 10px 20px;
-            }
-        }
+  @media (prefers-reduced-motion: reduce){
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.2s !important; }
+  }
 
-        /* =========================================
-           GRAFICO GIGANTE (3 ore, 1 punto al minuto)
-        ========================================= */
+  /* ---------- riquadri senza dato: nascosti ---------- */
+  /* riquadro senza dato: resta al suo posto con la scritta */
+  .instrument-card.no-data > *:not(.ic-label){ display:none; }
+  .instrument-card.no-data::after{
+    content:"Dato non presente";
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    opacity:.5;
+  }
+  .averages-panel{ margin-bottom:8px; }
 
-        .chart-tabs {
-            display: flex;
-            gap: 8px;
-            margin: 18px 0 12px;
-            padding-bottom: 2px;
-            overflow-x: auto;
-        }
+  /* ---------- grafico pioggia (6 ore per riquadro, ieri + oggi) ---------- */
+  .chart-tabs{
+    display:flex;
+    gap:8px;
+    padding: 2px 2px 14px;
+    overflow-x:auto;
+  }
+  .chart-tab-group{
+    flex:0 0 auto;
+    align-self:center;
+    font-family:'Work Sans', sans-serif;
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color: var(--brass);
+    opacity:.9;
+    padding:0 2px 0 8px;
+  }
+  .chart-tab-group:first-child{ padding-left:2px; }
+  .chart-tab{
+    flex:0 0 auto;
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    font-weight:500;
+    padding:9px 18px;
+    border-radius:100px;
+    border:1px solid var(--line);
+    background: var(--glass);
+    color: var(--paper);
+    cursor:pointer;
+    opacity:.7;
+    transition: background-color .25s ease, opacity .25s ease, border-color .25s ease;
+  }
+  .chart-tab:hover{ background: var(--glass-strong); opacity:1; }
+  .chart-tab.active{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--ink);
+    font-weight:600;
+    opacity:1;
+  }
+  .chart-panel{
+    background-color: var(--page-bg);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 14px 10px;
+    transition: background-color 3.5s ease-in-out;
+  }
+  .chart-head{
+    display:flex;
+    justify-content:flex-start;
+    margin: 0 0 8px 4px;
+    font-family:'Work Sans', sans-serif;
+    font-size:12px;
+  }
+  .chart-head .range{ opacity:.65; text-transform:capitalize; }
+  .chart-wrap{ position:relative; width:100%; }
+  .chart-wrap svg{
+    display:block;
+    width:100%;
+    cursor:crosshair;
+    touch-action:pan-y;
+  }
+  .chart-tooltip{
+    position:absolute;
+    top:0; left:0;
+    pointer-events:none;
+    opacity:0;
+    background: rgba(243,237,224,0.96);
+    color:#12202b;
+    padding:6px 10px;
+    border-radius:8px;
+    font-family:'Work Sans', sans-serif;
+    font-size:12px;
+    line-height:1.45;
+    white-space:nowrap;
+    box-shadow:0 4px 15px rgba(0,0,0,0.25);
+    transition: opacity .1s ease;
+  }
+  .chart-tooltip.visible{ opacity:1; }
+  .chart-tooltip .chip{
+    display:inline-block;
+    width:9px; height:9px;
+    border-radius:50%;
+    margin-right:5px;
+  }
+  .cg-line{ stroke: rgba(243,237,224,0.13); stroke-width:1; }
+  .cg-line.v{ stroke: rgba(243,237,224,0.09); }
+  .cg-line.h{ stroke: rgba(243,237,224,0.13); }
+  .cg-label{ font-family:'Work Sans', sans-serif; font-size:11px; fill: rgba(243,237,224,0.5); }
+  .cg-empty{ font-family:'Work Sans', sans-serif; font-size:14px; fill: rgba(243,237,224,0.5); }
 
-        .chart-tab {
-            flex: 0 0 auto;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 100px;
-            border: 1px solid #d6d6d6;
-            background: rgb(160, 160, 160);
-            color: #fff;
-            cursor: pointer;
-            transition: background-color .2s ease, color .2s ease;
-        }
-
-        .chart-tab-group {
-            flex: 0 0 auto;
-            align-self: center;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-            color: #fff;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
-            padding: 0 2px 0 8px;
-        }
-
-        .chart-tab-group:first-child { padding-left: 0; }
-
-        .chart-tab:hover { background: rgb(140, 140, 140); }
-
-        .chart-tab.active {
-            background: #fff;
-            color: #222;
-        }
-
-        .chart-panel {
-            background: rgba(20, 24, 32, 0.82);
-            border: 1px solid rgba(243, 237, 224, 0.16);
-            border-radius: 20px;
-            padding: 16px 16px 12px;
-            color: #f3ede0;
-            margin-bottom: 20px;
-        }
-
-        .chart-head {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 4px 12px;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-
-        .chart-head .title { font-weight: 600; }
-        .chart-head .range { opacity: .7; }
-
-        .chart-wrap {
-            position: relative;
-            width: 100%;
-        }
-
-        .chart-wrap svg {
-            display: block;
-            width: 100%;
-            cursor: crosshair;
-            touch-action: pan-y;
-        }
-
-        .chart-tooltip {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-            opacity: 0;
-            background: rgba(243, 237, 224, 0.96);
-            color: #12202b;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            line-height: 1.45;
-            white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-            transition: opacity .1s ease;
-        }
-
-        .chart-tooltip.visible { opacity: 1; }
-
-        .chart-tooltip .chip {
-            display: inline-block;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        .cg-line   { stroke: rgba(243, 237, 224, 0.13); stroke-width: 1; }
-        .cg-line.v { stroke: rgba(243, 237, 224, 0.06); }
-        .cg-line.h { stroke: rgba(243, 237, 224, 0.20); }
-        .cg-label  { font-family: "Inter", sans-serif; font-size: 11px; fill: rgba(243, 237, 224, 0.55); }
-        .cg-empty  { font-family: "Inter", sans-serif; font-size: 14px; fill: rgba(243, 237, 224, 0.5); }
-
-    </style>
-
+  /* l'alone del riquadro principale non deve allargare la pagina */
+  html, body{ overflow-x:hidden; }
+</style>
 </head>
-
 <body>
 
-    <img id="stationBackground" alt="">
+<div class="page">
 
-    <div class="top-bar">
-        <div class="station-name" id="stationName">Caricamento...</div>
+  <div class="topbar">
+    <div class="station-id">
+      <span class="eyebrow" id="stationEyebrow">Caricamento…</span>
+      <span class="place" id="stationPlace">—</span>
+    </div>
+    <div class="live-clock">
+      <div><b id="clockTime">--:--:--</b></div>
+      <div id="clockDate">-- --- ----</div>
+    </div>
+  </div>
+
+
+  <div class="live-status" id="liveStatus">
+    <span class="status-dot" id="liveStatusDot"></span>
+    <span id="liveStatusText">Online · Aggiorna tra 10s</span>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero-wrap">
+    <div class="hero-glow" id="heroGlow"></div>
+    <div class="hero" id="hero">
+      <canvas id="skyCanvas"></canvas>
+      <div class="temp-overlay" id="tempOverlay"></div>
+      <div class="hero-vignette"></div>
+      <div class="hero-content">
+        <div class="temp-block">
+          <div class="condition-label" id="conditionLabel">—</div>
+          <div class="temp-row">
+            <div class="temp-main"><span id="tempMain">--</span><span class="deg">°C</span></div>
+            <div class="minmax-stack">
+              <span class="mm-max" id="tempMax">--°</span>
+              <span class="mm-min" id="tempMin">--°</span>
+            </div>
+          </div>
+          <div class="temp-sub">
+            <span>Percepita <b id="feelsLike">--°</b></span>
+            <span>Umidità <b id="humidityInline">--%</b></span>
+            <span>Vento <b id="windInline">-- km/h</b></span>
+          </div>
+        </div>
+        <div class="hero-icon-note">
+          <svg class="sky-figure" id="skyFigure" viewBox="0 0 100 100"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STRUMENTI -->
+  <div class="section-title">Strumenti</div>
+  <div class="instruments">
+    <div class="instrument-card">
+      <span class="ic-label">Dew Point</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="dewPointValue">--</span><span class="unit">°C</span></span>
+        <div class="ic-minmax">
+          <span class="ic-max" id="dewPointMax">--°</span>
+          <span class="ic-min" id="dewPointMin">--°</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Qui andranno i grafici -->
-    <div id="content">
-        <div id="readout"></div>
-        <div id="chartSection"></div>
+    <div class="instrument-card">
+      <span class="ic-label">Heat Index</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="heatIndexValue">--</span><span class="unit">°C</span></span>
+        <div class="ic-minmax">
+          <span class="ic-max" id="heatIndexMax">--°</span>
+          <span class="ic-min" id="heatIndexMin">--°</span>
+        </div>
+      </div>
     </div>
 
-    <script>
+    <div class="instrument-card">
+      <span class="ic-label">Humidex</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="humidexValue">--</span><span class="unit">°C</span></span>
+        <div class="ic-minmax">
+          <span class="ic-max" id="humidexMax">--°</span>
+          <span class="ic-min" id="humidexMin">--°</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Umidità</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="humidityValue">--</span><span class="unit">%</span></span>
+        <div class="ic-minmax">
+          <span class="ic-max" id="humidityMax">--%</span>
+          <span class="ic-min" id="humidityMin">--%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Pressione</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="pressureValue">--</span><span class="unit">hPa</span></span>
+        <div class="ic-minmax">
+          <span class="ic-max" id="pressureMax">--</span>
+          <span class="ic-min" id="pressureMin">--</span>
+        </div>
+      </div>
+      <span class="ic-sub" id="pressureLevelLabel">—</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Vento</span>
+      <span class="ic-value"><span id="windValue">--</span><span class="unit">km/h</span></span>
+      <span class="ic-sub" id="windDirLabel">--</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Raffica</span>
+      <span class="ic-value"><span id="gustValue">--</span><span class="unit">km/h</span></span>
+      <span class="ic-sub" id="gustMaxLabel">—</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Precipitazioni</span>
+      <span class="ic-value"><span id="precipValue">--</span><span class="unit">mm</span></span>
+      <span class="ic-sub" id="precipTrendLabel">—</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Rain Rate</span>
+      <span class="ic-value"><span id="rainValue">--</span><span class="unit">mm/h</span></span>
+      <span class="ic-sub" id="rainRateMaxLabel">—</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Radiazione Solare</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="solarValue">--</span><span class="unit">W/m²</span></span>
+        <span class="ic-max-inline" id="solarMaxInline">↑ --</span>
+      </div>
+      <span class="ic-sub" id="solarQualLabel">—</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">UV</span>
+      <div class="ic-row">
+        <span class="ic-value"><span id="uvValue">--</span></span>
+        <span class="ic-max-inline" id="uvMaxInline">↑ --</span>
+      </div>
+      <span class="ic-sub" id="uvQualLabel">—</span>
+    </div>
+
+    <div class="instrument-card">
+      <span class="ic-label">Base nuvolosa</span>
+      <span class="ic-value"><span id="cloudBaseValue">--</span><span class="unit">m</span></span>
+      <span class="ic-sub" id="cloudBaseQualLabel">—</span>
+    </div>
+  </div>
+
+  <!-- MEDIE (per ora vuote) -->
+  <div class="section-title">Medie</div>
+  <div class="averages-panel">
+    <div class="avg-grid">
+      <span class="avg-row-label avg-head"></span>
+      <span class="avg-head">Giorn.</span>
+      <span class="avg-head">Mese</span>
+      <span class="avg-head">Anno</span>
+
+      <span class="avg-row-label">Temp. massima</span>
+      <span class="avg-chip" id="avgTempMaxDaily">--°</span>
+      <span class="avg-chip" id="avgTempMaxMonthly">--°</span>
+      <span class="avg-chip" id="avgTempMaxYearly">--°</span>
+
+      <span class="avg-row-label">Temp. minima</span>
+      <span class="avg-chip" id="avgTempMinDaily">--°</span>
+      <span class="avg-chip" id="avgTempMinMonthly">--°</span>
+      <span class="avg-chip" id="avgTempMinYearly">--°</span>
+
+      <span class="avg-row-label">Temperatura</span>
+      <span class="avg-chip" id="avgTempDaily">--°</span>
+      <span class="avg-chip" id="avgTempMonthly">--°</span>
+      <span class="avg-chip" id="avgTempYearly">--°</span>
+
+      <span class="avg-row-label">Precipitazioni</span>
+      <span class="avg-chip" id="avgPrecipDaily">-- mm</span>
+      <span class="avg-chip" id="avgPrecipMonthly">-- mm</span>
+      <span class="avg-chip" id="avgPrecipYearly">-- mm</span>
+    </div>
+  </div>
+
+
+  <!-- GRAFICO TEMPERATURA -->
+  <div class="section-title">Temperatura</div>
+  <div id="tempChartSection"></div>
+
+  <!-- GRAFICO PIOGGIA -->
+  <div class="section-title">Pioggia</div>
+  <div id="chartSection"></div>
+
+  <div class="footer">
+    <span id="footerUpdate">In attesa dei dati…</span>
+    <span id="footerCoords"></span>
+  </div>
+
+
+</div>
+
+<script>
+/* ============================================================
+   ICONE (piccole SVG generate a runtime, nessuna dipendenza esterna)
+   ============================================================ */
+function iconSun(){return `<circle cx="13" cy="13" r="5" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="13" y1="1" x2="13" y2="4"/><line x1="13" y1="22" x2="13" y2="25"/><line x1="1" y1="13" x2="4" y2="13"/><line x1="22" y1="13" x2="25" y2="13"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="19.7" y1="19.7" x2="21.8" y2="21.8"/><line x1="4.2" y1="21.8" x2="6.3" y2="19.7"/><line x1="19.7" y1="6.3" x2="21.8" y2="4.2"/></g>`;}
+function iconCloud(){return `<path d="M7 19a5 5 0 0 1-.4-10 6 6 0 0 1 11.6-2A4.5 4.5 0 0 1 19 19H7z" fill="currentColor"/>`;}
+function iconRain(){return `<path d="M7 14a5 5 0 0 1-.4-10 6 6 0 0 1 11.6-2A4.5 4.5 0 0 1 19 14H7z" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="9" y1="18" x2="7.5" y2="23"/><line x1="14" y1="18" x2="12.5" y2="23"/><line x1="19" y1="18" x2="17.5" y2="23"/></g>`;}
+function iconStorm(){return `<path d="M7 13a5 5 0 0 1-.4-10 6 6 0 0 1 11.6-2A4.5 4.5 0 0 1 19 13H7z" fill="currentColor"/><path d="M14 15 L10 21 H13 L11 26 L18 18 H15 Z" fill="var(--ember)"/>`;}
+function iconSnow(){return `<path d="M7 13a5 5 0 0 1-.4-10 6 6 0 0 1 11.6-2A4.5 4.5 0 0 1 19 13H7z" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="9" y1="18" x2="9" y2="24"/><line x1="6.5" y1="19.5" x2="11.5" y2="22.5"/><line x1="11.5" y1="19.5" x2="6.5" y2="22.5"/><line x1="17" y1="18" x2="17" y2="24"/><line x1="14.5" y1="19.5" x2="19.5" y2="22.5"/><line x1="19.5" y1="19.5" x2="14.5" y2="22.5"/></g>`;}
+function iconFog(){return `<g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="10" x2="23" y2="10"/><line x1="6" y1="15" x2="23" y2="15"/><line x1="3" y1="20" x2="20" y2="20"/></g>`;}
+function iconMoon(){return `<path d="M18 3a10 10 0 1 0 6 18 8 8 0 0 1-6-18z" fill="currentColor"/>`;}
+function iconPartlyCloudy(){return `<circle cx="18" cy="8" r="4.4" fill="currentColor"/><path d="M6 19a5 5 0 0 1-.4-10 6 6 0 0 1 10.4 1A4.5 4.5 0 0 1 17 19H6z" fill="currentColor"/>`;}
+function iconSleet(){return `<path d="M7 13a5 5 0 0 1-.4-10 6 6 0 0 1 11.6-2A4.5 4.5 0 0 1 19 13H7z" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="9" y1="18" x2="8" y2="22"/><line x1="14" y1="18" x2="13" y2="22"/></g><circle cx="18.5" cy="20" r="1.3" fill="currentColor"/>`;}
+function iconNightCloud(){return `<path d="M17 3a6 6 0 1 0 3.2 11.1A6.5 6.5 0 0 1 17 3z" fill="currentColor" opacity="0.85"/><path d="M6 20a5 5 0 0 1-.4-10 6 6 0 0 1 10.4 1A4.5 4.5 0 0 1 17 20H6z" fill="currentColor"/>`;}
+const ICONS = {sun:iconSun, cloud:iconCloud, rain:iconRain, storm:iconStorm, snow:iconSnow, fog:iconFog, moon:iconMoon, partlycloudy:iconPartlyCloudy, sleet:iconSleet, nightcloud:iconNightCloud};
+
+function svgIcon(type, extra=''){
+  return `<svg viewBox="0 0 26 26" fill="none" style="color:currentColor;${extra}">${ICONS[type]()}</svg>`;
+}
+
+/* ============================================================
+   PALETTE: colori, icona e animazione per ogni condizione
+   ============================================================ */
+const PALETTES = {
+  "sereno": {
+    "condition": "Cielo sereno",
+    "icon": "sun",
+    "isNight": false,
+    "sky": [
+      "#6fb6e8",
+      "#dceffb"
+    ],
+    "accent": "#e8a23a",
+    "textOnSky": "#12202b",
+    "bg": "#204a68",
+    "particle": "sun"
+  },
+  "nuvoloso": {
+    "condition": "Molto nuvoloso",
+    "icon": "cloud",
+    "isNight": false,
+    "sky": [
+      "#8b97a6",
+      "#c7cdd6"
+    ],
+    "accent": "#c9a15a",
+    "textOnSky": "#1c232c",
+    "bg": "#565b62",
+    "particle": "cloud"
+  },
+  "pioggia": {
+    "condition": "Pioggia debole",
+    "icon": "rain",
+    "isNight": false,
+    "sky": [
+      "#3e4e63",
+      "#5e7488"
+    ],
+    "accent": "#6c93c4",
+    "textOnSky": "#eef2f6",
+    "bg": "#243c4e",
+    "particle": "rain"
+  },
+  "pioviggine": {
+    "condition": "Pioviggine",
+    "icon": "rain",
+    "isNight": false,
+    "sky": [
+      "#7f8f9c",
+      "#c7d2d8"
+    ],
+    "accent": "#6f95ab",
+    "textOnSky": "#1a2429",
+    "bg": "#212c33",
+    "particle": "drizzle"
+  },
+  "temporale": {
+    "condition": "Temporale forte",
+    "icon": "storm",
+    "isNight": false,
+    "sky": [
+      "#232b36",
+      "#40506a"
+    ],
+    "accent": "#e2703a",
+    "textOnSky": "#f3ede0",
+    "bg": "#20242e",
+    "particle": "storm"
+  },
+  "neve": {
+    "condition": "Nevicata moderata",
+    "icon": "snow",
+    "isNight": false,
+    "sky": [
+      "#a9b7c6",
+      "#e7edf2"
+    ],
+    "accent": "#8fb8d9",
+    "textOnSky": "#1a2531",
+    "bg": "#2c3540",
+    "particle": "snow"
+  },
+  "nebbia": {
+    "condition": "Nebbia fitta",
+    "icon": "fog",
+    "isNight": false,
+    "sky": [
+      "#b9b3a6",
+      "#d8d3c6"
+    ],
+    "accent": "#a99b7e",
+    "textOnSky": "#221f18",
+    "bg": "#453f34",
+    "particle": "fog"
+  },
+  "notte": {
+    "condition": "Cielo sereno · notte",
+    "icon": "moon",
+    "isNight": true,
+    "sky": [
+      "#0b1020",
+      "#1b2438"
+    ],
+    "accent": "#c9cbd9",
+    "textOnSky": "#f3ede0",
+    "bg": "#0c1120",
+    "particle": "stars"
+  },
+  "notte_nuvolosa": {
+    "condition": "Nuvoloso · notte",
+    "icon": "nightcloud",
+    "isNight": true,
+    "sky": [
+      "#12161f",
+      "#232c3a"
+    ],
+    "accent": "#9aa4b3",
+    "textOnSky": "#e9ecf1",
+    "bg": "#0e131c",
+    "particle": "cloud_night"
+  },
+  "parzialmente_nuvoloso": {
+    "condition": "Parzialmente nuvoloso",
+    "icon": "partlycloudy",
+    "isNight": false,
+    "sky": [
+      "#7fb8e0",
+      "#d9e8f2"
+    ],
+    "accent": "#e0a94a",
+    "textOnSky": "#15222d",
+    "bg": "#264a63",
+    "particle": "partlycloudy"
+  },
+  "pioggia_moderata": {
+    "condition": "Pioggia moderata",
+    "icon": "rain",
+    "isNight": false,
+    "sky": [
+      "#33414f",
+      "#4d6270"
+    ],
+    "accent": "#5f8ab8",
+    "textOnSky": "#e8eef2",
+    "bg": "#1a2733",
+    "particle": "rain_moderate"
+  },
+  "pioggia_forte": {
+    "condition": "Pioggia forte",
+    "icon": "rain",
+    "isNight": false,
+    "sky": [
+      "#2a333d",
+      "#3d4c58"
+    ],
+    "accent": "#4a6f9c",
+    "textOnSky": "#eef1f4",
+    "bg": "#161d24",
+    "particle": "rain_heavy"
+  },
+  "nevischio": {
+    "condition": "Nevischio",
+    "icon": "sleet",
+    "isNight": false,
+    "sky": [
+      "#8fa3ae",
+      "#cfdde3"
+    ],
+    "accent": "#7fb0c9",
+    "textOnSky": "#1c2a30",
+    "bg": "#243138",
+    "particle": "sleet"
+  },
+  "pioggia_mista_neve": {
+    "condition": "Pioggia mista a neve",
+    "icon": "sleet",
+    "isNight": false,
+    "sky": [
+      "#8a97a0",
+      "#c3d0d6"
+    ],
+    "accent": "#7ba0b8",
+    "textOnSky": "#1b262c",
+    "bg": "#232f36",
+    "particle": "mixed"
+  },
+  "foschia": {
+    "condition": "Foschia",
+    "icon": "fog",
+    "isNight": false,
+    "sky": [
+      "#c2bfae",
+      "#e2ddcc"
+    ],
+    "accent": "#b4a685",
+    "textOnSky": "#26221b",
+    "bg": "#3a352c",
+    "particle": "haze"
+  }
+};
+
+
+function getTempColor(value){
+  if (value < -15) return "#f54dff";
+  if (value < -10) return "#c65bff";
+  if (value < -4) return "#4d54ff";
+  if (value < -2) return "#1f7eb9";
+  if (value <= 0) return "#539eb0";
+  if (value < 2) return "#67bac8";
+  if (value < 4) return "#5ac5ba";
+  if (value < 6) return "#42a37b";
+  if (value < 8) return "#538b53";
+  if (value < 10) return "#419a41";
+  if (value < 12) return "#5cb425";
+  if (value < 14) return "#76ca38";
+  if (value < 16) return "#a1d950";
+  if (value < 18) return "#eadf00";
+  if (value < 20) return "#ffcc55";
+  if (value < 22) return "#ffaf54";
+  if (value < 24) return "#fa8f4b";
+  if (value < 26) return "#f26969";
+  if (value < 28) return "#de5a5a";
+  if (value < 30) return "#b05151";
+  if (value < 32) return "#994848";
+  if (value < 34) return "#743e3e";
+  if (value < 36) return "#b874ac";
+  if (value < 38) return "#ea7bea";
+  return "#995a99"; // da 38°C in su il colore resta fisso
+}
+
+/* Umidità */
+function getHumColor(v){
+  if (v < 20) return "#b44141";
+  if (v < 30) return "#ff6262";
+  if (v < 40) return "#ff9d56";
+  if (v < 50) return "#f1d800";
+  if (v < 60) return "#65d050";
+  if (v < 70) return "#6ca561";
+  if (v < 80) return "#4dc8ff";
+  if (v < 90) return "#4da9ff";
+  return "#4d54ff";
+}
+
+/* Vento, raffica, precipitazioni e rain rate */
+function getRainScaleColor(v){
+  if (v === 0) return "#808080";
+  if (v < 2) return "#f9ae6c";
+  if (v < 5) return "#f9966c";
+  if (v < 10) return "#6ca561";
+  if (v < 20) return "#65d050";
+  if (v < 30) return "#4dc8ff";
+  if (v < 50) return "#4da9ff";
+  return "#2c278e";
+}
+
+/* Radiazione solare: nero -> grigio -> arancione -> giallo -> bianco (1500) */
+function getSolarColor(v){
+  if (v <= 0) return "#000000";
+  if (v < 50) return "#808080";
+  if (v < 100) return "#ff9d3c";
+  const t = Math.min(1, (v-100)/(1500-100));
+  if (t < 0.5) return lerpColor('#ff9d3c', '#ffe14d', t/0.5);
+  return lerpColor('#ffe14d', '#ffffff', (t-0.5)/0.5);
+}
+
+/* UV: verde 0 -> giallo 3 -> arancione 6 -> rosso 9 */
+function getUVColor(v){
+  const stops = [[0,'#4dbd4d'],[3,'#f1d800'],[6,'#ff9d3c'],[9,'#e0393e']];
+  if (v <= 0) return stops[0][1];
+  if (v >= 9) return stops[3][1];
+  for(let i=0;i<stops.length-1;i++){
+    const [v0,c0] = stops[i], [v1,c1] = stops[i+1];
+    if(v >= v0 && v <= v1) return lerpColor(c0, c1, (v-v0)/(v1-v0));
+  }
+  return stops[3][1];
+}
+
+/* Base nuvolosa: grigio scuro fino a 100m, poi verso il grigio chiaro fino a 2000m */
+function getCloudBaseColor(v){
+  if (v <= 100) return "#2b2b2b";
+  const t = Math.min(1, (v-100)/(2000-100));
+  return lerpColor('#2b2b2b', '#d9d9d9', t);
+}
+
+/* Pressione: scala colore personalizzata */
+function getPressureColor(v){
+  if (v < 1000) return "#4d54ff";
+  if (v < 1008) return "#4da9ff";
+  if (v < 1013) return "#4dc8ff";
+  if (v < 1018) return "#65d050";
+  if (v < 1023) return "#f1d800";
+  if (v < 1030) return "#ff9d56";
+  return "#ff6262";
+}
+function pressureLevelLabel(v){
+  if (v < 1008) return 'Bassa pressione';
+  if (v < 1020) return 'Media pressione';
+  return 'Alta pressione';
+}
+
+/* Precipitazioni: tendenza in base al rain rate */
+function precipTrendLabel(rate){
+  if (rate <= 0) return 'Stabile';
+  if (rate <= 15) return 'In lieve aumento';
+  if (rate <= 50) return 'In aumento';
+  if (rate <= 150) return 'In forte aumento';
+  return 'In estremo aumento';
+}
+
+/* Radiazione solare: descrizione qualitativa (alba/tramonto in base all'ora) */
+function solarQualitativeLabel(v, simTime){
+  if (v <= 0) return 'Sole assente';
+  if (v <= 50) return simTime < 0.5 ? 'Alba' : 'Tramonto';
+  if (v <= 150) return 'Sole basso';
+  if (v <= 300) return 'Sole debole';
+  if (v <= 500) return 'Sole moderato';
+  if (v <= 750) return 'Sole forte';
+  if (v <= 1000) return 'Sole eccessivamente forte';
+  return 'Sole estremamente forte';
+}
+
+/* Base nuvolosa: categoria in base alla quota */
+function cloudBaseQualitativeLabel(v){
+  if (v <= 100) return 'Nebbia';
+  if (v <= 800) return 'Nuvole basse';
+  if (v <= 1500) return 'Nuvole medie';
+  return 'Nuvole alte';
+}
+
+function windDirLabel(deg){
+  const dirs = ['N','NE','E','SE','S','SO','O','NO'];
+  return dirs[Math.round(deg/45)%8];
+}
+
+/* La nuvola e il temporale nel riquadro principale restano sempre scuri,
+   più scuri dello sfondo cielo su cui appaiono */
+function heroIconColor(s){
+  if(s.icon === 'cloud') return '#454c56';
+  if(s.icon === 'storm') return '#0f121a';
+  return s.accent;
+}
+
+/* Aggiorna il testo di un elemento con una breve dissolvenza, solo se il
+   valore è realmente cambiato (evita di far lampeggiare dati identici) */
+function setTextFade(el, text){
+  if(!el) return;
+  text = String(text);
+  if(el.textContent === text){ return; }
+  if(el.dataset.fadeTimeout){ clearTimeout(+el.dataset.fadeTimeout); }
+  el.classList.add('fade-value');
+  el.classList.add('fading');
+  const t = setTimeout(()=>{
+    el.textContent = text;
+    el.classList.remove('fading');
+  }, 180);
+  el.dataset.fadeTimeout = String(t);
+}
+
+/* Applica il colore "LED" al riquadro strumento che contiene questo valore */
+function setCardGlow(valueElId, color){
+  const valEl = document.getElementById(valueElId);
+  const card = valEl && valEl.closest('.instrument-card');
+  if(card) card.style.setProperty('--card-glow', color);
+}
+
+/* Cielo "sereno": più è umido, più il blu tende all'azzurro intenso */
+function hexToRgb(hex){
+  const h = hex.replace('#','');
+  const n = parseInt(h,16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function rgbToHex(r,g,b){
+  return '#' + [r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
+}
+function lerpColor(hexA, hexB, t){
+  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  return rgbToHex(
+    a[0] + (b[0]-a[0])*t,
+    a[1] + (b[1]-a[1])*t,
+    a[2] + (b[2]-a[2])*t
+  );
+}
+function sereneSky(humidity){
+  const t = Math.max(0, Math.min(1, humidity/100));
+  const top = lerpColor('#bfe0f5', '#1f7ec9', t);    // da azzurro chiaro/foschia ad azzurro intenso
+  const bottom = lerpColor('#f3f9fc', '#a9def2', t);
+  return [top, bottom];
+}
+
+function uvQualitativeLabel(v){
+  if(v<=0) return 'Assente';
+  if(v<3) return 'Basso';
+  if(v<6) return 'Moderato';
+  if(v<8) return 'Alto';
+  if(v<11) return 'Molto alto';
+  return 'Estremo';
+}
+
+/* ============================================================
+   OROLOGIO REALE
+   ============================================================ */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('it-IT');
+  document.getElementById('clockDate').textContent = now.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ============================================================
+   CANVAS ATMOSFERA — pioggia / neve / nebbia / sole / stelle / nuvole
+   ============================================================ */
+const canvas = document.getElementById('skyCanvas');
+const ctx = canvas.getContext('2d');
+const hero = document.getElementById('hero');
+let particles = [];
+let mode = 'sun';
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// transizione tra uno stato meteo e l'altro
+let prevMode = null;
+let prevParticles = [];
+let transitionStart = 0;
+const TRANSITION_MS = reduceMotion ? 0 : 3500;
+
+function resizeCanvas(){
+  canvas.width = hero.clientWidth;
+  canvas.height = hero.clientHeight;
+  seedParticles(particles, mode, false);
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* Crea le particelle per un dato modo. Se "entering" è true, le particelle
+   partono fuori dallo schermo (sopra per la pioggia/neve, a sinistra per le
+   nuvole/nebbia) così che il nuovo stato meteo "arrivi" invece di apparire
+   di colpo. */
+function seedParticles(target, m, entering){
+  target.length = 0;
+  const w = canvas.width, h = canvas.height;
+  const offY = entering ? () => -Math.random()*h*1.6 - 20 : () => Math.random()*h;
+
+  if(m==='rain' || m==='rain_moderate' || m==='rain_heavy' || m==='storm' || m==='drizzle'){
+    const n = m==='storm' ? 140 : m==='rain_heavy' ? 115 : m==='rain_moderate' ? 95 : m==='drizzle' ? 45 : 80;
+    for(let i=0;i<n;i++){
+      target.push({x:Math.random()*w, y:offY(), len: m==='drizzle' ? 6+Math.random()*4 : 12+Math.random()*14, speed: m==='drizzle' ? 5+Math.random()*3 : 9+Math.random()*7});
+    }
+  } else if(m==='snow'){
+    for(let i=0;i<70;i++){
+      target.push({x:Math.random()*w, y:offY(), r:1.5+Math.random()*2.5, speed:0.6+Math.random()*1.2, drift:Math.random()*1});
+    }
+  } else if(m==='sleet' || m==='mixed'){
+    const n = m==='mixed' ? 60 : 50;
+    for(let i=0;i<n;i++){
+      target.push({x:Math.random()*w, y:offY(), len:5+Math.random()*5, speed:5+Math.random()*4, snow: Math.random() < (m==='mixed' ? 0.5 : 0.4), r:1+Math.random()*1.4});
+    }
+  } else if(m==='stars'){
+    for(let i=0;i<90;i++){
+      target.push({x:Math.random()*w, y:Math.random()*h*0.75, r:0.6+Math.random()*1.4, phase:Math.random()*Math.PI*2});
+    }
+  } else if(m==='cloud' || m==='cloud_night'){
+    for(let i=0;i<5;i++){
+      const s = 60+Math.random()*70;
+      const x = entering ? -s - Math.random()*90 : Math.random()*w;
+      target.push({x, y:20+Math.random()*h*0.4, s, speed:0.15+Math.random()*0.15});
+    }
+  } else if(m==='partlycloudy'){
+    for(let i=0;i<3;i++){
+      const s = 50+Math.random()*50;
+      const x = entering ? -s - Math.random()*90 : Math.random()*w;
+      target.push({x, y:20+Math.random()*h*0.35, s, speed:0.12+Math.random()*0.12});
+    }
+  } else if(m==='fog'){
+    for(let i=0;i<4;i++){
+      const s = w*0.7;
+      const x = entering ? -s : Math.random()*w;
+      target.push({x, y:h*0.3+i*h*0.18, s, speed:0.1+i*0.05});
+    }
+  } else if(m==='haze'){
+    for(let i=0;i<2;i++){
+      const s = w*0.6;
+      const x = entering ? -s : Math.random()*w;
+      target.push({x, y:h*0.35+i*h*0.25, s, speed:0.08+i*0.04});
+    }
+  }
+}
+
+function setParticleMode(m){
+  if(m === mode) return;
+  prevMode = mode;
+  prevParticles = particles;
+  mode = m;
+  particles = [];
+  seedParticles(particles, mode, true);
+  transitionStart = performance.now();
+}
+
+let lightning = 0;
+
+/* Disegna un singolo stato meteo (usata sia per lo stato attuale sia,
+   durante la transizione, per quello uscente con opacità decrescente) */
+function renderParticles(m, parts, alpha){
+  const w = canvas.width, h = canvas.height;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  if(m==='sun'){
+    const g = ctx.createRadialGradient(w*0.82,h*0.22,0,w*0.82,h*0.22,w*0.5);
+    g.addColorStop(0,'rgba(255,236,190,0.55)');
+    g.addColorStop(1,'rgba(255,236,190,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
+  }
+
+  if(m==='rain' || m==='rain_moderate' || m==='rain_heavy' || m==='storm' || m==='drizzle'){
+    ctx.strokeStyle = m==='drizzle' ? 'rgba(220,232,245,0.4)' : 'rgba(220,232,245,0.55)';
+    ctx.lineWidth = m==='drizzle' ? 1.0 : 1.4;
+    parts.forEach(p=>{
+      ctx.beginPath();
+      ctx.moveTo(p.x,p.y);
+      ctx.lineTo(p.x-3, p.y+p.len);
+      ctx.stroke();
+      if(!reduceMotion){ p.y += p.speed; p.x -= 0.6; }
+      if(p.y > h){ p.y = -20; p.x = Math.random()*w; }
+    });
+    if(m==='storm' && !reduceMotion){
+      lightning -= 1;
+      if(Math.random()<0.006 && lightning<=0){ lightning = 6; }
+      if(lightning>0){
+        ctx.fillStyle = `rgba(255,255,255,${lightning*0.05*alpha})`;
+        ctx.fillRect(0,0,w,h);
+      }
+    }
+  }
+
+  if(m==='snow'){
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    parts.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+      if(!reduceMotion){ p.y += p.speed; p.x += Math.sin(p.y*0.02)*p.drift*0.5; }
+      if(p.y > h){ p.y=-5; p.x=Math.random()*w; }
+    });
+  }
+
+  if(m==='sleet' || m==='mixed'){
+    parts.forEach(p=>{
+      if(p.snow){
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = 'rgba(220,232,245,0.6)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y);
+        ctx.lineTo(p.x-2, p.y+p.len);
+        ctx.stroke();
+      }
+      if(!reduceMotion){ p.y += p.speed; }
+      if(p.y > h){ p.y=-10; p.x=Math.random()*w; }
+    });
+  }
+
+  if(m==='stars'){
+    parts.forEach(p=>{
+      const tw = reduceMotion ? 1 : (0.5+0.5*Math.sin(Date.now()*0.002 + p.phase));
+      ctx.fillStyle = `rgba(243,237,224,${0.3+0.6*tw})`;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    });
+    ctx.fillStyle = 'rgba(230,230,240,0.9)';
+    ctx.beginPath(); ctx.arc(w*0.8,h*0.22,22,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = PALETTES.notte.sky[0];
+    ctx.beginPath(); ctx.arc(w*0.8+9,h*0.22-6,20,0,Math.PI*2); ctx.fill();
+  }
+
+  if(m==='cloud'){
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    parts.forEach(p=>{
+      ctx.beginPath();
+      ctx.ellipse(p.x,p.y,p.s,p.s*0.45,0,0,Math.PI*2);
+      ctx.fill();
+      if(!reduceMotion){ p.x += p.speed; }
+      if(p.x - p.s > w){ p.x = -p.s; }
+    });
+  }
+
+  if(m==='cloud_night'){
+    ctx.fillStyle = 'rgba(96,104,118,0.7)';
+    parts.forEach(p=>{
+      ctx.beginPath();
+      ctx.ellipse(p.x,p.y,p.s,p.s*0.45,0,0,Math.PI*2);
+      ctx.fill();
+      if(!reduceMotion){ p.x += p.speed; }
+      if(p.x - p.s > w){ p.x = -p.s; }
+    });
+    const g = ctx.createRadialGradient(w*0.76,h*0.2,0,w*0.76,h*0.2,w*0.28);
+    g.addColorStop(0,'rgba(225,228,238,0.16)');
+    g.addColorStop(1,'rgba(225,228,238,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
+  }
+
+  if(m==='partlycloudy'){
+    const g = ctx.createRadialGradient(w*0.78,h*0.18,0,w*0.78,h*0.18,w*0.4);
+    g.addColorStop(0,'rgba(255,236,190,0.4)');
+    g.addColorStop(1,'rgba(255,236,190,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    parts.forEach(p=>{
+      ctx.beginPath();
+      ctx.ellipse(p.x,p.y,p.s,p.s*0.4,0,0,Math.PI*2);
+      ctx.fill();
+      if(!reduceMotion){ p.x += p.speed; }
+      if(p.x - p.s > w){ p.x = -p.s; }
+    });
+  }
+
+  if(m==='fog'){
+    parts.forEach(p=>{
+      const g = ctx.createLinearGradient(p.x-p.s,p.y,p.x+p.s,p.y);
+      g.addColorStop(0,'rgba(230,225,214,0)');
+      g.addColorStop(0.5,'rgba(230,225,214,0.35)');
+      g.addColorStop(1,'rgba(230,225,214,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x-p.s,p.y-18,p.s*2,36);
+      if(!reduceMotion){ p.x += p.speed; }
+      if(p.x - p.s > w){ p.x = -p.s; }
+    });
+  }
+
+  if(m==='haze'){
+    parts.forEach(p=>{
+      const g = ctx.createLinearGradient(p.x-p.s,p.y,p.x+p.s,p.y);
+      g.addColorStop(0,'rgba(230,225,214,0)');
+      g.addColorStop(0.5,'rgba(230,225,214,0.18)');
+      g.addColorStop(1,'rgba(230,225,214,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x-p.s,p.y-14,p.s*2,28);
+      if(!reduceMotion){ p.x += p.speed; }
+      if(p.x - p.s > w){ p.x = -p.s; }
+    });
+  }
+
+  ctx.restore();
+}
+
+function draw(){
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+
+  if(prevMode && !reduceMotion){
+    const t = Math.min(1, (performance.now()-transitionStart)/TRANSITION_MS);
+    renderParticles(prevMode, prevParticles, 1-t);
+    renderParticles(mode, particles, t);
+    if(t>=1){ prevMode = null; prevParticles = []; }
+  } else {
+    renderParticles(mode, particles, 1);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+/* Humidex (formula standard, da temperatura e dew point in °C) */
+function computeHumidex(tempC, dewptC){
+  const e = 6.11 * Math.exp(5417.7530 * (1/273.16 - 1/(273.15 + dewptC)));
+  return tempC + 0.5555 * (e - 10.0);
+}
+
+/* Tutte le altre condizioni (sereno, parzialmente nuvoloso, nuvoloso, nebbia,
+   foschia, notte, notte nuvolosa) derivano dal METAR dell'aeroporto di Genova
+   (LIMJ) — copertura nuvolosa e fenomeni di visibilità riportati dai piloti */
+function classifySkyFromMetar(metar, isDaytime){
+  const wx = (metar.wxString || '').toUpperCase();
+  const coverTop = (metar.cover || '').toUpperCase();
+  const clouds = metar.clouds || [];
+
+  const hasVV = coverTop === 'VV' || clouds.some(c => (c.cover||'').toUpperCase() === 'VV');
+  if(wx.includes('FG') || hasVV) return 'nebbia';
+  if(wx.includes('BR') || wx.includes('HZ')) return 'foschia';
+
+  const order = { FEW:1, SCT:2, BKN:3, OVC:4 };
+  let maxCover = null;
+  clouds.forEach(c=>{
+    const cov = (c.cover||'').toUpperCase();
+    if(order[cov] && (!maxCover || order[cov] > order[maxCover])) maxCover = cov;
+  });
+
+  const isClear = coverTop === 'CAVOK' || coverTop === 'SKC' || coverTop === 'CLR' || coverTop === 'NSC' || !maxCover;
+  if(isClear) return isDaytime ? 'sereno' : 'notte';
+  if(maxCover === 'FEW' || maxCover === 'SCT') return isDaytime ? 'parzialmente_nuvoloso' : 'notte_nuvolosa';
+  return isDaytime ? 'nuvoloso' : 'notte_nuvolosa'; // BKN, OVC
+}
 
 /* =========================================
    RETI SUPPORTATE
@@ -385,36 +1611,18 @@ function resolveStation() {
 }
 
 
+
+
 /* =========================================
-   COSTRUZIONE PAGINA
+   STAZIONE DAL LINK
 ========================================= */
 
 const stationContext = resolveStation();
 
-const stationNameEl = document.getElementById("stationName");
-const stationBgEl   = document.getElementById("stationBackground");
-
-if (stationContext.found) {
-
-    stationNameEl.textContent = stationContext.displayName;
-    document.title            = stationContext.displayName;
-    stationBgEl.src           = stationContext.background;
-
-} else {
-
-    console.warn("Stazione non risolta:", stationContext);
-
-    stationNameEl.textContent    = "Stazione non trovata";
-    stationBgEl.style.display    = "none";
-
-}
-
-// Esposto per i grafici che aggiungeremo dopo
+// Esposto per eventuali altri script
 window.stationContext = stationContext;
 
-document.dispatchEvent(
-    new CustomEvent("station-ready", { detail: stationContext })
-);
+
 
 
 /* =========================================
@@ -710,107 +1918,15 @@ async function refreshData() {
     }
 }
 
-if (stationContext.found) {
-    refreshData();
-    setInterval(refreshData, REFRESH_MS);
-}
 
-
-/* =========================================
-   LETTURA PROVVISORIA DEI DATI
-   (solo per verificare il fetch: da sostituire coi grafici)
-========================================= */
-
-const contentEl = document.getElementById("readout");
-
-const READOUT = [
-    ["Temperatura (°C)", "temp"],
-    ["Max (°C)", "tempHigh"],
-    ["Min (°C)", "tempLow"],
-    ["Umidità (%)", "hum"],
-    ["Umidità max (%)", "humHigh"],
-    ["Umidità min (%)", "humLow"],
-    ["Dew point (°C)", "dewp"],
-    ["Heat index (°C)", "heat"],
-    ["Vento", "wind"],
-    ["Raffica", "windGust"],
-    ["Direzione (°)", "windDir"],
-    ["Rain rate (mm/h)", "rainRate"],
-    ["Pioggia giorno (mm)", "rainDaily"]
-];
-
-document.addEventListener("station-data", function (e) {
-
-    const d = e.detail;
-
-    contentEl.innerHTML =
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">' +
-        READOUT.map(function (r) {
-            const v = d[r[1]];
-            return '<div style="background:rgba(160,160,160,.85);color:#fff;border-radius:12px;padding:10px 14px;">' +
-                   '<div style="font-size:12px;opacity:.8;">' + r[0] + '</div>' +
-                   '<div style="font-size:22px;font-weight:600;">' + (v === null ? "--" : v) + '</div>' +
-                   '</div>';
-        }).join("") +
-        '</div>';
-});
-
-document.addEventListener("station-error", function (e) {
-    contentEl.innerHTML =
-        '<div style="background:rgba(160,160,160,.85);color:#fff;border-radius:12px;padding:12px 16px;">' +
-        'Dati non disponibili: ' + e.detail.message + '</div>';
-});
 
 
 
 /* =========================================
-   GRAFICO: colori in base al valore
-   (stessa scala della temperatura usata nelle altre pagine)
+   GRAFICI: pioggia e temperatura (stesso codice, due istanze)
 ========================================= */
 
-const TEMP_COLORS = [
-    [-15, "#f54dff"], [-10, "#c65bff"], [-4, "#4d54ff"], [-2, "#1f7eb9"],
-    [Number.MIN_VALUE, "#539eb0"],   // da -2 a 0 compreso
-    [2, "#67bac8"], [4, "#5ac5ba"], [6, "#42a37b"], [8, "#538b53"],
-    [10, "#419a41"], [12, "#5cb425"], [14, "#76ca38"], [16, "#a1d950"],
-    [18, "#eadf00"], [20, "#ffcc55"], [22, "#ffaf54"], [24, "#fa8f4b"],
-    [26, "#f26969"], [28, "#de5a5a"], [30, "#b05151"], [32, "#994848"],
-    [34, "#743e3e"], [36, "#b874ac"], [38, "#ea7bea"]
-];
-
-function getTempColor(value) {
-    for (const [limit, color] of TEMP_COLORS) {
-        if (value < limit) return color;
-    }
-    return "#995a99";   // da 38°C in su
-}
-
-
-/* =========================================
-   GRAFICO: impostazioni
-   (per un'altra grandezza basta cambiare questi 5 campi)
-========================================= */
-
-// Colori della pioggia (stessa scala delle altre pagine)
-function getRainColor(v) {
-    if (v === 0) return "#808080";
-    if (v < 2)   return "#f9ae6c";
-    if (v < 5)   return "#f9966c";
-    if (v < 10)  return "#6ca561";
-    if (v < 20)  return "#65d050";
-    if (v < 30)  return "#4dc8ff";
-    if (v < 50)  return "#4da9ff";
-    return "#2c278e";
-}
-
-const CHART = {
-    title: "Pioggia",
-    unit: "mm",
-    decimals: 1,
-    gridStep: 1,              // passo base delle linee orizzontali
-    minZero: true,            // la scala parte sempre da 0
-    colorFn: getRainColor
-};
+function createChart(CHART) {
 
 const BLOCK_MIN = 360;                      // 6 ore per riquadro
 const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 4 riquadri al giorno
@@ -821,14 +1937,13 @@ const GRID_MIN = 30;                        // linee verticali ogni 30 minuti
    GRAFICO: struttura HTML
 ========================================= */
 
-const chartSection = document.getElementById("chartSection");
+const chartSection = document.getElementById(CHART.mount);
 
 chartSection.innerHTML =
     '<div class="chart-tabs" id="chartTabs"></div>' +
     '<div class="chart-panel">' +
         '<div class="chart-head">' +
-            '<span class="title">' + CHART.title + '</span>' +
-            '<span class="range" id="chartRange"></span>' +
+                        '<span class="range" id="chartRange"></span>' +
         '</div>' +
         '<div class="chart-wrap" id="chartWrap">' +
             '<svg id="chartSvg"></svg>' +
@@ -836,11 +1951,11 @@ chartSection.innerHTML =
         '</div>' +
     '</div>';
 
-const chartTabs    = document.getElementById("chartTabs");
-const chartWrap    = document.getElementById("chartWrap");
-const chartSvg     = document.getElementById("chartSvg");
-const chartTooltip = document.getElementById("chartTooltip");
-const chartRange   = document.getElementById("chartRange");
+const chartTabs    = chartSection.querySelector(".chart-tabs");
+const chartWrap    = chartSection.querySelector(".chart-wrap");
+const chartSvg     = chartSection.querySelector("svg");
+const chartTooltip = chartSection.querySelector(".chart-tooltip");
+const chartRange   = chartSection.querySelector(".range");
 
 
 /* =========================================
@@ -1000,8 +2115,8 @@ function renderChart() {
 
     let svg =
         '<defs>' +
-            '<linearGradient id="chartGradient" gradientUnits="userSpaceOnUse" x1="' + padL + '" y1="0" x2="' + (W - padR) + '" y2="0">' + stops + '</linearGradient>' +
-            '<filter id="chartBlur" filterUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '">' +
+            '<linearGradient id="chartGradient' + CHART.id + '" gradientUnits="userSpaceOnUse" x1="' + padL + '" y1="0" x2="' + (W - padR) + '" y2="0">' + stops + '</linearGradient>' +
+            '<filter id="chartBlur' + CHART.id + '" filterUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '">' +
                 '<feGaussianBlur stdDeviation="8"/>' +
             '</filter>' +
         '</defs>';
@@ -1046,7 +2161,7 @@ function renderChart() {
 
         const pts = seg.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
 
-        svg += '<polyline points="' + pts + '" fill="none" stroke="url(#chartGradient)" stroke-width="10" filter="url(#chartBlur)" opacity="0.65" stroke-linecap="round" stroke-linejoin="round"/>';
+        svg += '<polyline points="' + pts + '" fill="none" stroke="url(#chartGradient' + CHART.id + ')" stroke-width="10" filter="url(#chartBlur' + CHART.id + ')" opacity="0.65" stroke-linecap="round" stroke-linejoin="round"/>';
         svg += '<polyline points="' + pts + '" fill="none" stroke="#f3ede0" stroke-width="2.2" opacity="0.95" stroke-linecap="round" stroke-linejoin="round"/>';
     });
 
@@ -1083,8 +2198,8 @@ function hideChartCursor() {
 
     chartTooltip.classList.remove("visible");
 
-    const cross = document.getElementById("chartCross");
-    const dot = document.getElementById("chartDot");
+    const cross = chartSvg.querySelector("#chartCross");
+    const dot = chartSvg.querySelector("#chartDot");
 
     if (cross) cross.style.display = "none";
     if (dot) dot.style.display = "none";
@@ -1121,8 +2236,8 @@ function onChartPointer(e) {
     const v = (found !== null) ? values[found] : null;
     const cx = g.xFor(mm);
 
-    const cross = document.getElementById("chartCross");
-    const dot = document.getElementById("chartDot");
+    const cross = chartSvg.querySelector("#chartCross");
+    const dot = chartSvg.querySelector("#chartDot");
 
     cross.setAttribute("x1", cx);
     cross.setAttribute("x2", cx);
@@ -1212,7 +2327,7 @@ function setChartData(points) {
     renderChart();
 }
 
-window.stationChart = {
+const api = {
     setData: setChartData,
     clear: function () { setChartData([]); },
     setBlock: function (i) {
@@ -1237,15 +2352,10 @@ const ARCHIVE_URL = "https://archivio-eventi.eggittof.workers.dev/export?format=
 // rete del link → parametro "src" dell'archivio (altre reti si aggiungono qui)
 // Ogni rete ha un ELENCO di fonti: si provano in ordine e si usa la prima
 // che contiene la stazione (LIMET: limet1, poi limet2).
-const ARCHIVE_SRC = {
-    omirl:    ["omirl"],
-    ignorete: ["ignorete"],
-    limet:    ["limet1", "limet2"]
-};
 
 async function loadChartFromArchive() {
 
-    const sources = ARCHIVE_SRC[stationContext.network];
+    const sources = CHART.archive[stationContext.network];
 
     if (!stationContext.found || !sources) return;
 
@@ -1339,8 +2449,410 @@ setInterval(function () {
 
 }, 30 * 1000);
 
-    </script>
+    return api;
+}
 
+// Fonti dell'archivio: si prova in ordine e si usa la prima che contiene la stazione
+// (LIMET: limet1, poi limet2). Le temperature hanno lo stesso nome + "_T".
+const rainChart = createChart({
+    id: 'Rain', mount: 'chartSection',
+    unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
+    colorFn: getRainScaleColor,
+    archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'] }
+});
+
+const tempChart = createChart({
+    id: 'Temp', mount: 'tempChartSection',
+    unit: '°C', decimals: 1, gridStep: 1, minZero: false,
+    colorFn: getTempColor,
+    archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'] }
+});
+
+window.stationCharts = { rain: rainChart, temp: tempChart };
+
+
+
+/* ============================================================
+   INTERFACCIA: dai dati della stazione (latestData) alla pagina
+   ============================================================ */
+
+// Se la stazione non indica le coordinate si usa Genova (serve solo a
+// capire se è giorno o notte)
+const DEFAULT_LAT = 44.41;
+const DEFAULT_LON = 8.93;
+
+const LIVE_METAR_URL = 'https://api-stazioni-meteo.eggittof.workers.dev/metar.json';
+const METAR_REFRESH_MS = 5 * 60 * 1000;   // il METAR cambia poco: ogni 5 minuti
+
+let lastData = null;       // ultima lettura valida della stazione
+let cachedMetar = null;    // ultimo METAR (aeroporto di Genova, LIMJ)
+
+/* Altezza del sole sull'orizzonte, in gradi (formule astronomiche
+   semplificate). Le stazioni senza sensore di radiazione solare o UV
+   usano questo per distinguere giorno e notte. */
+function sunElevationDeg(lat, lon, date){
+  const rad = Math.PI / 180;
+  const d = date.getTime() / 86400000 + 2440587.5 - 2451545.0;   // giorni da J2000
+  const g = (357.529 + 0.98560028 * d) % 360;
+  const q = (280.459 + 0.98564736 * d) % 360;
+  const L = q + 1.915 * Math.sin(g * rad) + 0.020 * Math.sin(2 * g * rad);
+  const e = 23.439 - 0.00000036 * d;
+  const ra = Math.atan2(Math.cos(e * rad) * Math.sin(L * rad), Math.cos(L * rad)) / rad;
+  const dec = Math.asin(Math.sin(e * rad) * Math.sin(L * rad)) / rad;
+  const gmst = (18.697374558 + 24.06570982441908 * d) % 24;
+  const H = gmst * 15 + lon - ra;                                 // angolo orario
+  const sinEl = Math.sin(lat * rad) * Math.sin(dec * rad) +
+                Math.cos(lat * rad) * Math.cos(dec * rad) * Math.cos(H * rad);
+  return Math.asin(sinEl) / rad;
+}
+
+function fmtNum(v, dec){
+  return (v === null || v === undefined || !Number.isFinite(v)) ? null : v.toFixed(dec);
+}
+
+function nz(v){
+  return (v === undefined || v === null || !Number.isFinite(v)) ? null : v;
+}
+
+/* Temperatura percepita: caldo → heat index, freddo con vento → wind chill */
+function computeFeelsLike(d){
+  if (d.temp === null) return null;
+  if (d.temp >= 20 && d.heat !== null) return d.heat;
+  if (d.temp <= 10 && d.wind !== null && d.wind > 4.8) {
+    const v = Math.pow(d.wind, 0.16);
+    return 13.12 + 0.6215 * d.temp - 11.37 * v + 0.3965 * d.temp * v;
+  }
+  return d.temp;
+}
+
+/* Pioggia e neve (in tutte le varianti) dipendono dal pluviometro e dalla
+   temperatura della stazione, non dal METAR */
+function classifyPrecipCondition(rate, temp){
+  if (rate === null || rate <= 0) return null;
+
+  if (temp !== null) {
+    if (temp <= 0.5) return (rate < 1.5) ? 'nevischio' : 'neve';
+    if (temp <= 2.5) return 'pioggia_mista_neve';
+  }
+  if (rate < 1) return 'pioviggine';
+  if (rate < 4) return 'pioggia';
+  if (rate < 15) return 'pioggia_moderata';
+  return 'pioggia_forte';
+}
+
+/* Le altre condizioni derivano dal METAR di Genova. Senza METAR si
+   mostra solo giorno/notte e l'etichetta dice che il cielo non è noto. */
+function classifyCondition(d, metar, isDaytime){
+  const precip = classifyPrecipCondition(d.rainRate, d.temp);
+  if (precip) return { key: precip, skyKnown: true };
+
+  if (metar) {
+    try {
+      return { key: classifySkyFromMetar(metar, isDaytime), skyKnown: true };
+    } catch (err) {
+      console.error('METAR non leggibile:', err);
+    }
+  }
+  return { key: isDaytime ? 'sereno' : 'notte', skyKnown: false };
+}
+
+/* ---------- scrittura dei valori ---------- */
+
+const el = (id) => document.getElementById(id);
+const setVal = (id, v) => setTextFade(el(id), v === null ? '--' : v);
+const setExtra = (id, v) => setTextFade(el(id), v === null ? '' : v);
+
+function showCard(valueId, visible){
+  const card = el(valueId).closest('.instrument-card');
+  if (card) card.classList.toggle('no-data', !visible);
+}
+
+let stationAltitude = null;   // es. "25 m s.l.m." se il nome stazione la indica
+
+const DATA_KEYS = [
+  'temp', 'tempHigh', 'tempLow', 'hum', 'humHigh', 'humLow',
+  'dewp', 'dewpHigh', 'dewpLow', 'heat', 'heatHigh', 'heatLow',
+  'wind', 'windGust', 'windGustHigh', 'windDir',
+  'rainRate', 'rainRateMax', 'rainDaily',
+  'pressure', 'pressHigh', 'pressLow',
+  'solar', 'solarHigh', 'uv', 'uvHigh', 'lat', 'lon'
+];
+
+function applyData(raw){
+  lastData = raw;
+
+  // ogni rete fornisce campi diversi: quelli assenti diventano null
+  const d = {};
+  DATA_KEYS.forEach(function (k) { d[k] = nz(raw[k]); });
+
+  const lat = nz(d.lat) ?? DEFAULT_LAT;
+  const lon = nz(d.lon) ?? DEFAULT_LON;
+  const isDaytime = sunElevationDeg(lat, lon, new Date()) > -0.833;
+
+  const metar = Array.isArray(cachedMetar) ? cachedMetar[0] : null;
+  const cond = classifyCondition(d, metar, isDaytime);
+  const palette = PALETTES[cond.key];
+
+  // ----- tema della pagina in base alla condizione
+  const root = document.documentElement.style;
+  const sky = (cond.key === 'sereno') ? sereneSky(d.hum ?? 50) : palette.sky;
+  root.setProperty('--sky-top', sky[0]);
+  root.setProperty('--sky-bottom', sky[1]);
+  root.setProperty('--page-bg', palette.bg);
+  root.setProperty('--accent', palette.accent);
+  root.setProperty('--text-on-sky', palette.textOnSky);
+
+  setTextFade(el('conditionLabel'), cond.skyKnown ? palette.condition : 'Cielo non disponibile');
+
+  const figure = el('skyFigure');
+  figure.setAttribute('viewBox', '0 0 26 26');
+  figure.innerHTML = ICONS[palette.icon]();
+  figure.style.color = heroIconColor(palette);
+
+  setParticleMode(palette.particle);
+
+  // ----- valori derivati
+  const temp = d.temp, dew = d.dewp, hum = d.hum;
+
+  const humidex = (temp !== null && dew !== null) ? computeHumidex(temp, dew) : null;
+  const humidexMax = (nz(d.tempHigh) !== null && nz(d.dewpHigh) !== null) ? computeHumidex(d.tempHigh, d.dewpHigh) : null;
+  const humidexMin = (nz(d.tempLow) !== null && nz(d.dewpLow) !== null) ? computeHumidex(d.tempLow, d.dewpLow) : null;
+  const cloudBase = (temp !== null && dew !== null) ? Math.max(0, (temp - dew) * 125) : null;
+  const feels = computeFeelsLike(d);
+
+  const wind = nz(d.wind), gust = nz(d.windGust), windDir = nz(d.windDir);
+  const rainRate = nz(d.rainRate), rainDaily = nz(d.rainDaily);
+  const pressure = nz(d.pressure);
+
+  // ----- hero
+  if (temp !== null) updateTempDisplay(temp);
+  setVal('tempMain', fmtNum(temp, 1));
+  setVal('feelsLike', feels === null ? null : fmtNum(feels, 1) + '°');
+  setVal('humidityInline', hum === null ? null : Math.round(hum) + '%');
+  setVal('windInline', wind === null ? null : fmtNum(wind, 1) + ' km/h');
+  setVal('tempMax', nz(d.tempHigh) === null ? null : fmtNum(d.tempHigh, 1) + '°');
+  setVal('tempMin', nz(d.tempLow) === null ? null : fmtNum(d.tempLow, 1) + '°');
+
+  // ----- strumenti (un riquadro senza dato resta nascosto)
+  setVal('dewPointValue', fmtNum(dew, 1));
+  setExtra('dewPointMax', nz(d.dewpHigh) === null ? null : fmtNum(d.dewpHigh, 1) + '°');
+  setExtra('dewPointMin', nz(d.dewpLow) === null ? null : fmtNum(d.dewpLow, 1) + '°');
+  showCard('dewPointValue', dew !== null);
+
+  setVal('heatIndexValue', fmtNum(d.heat, 1));
+  setExtra('heatIndexMax', nz(d.heatHigh) === null ? null : fmtNum(d.heatHigh, 1) + '°');
+  setExtra('heatIndexMin', nz(d.heatLow) === null ? null : fmtNum(d.heatLow, 1) + '°');
+  showCard('heatIndexValue', d.heat !== null);
+
+  setVal('humidexValue', fmtNum(humidex, 1));
+  setExtra('humidexMax', humidexMax === null ? null : fmtNum(humidexMax, 1) + '°');
+  setExtra('humidexMin', humidexMin === null ? null : fmtNum(humidexMin, 1) + '°');
+  showCard('humidexValue', humidex !== null);
+
+  setVal('humidityValue', hum === null ? null : Math.round(hum));
+  setExtra('humidityMax', nz(d.humHigh) === null ? null : Math.round(d.humHigh) + '%');
+  setExtra('humidityMin', nz(d.humLow) === null ? null : Math.round(d.humLow) + '%');
+  showCard('humidityValue', hum !== null);
+
+  setVal('pressureValue', fmtNum(pressure, 1));
+  setExtra('pressureMax', nz(d.pressHigh) === null ? null : fmtNum(d.pressHigh, 1));
+  setExtra('pressureMin', nz(d.pressLow) === null ? null : fmtNum(d.pressLow, 1));
+  setExtra('pressureLevelLabel', pressure === null ? null : pressureLevelLabel(pressure));
+  showCard('pressureValue', pressure !== null);
+
+  setVal('windValue', fmtNum(wind, 1));
+  setExtra('windDirLabel', windDir === null ? null : windDirLabel(windDir));
+  showCard('windValue', wind !== null);
+
+  setVal('gustValue', fmtNum(gust, 1));
+  setExtra('gustMaxLabel', nz(d.windGustHigh) === null ? null : 'Raffica Max: ' + fmtNum(d.windGustHigh, 1) + ' km/h');
+  showCard('gustValue', gust !== null);
+
+  setVal('precipValue', fmtNum(rainDaily, 1));
+  setExtra('precipTrendLabel', rainRate === null ? null : precipTrendLabel(rainRate));
+  showCard('precipValue', rainDaily !== null);
+
+  setVal('rainValue', fmtNum(rainRate, 1));
+  setExtra('rainRateMaxLabel', nz(d.rainRateMax) === null ? null : 'Rain Rate max: ' + fmtNum(d.rainRateMax, 1) + ' mm/h');
+  showCard('rainValue', rainRate !== null);
+
+  // radiazione solare e UV: nessuna delle reti collegate le fornisce
+  const solar = nz(d.solar), uv = nz(d.uv);
+  setVal('solarValue', solar === null ? null : Math.round(solar));
+  setExtra('solarMaxInline', nz(d.solarHigh) === null ? null : '↑ ' + Math.round(d.solarHigh));
+  setExtra('solarQualLabel', solar === null ? null : solarQualitativeLabel(solar, new Date().getHours() < 12 ? 0 : 1));
+  showCard('solarValue', solar !== null);
+
+  setVal('uvValue', uv === null ? null : uv);
+  setExtra('uvMaxInline', nz(d.uvHigh) === null ? null : '↑ ' + d.uvHigh);
+  setExtra('uvQualLabel', uv === null ? null : uvQualitativeLabel(uv));
+  showCard('uvValue', uv !== null);
+
+  setVal('cloudBaseValue', cloudBase === null ? null : Math.round(cloudBase));
+  setExtra('cloudBaseQualLabel', cloudBase === null ? null : cloudBaseQualitativeLabel(cloudBase));
+  showCard('cloudBaseValue', cloudBase !== null);
+
+  // "LED" colorato sotto ogni riquadro, in base al valore
+  const glow = (id, v, fn) => setCardGlow(id, (v === null || v === 0) ? 'transparent' : fn(v));
+  setCardGlow('dewPointValue', dew === null ? 'transparent' : getTempColor(dew));
+  setCardGlow('heatIndexValue', d.heat === null ? 'transparent' : getTempColor(d.heat));
+  setCardGlow('humidexValue', humidex === null ? 'transparent' : getTempColor(humidex));
+  setCardGlow('humidityValue', hum === null ? 'transparent' : getHumColor(hum));
+  setCardGlow('pressureValue', pressure === null ? 'transparent' : getPressureColor(pressure));
+  glow('windValue', wind, getRainScaleColor);
+  setCardGlow('gustValue', gust === null ? 'transparent' : getRainScaleColor(gust));
+  glow('precipValue', rainDaily, getRainScaleColor);
+  glow('rainValue', rainRate, getRainScaleColor);
+  glow('solarValue', solar, getSolarColor);
+  glow('uvValue', uv, getUVColor);
+  setCardGlow('cloudBaseValue', cloudBase === null ? 'transparent' : getCloudBaseColor(cloudBase));
+
+  // ----- piè di pagina
+  setTextFade(el('footerUpdate'), 'Dati scaricati alle ' + new Date().toLocaleTimeString('it-IT'));
+
+  const lat6 = nz(d.lat), lon6 = nz(d.lon);
+  const coords = (lat6 !== null && lon6 !== null)
+    ? Math.abs(lat6).toFixed(4) + '° ' + (lat6 >= 0 ? 'N' : 'S') + ', ' +
+      Math.abs(lon6).toFixed(4) + '° ' + (lon6 >= 0 ? 'E' : 'W')
+    : null;
+
+  el('footerCoords').textContent = [coords, stationAltitude].filter(Boolean).join(' · ');
+}
+
+function updateTempDisplay(value){
+  const color = getTempColor(value);
+  el('tempOverlay').style.backgroundColor = color;
+  el('heroGlow').style.backgroundColor = color;
+}
+
+/* ---------- intestazione: nome, fonte, altitudine ---------- */
+
+function setStationHeader(){
+
+  if (!stationContext.found) {
+    el('stationEyebrow').textContent = 'Link non valido';
+    el('stationPlace').textContent = 'Stazione non trovata';
+    document.title = 'Stazione non trovata';
+    return;
+  }
+
+  // "Genova Sturla - Fonte: Wunderground - Altitudine: 74 m.s.l.m."
+  const m = /^(.*?) - Fonte: (.*?)(?: - Altitudine: (.*))?$/.exec(stationContext.displayName);
+
+  const place = m ? m[1] : stationContext.name;
+  const source = m ? m[2] : stationContext.networkName;
+
+  stationAltitude = (m && m[3]) ? m[3].replace('m.s.l.m.', 'm s.l.m.') : null;
+
+  el('stationEyebrow').textContent = source + (stationAltitude ? ' · ' + stationAltitude : '');
+  el('stationPlace').textContent = place;
+  document.title = place + ' · Stazione meteo';
+}
+
+/* ---------- stato online/offline e conto alla rovescia ---------- */
+
+let secondsToRefresh = Math.round(REFRESH_MS / 1000);
+let liveIsOnline = true;
+let liveNote = '';
+let liveFixedText = null;    // per i casi senza aggiornamento (link non valido, rete non collegata)
+
+function renderLiveStatus(){
+  const dot = el('liveStatusDot');
+  const text = el('liveStatusText');
+
+  dot.classList.toggle('offline', !liveIsOnline);
+
+  if (liveFixedText) {
+    text.textContent = liveFixedText;
+    return;
+  }
+
+  text.textContent =
+    (liveIsOnline ? 'Online' : 'Offline') +
+    (liveNote ? ' · ' + liveNote : '') +
+    ' · Aggiorna tra ' + secondsToRefresh + 's';
+}
+
+document.addEventListener('station-data', function (e) {
+  liveIsOnline = true;
+  liveNote = '';
+  applyData(e.detail);
+  renderLiveStatus();
+});
+
+document.addEventListener('station-error', function (e) {
+  liveIsOnline = false;
+  liveNote = String((e.detail && e.detail.message) || e.detail || 'errore').slice(0, 90);
+  renderLiveStatus();
+});
+
+function tickLiveCountdown(){
+  secondsToRefresh -= 1;
+
+  if (secondsToRefresh <= 0) {
+    secondsToRefresh = Math.round(REFRESH_MS / 1000);
+    refreshData();
+  }
+
+  renderLiveStatus();
+}
+
+/* Il METAR si scarica a parte (ogni 5 minuti) e, quando arriva, la pagina
+   si ridisegna con l'ultimo dato della stazione */
+async function refreshMetar(){
+  try {
+    const res = await fetch(LIVE_METAR_URL);
+
+    if (!res.ok) throw new Error('METAR HTTP ' + res.status);
+
+    cachedMetar = await res.json();
+
+  } catch (err) {
+    console.error('METAR non disponibile:', err);
+    cachedMetar = null;
+  }
+
+  if (lastData) applyData(lastData);
+}
+
+/* ============================================================
+   AVVIO
+   ============================================================ */
+
+// tutti i riquadri sono sempre presenti; senza dato mostrano "Dato non presente"
+function markAllNoData(){
+  document.querySelectorAll('.instrument-card').forEach(function (c) {
+    c.classList.add('no-data');
+  });
+}
+
+setStationHeader();
+resizeCanvas();
+requestAnimationFrame(draw);
+
+if (!stationContext.found) {
+
+  liveIsOnline = false;
+  liveFixedText = 'Offline · ' + stationContext.reason;
+  renderLiveStatus();
+  markAllNoData();
+
+} else if (!FETCHERS[stationContext.network]) {
+
+  liveIsOnline = false;
+  liveFixedText = 'Offline · rete ' + stationContext.networkName + ' non ancora collegata';
+  renderLiveStatus();
+  markAllNoData();
+
+} else {
+
+  renderLiveStatus();
+  refreshMetar();
+  refreshData();
+  setInterval(tickLiveCountdown, 1000);
+  setInterval(refreshMetar, METAR_REFRESH_MS);
+}
+
+</script>
 </body>
-
 </html>
