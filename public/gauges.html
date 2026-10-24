@@ -1974,8 +1974,27 @@ async function refreshData() {
 
 function createChart(CHART) {
 
-const BLOCK_MIN = 720;                      // 6 ore per riquadro
-const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 4 riquadri al giorno
+// Grafici da 24 ore (ieri, oggi) con dati ogni 2 minuti.
+const CUTOVER_MS = 0;
+const DAY24 = true;
+const MAX_GAP_MIN = 3;                      // un buco più lungo interrompe la linea
+const BLOCK_MIN = DAY24 ? 1440 : 720;                      // 6 ore per riquadro
+const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 2 riquadri fissi al giorno
+const ROLL_BLOCK = DAY24 ? -1 : 3;          // riquadro "ultime 12 ore" (finestra che scorre)
+const DEFAULT_BLOCK = DAY24 ? 1 : ROLL_BLOCK;   // all'apertura: oggi
+
+// La finestra che scorre dura 12 ore e finisce all'ora piena successiva
+// (19:07 → 08-20, 20:01 → 09-21). Prima delle 12 parte dalla mezzanotte.
+function rollStart() {
+    const end = Math.floor(minutesNow() / 60) * 60 + 60;
+    return Math.max(0, end - BLOCK_MIN);
+}
+
+// giorno (0 ieri, 1 oggi) e minuto iniziale di ogni riquadro
+function blockInfo(b) {
+    if (b === ROLL_BLOCK) return { dayIdx: 1, startMin: rollStart() };
+    return { dayIdx: b < BLOCKS_PER_DAY ? 0 : 1, startMin: (b % BLOCKS_PER_DAY) * BLOCK_MIN };
+}
 const GRID_MIN = 60;                        // linee verticali ogni 30 minuti
 
 
@@ -2036,7 +2055,7 @@ const dayValues = [
 ];
 
 // all'apertura si vede il riquadro dell'ora attuale (di oggi)
-let chartBlock = BLOCKS_PER_DAY + Math.floor(minutesNow() / BLOCK_MIN);
+let chartBlock = DEFAULT_BLOCK;
 
 let chartGeom = null;
 
@@ -2045,39 +2064,47 @@ let chartGeom = null;
    GRAFICO: tab  Ieri 00-06 … 18-24  |  Oggi 00-06 … 18-24
 ========================================= */
 
-for (let i = 0; i < BLOCKS_PER_DAY * 2; i++) {
+function tabLabel(b) {
+    if (DAY24) return b === 0 ? "Ieri" : "Oggi";
+    const s = blockInfo(b).startMin / 60;
+    return pad2(s) + "-" + pad2(s + BLOCK_MIN / 60);
+}
 
-    // etichetta del gruppo prima del primo riquadro di ogni giorno
-    if (i % BLOCKS_PER_DAY === 0) {
+// Ieri 00-12 | Ieri 12-24 | Oggi 00-12 | Oggi: ultime 12 ore (finestra che scorre)
+(DAY24
+    ? [{ b: 0 }, { b: 1 }]
+    : [{ b: 0, g: "Ieri" }, { b: 1 }, { b: 2, g: "Oggi" }, { b: ROLL_BLOCK }]
+).forEach(function (t) {
+
+    if (t.g) {
         const lab = document.createElement("span");
         lab.className = "chart-tab-group";
-        lab.textContent = (i === 0) ? "Ieri" : "Oggi";
+        lab.textContent = t.g;
         chartTabs.appendChild(lab);
     }
 
-    const k = i % BLOCKS_PER_DAY;
-    const hFrom = k * BLOCK_MIN / 60;
-    const hTo = (k + 1) * BLOCK_MIN / 60;
+    const btn = document.createElement("button");
 
-    const b = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chart-tab";
+    btn.dataset.block = String(t.b);
 
-    b.type = "button";
-    b.className = "chart-tab";
-    b.dataset.block = String(i);
-    b.textContent = pad2(hFrom) + "-" + pad2(hTo);
-
-    b.addEventListener("click", function () {
-        chartBlock = i;
+    btn.addEventListener("click", function () {
+        chartBlock = t.b;
         updateTabs();
         renderChart();
     });
 
-    chartTabs.appendChild(b);
-}
+    chartTabs.appendChild(btn);
+});
 
 function updateTabs() {
     chartTabs.querySelectorAll(".chart-tab").forEach(function (b) {
-        b.classList.toggle("active", Number(b.dataset.block) === chartBlock);
+        const n = Number(b.dataset.block);
+        b.classList.toggle("active", n === chartBlock);
+        b.textContent = tabLabel(n);
+        // finché la finestra che scorre parte dalla mezzanotte coincide con "Oggi 00-12"
+        if (n === 2) b.style.display = (rollStart() === 0) ? "none" : "";
     });
 }
 
@@ -2096,10 +2123,11 @@ function renderChart() {
     const plotH = H - padT - padB;
 
     // giorno (0 = ieri, 1 = oggi) e minuti del riquadro visibile
-    const dayIdx = Math.floor(chartBlock / BLOCKS_PER_DAY);
+    const bi = blockInfo(chartBlock);
+    const dayIdx = bi.dayIdx;
     const values = dayValues[dayIdx];
 
-    const startMin = (chartBlock % BLOCKS_PER_DAY) * BLOCK_MIN;
+    const startMin = bi.startMin;
     const endMin = startMin + BLOCK_MIN;
     const lastIdx = Math.min(endMin, 1439);
 
@@ -2141,10 +2169,9 @@ function renderChart() {
 
         const v = values[m];
 
-        if (v === null) {
-            if (cur.length) segments.push(cur);
-            cur = [];
-        } else {
+        // i dati arrivano ogni 1-2 minuti: solo un buco più lungo interrompe la linea
+        if (v !== null) {
+            if (cur.length && m - cur[cur.length - 1].m > MAX_GAP_MIN) { segments.push(cur); cur = []; }
             cur.push({ m: m, v: v, x: xFor(m), y: yFor(v) });
         }
     }
@@ -2175,7 +2202,7 @@ function renderChart() {
     }
 
     // ----- griglia verticale: ogni 30 minuti, etichetta ogni ora (ogni 2 ore su schermi stretti)
-    const labelEvery = W < 520 ? 180 : 120;
+    const labelEvery = DAY24 ? (W < 520 ? 360 : 180) : (W < 520 ? 180 : 120);
 
     for (let m = startMin; m <= endMin; m += GRID_MIN) {
         const x = xFor(m).toFixed(1);
@@ -2473,6 +2500,9 @@ if (window.ResizeObserver) {
 setInterval(function () {
 
     // a mezzanotte: oggi diventa ieri e si riparte con un oggi vuoto
+    // allo scoccare del 23/10/2026 00:00 si passa al grafico da 24 ore
+    if ((Date.now() >= CUTOVER_MS) !== DAY24) { location.reload(); return; }
+
     if (chartDays[1].toDateString() !== new Date().toDateString()) {
 
         const newDays = [dayStart(-1), dayStart(0)];
@@ -2487,10 +2517,11 @@ setInterval(function () {
         dayValues[1] = new Array(1440).fill(null);
 
         chartDays = newDays;
-        chartBlock = BLOCKS_PER_DAY + Math.floor(minutesNow() / BLOCK_MIN);
+        chartBlock = DEFAULT_BLOCK;
         updateTabs();
     }
 
+    updateTabs();    // la finestra scorre all'ora piena
     renderChart();   // sposta la linea "ora"
 
 }, 30 * 1000);
