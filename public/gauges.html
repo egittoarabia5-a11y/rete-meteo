@@ -1980,12 +1980,18 @@ const DAY24 = true;
 const MAX_GAP_MIN = 3;                      // un buco più lungo interrompe la linea
 const BLOCK_MIN = DAY24 ? 1440 : 720;                      // 6 ore per riquadro
 const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 2 riquadri fissi al giorno
-const ROLL_BLOCK = DAY24 ? -1 : 3;          // riquadro "ultime 12 ore" (finestra che scorre)
+const ROLL_BLOCK = DAY24 ? 2 : 3;           // riquadro "ultime 12 ore" (finestra che scorre)
 const DEFAULT_BLOCK = DAY24 ? 1 : ROLL_BLOCK;   // all'apertura: oggi
 
 // La finestra che scorre dura 12 ore e finisce all'ora piena successiva
 // (19:07 → 08-20, 20:01 → 09-21). Prima delle 12 parte dalla mezzanotte.
 function rollStart() {
+    if (DAY24) {
+        // "Ultime 24h": le 24 ore che finiscono all'ora piena successiva
+        // (alle 11:34 → dalle 12:00 di ieri alle 12:00 di oggi).
+        // Asse unico di due giorni: 0..1439 ieri, 1440..2879 oggi.
+        return (Math.floor(minutesNow() / 60) + 1) * 60;
+    }
     const end = Math.floor(minutesNow() / 60) * 60 + 60;
     return Math.max(0, end - BLOCK_MIN);
 }
@@ -2065,14 +2071,14 @@ let chartGeom = null;
 ========================================= */
 
 function tabLabel(b) {
-    if (DAY24) return b === 0 ? "Ieri" : "Oggi";
+    if (DAY24) return b === 0 ? "Ieri" : b === 1 ? "Oggi" : "Ultime 24h";
     const s = blockInfo(b).startMin / 60;
     return pad2(s) + "-" + pad2(s + BLOCK_MIN / 60);
 }
 
 // Ieri 00-12 | Ieri 12-24 | Oggi 00-12 | Oggi: ultime 12 ore (finestra che scorre)
 (DAY24
-    ? [{ b: 0 }, { b: 1 }]
+    ? [{ b: 0 }, { b: 1 }, { b: ROLL_BLOCK }]
     : [{ b: 0, g: "Ieri" }, { b: 1 }, { b: 2, g: "Oggi" }, { b: ROLL_BLOCK }]
 ).forEach(function (t) {
 
@@ -2113,6 +2119,20 @@ function updateTabs() {
    GRAFICO: disegno
 ========================================= */
 
+// intestazione e tooltip della finestra "Ultime 24h" (asse di due giorni)
+function rollRangeText(s, e) {
+    const f = function (m) {
+        const d = new Date(chartDays[0].getTime());
+        d.setMinutes(d.getMinutes() + m);
+        return d.toLocaleDateString("it-IT", { weekday: "short" }) + " " + fmtMin(m % 1440);
+    };
+    return "Ultime 24 ore · " + f(s) + " – " + f(e);
+}
+
+function tipTime(m, g) {
+    return g.isRoll ? ((m < 1440 ? "ieri " : "oggi ") + fmtMin(m % 1440)) : fmtMin(m);
+}
+
 function renderChart() {
 
     const W = Math.max(280, chartWrap.clientWidth || 800);
@@ -2124,12 +2144,13 @@ function renderChart() {
 
     // giorno (0 = ieri, 1 = oggi) e minuti del riquadro visibile
     const bi = blockInfo(chartBlock);
+    const isRoll = chartBlock === ROLL_BLOCK;
     const dayIdx = bi.dayIdx;
-    const values = dayValues[dayIdx];
+    const values = isRoll ? dayValues[0].concat(dayValues[1]) : dayValues[dayIdx];
 
     const startMin = bi.startMin;
     const endMin = startMin + BLOCK_MIN;
-    const lastIdx = Math.min(endMin, 1439);
+    const lastIdx = Math.min(endMin, values.length - 1);
 
     const xFor = m => padL + (m - startMin) / BLOCK_MIN * plotW;
 
@@ -2209,14 +2230,14 @@ function renderChart() {
         const isLabel = (m - startMin) % labelEvery === 0;
         svg += '<line class="cg-line ' + (isLabel ? "" : "v") + '" x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (H - padB) + '"/>';
         if (isLabel) {
-            svg += '<text class="cg-label" x="' + x + '" y="' + (H - 8) + '" text-anchor="middle">' + fmtMin(m) + '</text>';
+            svg += '<text class="cg-label" x="' + x + '" y="' + (H - 8) + '" text-anchor="middle">' + fmtMin(m % 1440) + '</text>';
         }
     }
 
     svg += '<text class="cg-label" x="' + (W - padR) + '" y="12" text-anchor="end" style="font-weight:600">' + CHART.unit + '</text>';
 
     // ----- linea "ora" (solo se il riquadro contiene l'ora attuale di oggi)
-    const nowMin = minutesNow();
+    const nowMin = minutesNow() + (isRoll ? 1440 : 0);
     const isToday = dayIdx === 1 && chartDays[1].toDateString() === new Date().toDateString();
 
     if (isToday && nowMin >= startMin && nowMin <= endMin) {
@@ -2251,9 +2272,9 @@ function renderChart() {
     chartSvg.setAttribute("viewBox", "0 0 " + W + " " + H);
     chartSvg.innerHTML = svg;
 
-    chartGeom = { W, H, padL, padR, padT, padB, plotW, startMin, endMin, lastIdx, dayIdx, xFor, yFor };
+    chartGeom = { values, isRoll, W, H, padL, padR, padT, padB, plotW, startMin, endMin, lastIdx, dayIdx, xFor, yFor };
 
-    chartRange.textContent =
+    chartRange.textContent = isRoll ? rollRangeText(startMin, endMin) :
         (dayIdx === 0 ? "Ieri" : "Oggi") + " · " +
         chartDays[dayIdx].toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) +
         " · " + fmtMin(startMin) + " – " + fmtMin(endMin);
@@ -2295,7 +2316,7 @@ function onChartPointer(e) {
     let m = Math.round(g.startMin + (x - g.padL) / g.plotW * BLOCK_MIN);
     m = Math.max(g.startMin, Math.min(g.lastIdx, m));
 
-    const values = dayValues[g.dayIdx];
+    const values = g.values;
 
     // se manca il dato, cerca il più vicino entro 3 minuti
     let found = null;
@@ -2323,12 +2344,12 @@ function onChartPointer(e) {
         dot.style.display = "";
 
         chartTooltip.innerHTML =
-            "<b>" + fmtMin(mm) + "</b><br>" +
+            "<b>" + tipTime(mm, g) + "</b><br>" +
             '<span class="chip" style="background:' + CHART.colorFn(v) + '"></span>' +
             v.toFixed(CHART.decimals) + " " + CHART.unit;
     } else {
         dot.style.display = "none";
-        chartTooltip.innerHTML = "<b>" + fmtMin(mm) + "</b><br>--";
+        chartTooltip.innerHTML = "<b>" + tipTime(mm, g) + "</b><br>--";
     }
 
     // posizione del tooltip: a destra del cursore, a sinistra se non c'è spazio
@@ -2929,7 +2950,6 @@ if (!stationContext.found) {
   setInterval(tickLiveCountdown, 1000);
   setInterval(refreshMetar, METAR_REFRESH_MS);
 }
-
 
 </script>
 </body>
