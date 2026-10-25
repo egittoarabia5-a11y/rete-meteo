@@ -2043,9 +2043,36 @@ const climatologiaPromise = fetch("/climatologia.json")
 
     return res.json();
   })
-  .then(raw => {
+.then(raw => {
 
-    const list = Array.isArray(raw) ? raw : [raw];
+    const rawList = Array.isArray(raw) ? raw : [raw];
+
+    // Unisce le entry con la stessa S (es. A_ROCNR spezzata in due blocchi:
+    // uno con MX/MN/MD e uno con AC) fondendo i mesi con lo stesso M
+    const byS = new Map();
+
+    rawList.forEach(entry => {
+      if (!entry?.S || !Array.isArray(entry.months)) return;
+
+      let merged = byS.get(entry.S);
+      if (!merged) {
+        merged = { ...entry, months: [] };
+        byS.set(entry.S, merged);
+      }
+
+      entry.months.forEach(m => {
+        const existing = merged.months.find(x => x.M === m.M);
+        if (existing) Object.assign(existing, m);
+        else merged.months.push({ ...m });
+      });
+
+      // eventuali altri campi (es. C) presi dalla prima entry che li ha
+      Object.keys(entry).forEach(k => {
+        if (k !== "months" && merged[k] == null) merged[k] = entry[k];
+      });
+    });
+
+    const list = [...byS.values()];
 
     const parseList = (str) =>
       String(str ?? "")
@@ -2054,6 +2081,7 @@ const climatologiaPromise = fetch("/climatologia.json")
         .filter(v => v !== "")
         .map(Number);
 
+    // ... da qui il resto del codice resta identico (list.forEach(entry => { ... }) e return list)
     // Per ogni stazione S crea list[S] = { daily: { "MM-GG": {tmax, tmin, tmean} } }
     list.forEach(entry => {
 
