@@ -3848,6 +3848,11 @@ const fetchDMA = async () => {
         return;
       }
 
+      // Nomi duplicati: una stazione senza dati non deve sovrascrivere
+      // una dello stesso nome che li ha già
+      const prev = allStations[id];
+      if (prev && prev.source === "DMA" && prev.temp != null && st.T == null) return;
+
       allStations[id] = {
 
         id,
@@ -3861,13 +3866,13 @@ const fetchDMA = async () => {
 
         // ===== HUMIDITY =====
         hum: st.H ?? null,
-        humHigh: null,
-        humLow: null,
+        humHigh: st.HH ?? null,
+        humLow: st.HL ?? null,
 
         // ===== WIND =====
         wind: st.V ?? null,
-        windGust: st.VR ?? null,
-        windDir: st.VD ?? null,
+        windGust: st.G ?? null,
+        windDir: null,
 
         // ===== RAIN =====
         rainDaily: st.R ?? null,
@@ -3875,12 +3880,15 @@ const fetchDMA = async () => {
 
         // ===== DEWPOINT =====
         dewp: st.D ?? null,
-        dewpHigh: null,
-        dewpLow: null,
+        dewpHigh: st.DH ?? null,
+        dewpLow: st.DL ?? null,
+
+        // ===== PRESSURE =====
+        pressure: st.P ?? null,
 
         heat: null,
         heatHigh: null,
-        heatLow: st.TL ?? null,
+        heatLow: null,
 
         lat,
         lon

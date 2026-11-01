@@ -556,7 +556,30 @@
   .cg-line.h{ stroke: rgba(243,237,224,0.13); }
   .cg-label{ font-family:'Work Sans', sans-serif; font-size:11px; fill: rgba(243,237,224,0.5); }
   .cg-empty{ font-family:'Work Sans', sans-serif; font-size:14px; fill: rgba(243,237,224,0.5); }
-
+  /* ---------- mini grafici in fondo alla pagina ---------- */
+  .mini-charts{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:12px;
+  }
+  .mini-charts > div{ min-width:0; }
+  .mini-charts .chart-head{ font-weight:500; }
+  .mini-charts .chart-head .range{ opacity:.85; }
+  @media (max-width: 760px){
+    .mini-charts{ grid-template-columns: 1fr; }
+  }
+    .archive-link{
+    display:block;
+    text-align:center;
+    margin: 26px 0 4px;
+    color:#ffffff;
+    font-size:16px;
+    font-weight:500;
+    letter-spacing:.04em;
+    text-decoration:none;
+    opacity:.85;
+  }
+  .archive-link:hover{ opacity:1; }
   /* l'alone del riquadro principale non deve allargare la pagina */
   html, body{ overflow-x:hidden; }
 </style>
@@ -786,7 +809,14 @@
       </div>
     </div>
   </div>
-
+    <a class="archive-link" id="archiveLink" href="Archivio.html">-----&gt; Vai all'archivio</a>
+  <!-- MINI GRAFICI -->
+  <div class="section-title">Ultime 24 ore</div>
+  <div class="mini-charts">
+    <div id="miniTempSection"></div>
+    <div id="miniHumSection"></div>
+    <div id="miniRainSection"></div>
+  </div>
 
   <!-- GRAFICO TEMPERATURA -->
   <div class="section-title">Temperatura</div>
@@ -2154,9 +2184,11 @@ async function fetchDMA(stationId) {
 
     const wanted = String(stationId).trim().toLowerCase();
 
-    const raw = list.find(function (s) {
+    const matches = list.filter(function (s) {
         return s && String(s.name ?? "").trim().toLowerCase() === wanted;
     });
+
+    const raw = matches.find(function (s) { return s.T != null; }) || matches[0];
 
     if (!raw) {
         throw new Error("Stazione DMA non trovata nel JSON: " + stationId);
@@ -2202,6 +2234,26 @@ async function fetchDMA(stationId) {
 
         raw
     };
+}
+/* DMA: nell'archivio le stazioni hanno come chiave l'id (MAC), nel link c'è il nome.
+   Traduce il nome nell'id; con nomi doppi sceglie la stazione che ha i dati. */
+async function resolveDmaArchiveId(name) {
+    try {
+        const res = await fetch(DMA_URL + "?_=" + Date.now());
+        const json = await res.json();
+        const list = Array.isArray(json) ? json : (json.stations || []);
+        const w = String(name).trim().toLowerCase();
+
+        const matches = list.filter(function (s) {
+            return s && String(s.name ?? "").trim().toLowerCase() === w;
+        });
+
+        const best = matches.find(function (s) { return s.T != null; }) || matches[0];
+        return best ? best.id : name;
+    } catch (err) {
+        console.error("DMA: id non risolto:", err);
+        return name;
+    }
 }
 const FETCHERS = {
     limet: fetchLIMET,
@@ -2304,7 +2356,13 @@ const chartWrap    = chartSection.querySelector(".chart-wrap");
 const chartSvg     = chartSection.querySelector("svg");
 const chartTooltip = chartSection.querySelector(".chart-tooltip");
 const chartRange   = chartSection.querySelector(".range");
+const COMPACT = !!CHART.compact;
 
+if (COMPACT) {
+    chartTabs.style.display = "none";
+    chartSvg.style.pointerEvents = "none";
+    chartSvg.style.cursor = "default";
+}
 
 /* =========================================
    GRAFICO: stato
@@ -2413,9 +2471,9 @@ function tipTime(m, g) {
 function renderChart() {
 
     const W = Math.max(280, chartWrap.clientWidth || 800);
-    const H = window.innerWidth <= 700 ? 300 : 420;
+    const H = COMPACT ? 210 : (window.innerWidth <= 700 ? 300 : 420);
 
-    const padL = 46, padR = 22, padT = 18, padB = 30;
+    const padL = COMPACT ? 38 : 46, padR = COMPACT ? 12 : 22, padT = 18, padB = 30;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
@@ -2575,7 +2633,7 @@ function renderChart() {
         (dayIdx === 0 ? "Ieri" : "Oggi") + " · " +
         chartDays[dayIdx].toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) +
         " · " + fmtMin(startMin) + " – " + fmtMin(endMin);
-
+    if (COMPACT) chartRange.textContent = CHART.title;
     chartTooltip.classList.remove("visible");
 }
 
@@ -2660,9 +2718,11 @@ function onChartPointer(e) {
     chartTooltip.style.top = (g.padT + 6) + "px";
 }
 
-chartSvg.addEventListener("pointermove", onChartPointer);
-chartSvg.addEventListener("pointerdown", onChartPointer);
-chartSvg.addEventListener("pointerleave", hideChartCursor);
+if (!COMPACT) {
+    chartSvg.addEventListener("pointermove", onChartPointer);
+    chartSvg.addEventListener("pointerdown", onChartPointer);
+    chartSvg.addEventListener("pointerleave", hideChartCursor);
+}
 
 
 /* =========================================
@@ -2714,7 +2774,7 @@ function setChartData(points) {
             dayValues[slot[0]][slot[1]] = v;
         }
     });
-
+    if (CHART.mirror) CHART.mirror.setData(points);
     renderChart();
 }
 
@@ -2753,7 +2813,13 @@ async function loadChartFromArchive() {
     // ieri + oggi: dalla mezzanotte locale di ieri (espressa in UTC)
     const from = chartDays[0].toISOString().slice(0, 19) + "Z";
 
-    const wanted = String(stationContext.stationId).trim().toUpperCase();
+        let wantedRaw = stationContext.stationId;
+
+    if (stationContext.network === "dma") {
+        wantedRaw = await resolveDmaArchiveId(stationContext.stationId);
+    }
+
+    const wanted = String(wantedRaw).trim().toUpperCase();
 
     for (const src of sources) {
 
@@ -2849,25 +2915,40 @@ setInterval(function () {
 
 // Fonti dell'archivio: si prova in ordine e si usa la prima che contiene la stazione
 // (LIMET: limet1, poi limet2). Le temperature hanno lo stesso nome + "_T".
+const miniRain = createChart({
+    id: 'RainMini', mount: 'miniRainSection', compact: true, title: 'Pioggia',
+    unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
+    colorFn: getRainScaleColor, archive: {}
+});
+const miniHum = createChart({
+    id: 'HumMini', mount: 'miniHumSection', compact: true, title: 'Umidità',
+    unit: '%', decimals: 0, gridStep: 5, minZero: false,
+    limitMin: 0, limitMax: 100,
+    colorFn: getHumColor, archive: {}
+});
+const miniTemp = createChart({
+    id: 'TempMini', mount: 'miniTempSection', compact: true, title: 'Temperatura',
+    unit: '°C', decimals: 1, gridStep: 1, minZero: false,
+    colorFn: getTempColor, archive: {}
+});
+
 const rainChart = createChart({
-    id: 'Rain', mount: 'chartSection',
+    id: 'Rain', mount: 'chartSection', mirror: miniRain,
     unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
     colorFn: getRainScaleColor,
     archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'],
-           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma']  }
+           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma'] }
 });
 const humChart = createChart({
-    id: 'Hum', mount: 'humChartSection',
+    id: 'Hum', mount: 'humChartSection', mirror: miniHum,
     unit: '%', decimals: 0, gridStep: 5, minZero: false,
     limitMin: 0, limitMax: 100,
     colorFn: getHumColor,
     archive: { omirl: ['omirl_H'], ignorete: ['ignorete_H'], limet: ['limet1_H', 'limet2_H'],
-           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H']  }
+           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H'] }
 });
-
-
 const tempChart = createChart({
-    id: 'Temp', mount: 'tempChartSection',
+    id: 'Temp', mount: 'tempChartSection', mirror: miniTemp,
     unit: '°C', decimals: 1, gridStep: 1, minZero: false,
     colorFn: getTempColor,
     archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'],
@@ -2875,8 +2956,6 @@ const tempChart = createChart({
 });
 
 window.stationCharts = { rain: rainChart, temp: tempChart, hum: humChart };
-
-
 
 /* ============================================================
    INTERFACCIA: dai dati della stazione (latestData) alla pagina
@@ -3136,7 +3215,7 @@ function updateTempDisplay(value){
 }
 
 /* ---------- intestazione: nome, fonte, altitudine ---------- */
-
+document.getElementById('archiveLink').href = 'Archivio.html' + window.location.search;
 function setStationHeader(){
 
   if (!stationContext.found) {
