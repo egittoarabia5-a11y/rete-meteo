@@ -2986,7 +2986,11 @@ const DATA_KEYS = [
 
 function applyData(raw){
   lastData = raw;
-
+  // DMA: il titolo è il nome della stazione, non l'id (MAC)
+  if (stationContext.network === 'dma' && raw.name) {
+    setTextFade(el('stationPlace'), raw.name);
+    document.title = raw.name + ' · Stazione meteo';
+  }
   // ogni rete fornisce campi diversi: quelli assenti diventano null
   const d = {};
   DATA_KEYS.forEach(function (k) { d[k] = nz(raw[k]); });
