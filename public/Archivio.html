@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archivio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e1420;
+    --page-bg:#0e1420;
+    --paper:#f3ede0;
+    --brass:#c99a4b;
+    --glass: rgba(243,237,224,0.07);
+    --glass-strong: rgba(243,237,224,0.13);
+    --line: rgba(243,237,224,0.16);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Work Sans', sans-serif;
+    background-color: var(--page-bg);
+    color: var(--paper);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  .page{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 22px 60px;
+  }
+
+  /* ---------- intestazione: nome | dati attuali | orario ---------- */
+  .head{
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items:center;
+    gap:16px;
+    padding: 4px 2px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .head-name{
+    font-weight:500;
+    font-size:22px;
+  }
+  .head-data{
+    font-size:18px;
+    font-weight:500;
+    text-align:center;
+  }
+  .head-time{
+    font-size:13px;
+    opacity:.75;
+    text-align:right;
+  }
+  .head-time b{ font-weight:500; opacity:1; }
+
+  .back{
+    display:inline-block;
+    margin: 14px 2px 0;
+    color:#ffffff;
+    font-size:16px;
+    font-weight:500;
+    letter-spacing:.04em;
+    text-decoration:none;
+    opacity:.85;
+  }
+  .back:hover{ opacity:1; }
+
+  /* ---------- menu a discesa mese / anno ---------- */
+  .pickers{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin: 26px 2px 0;
+    flex-wrap:wrap;
+  }
+  /* stesso arancione dei pulsanti attivi dei grafici nei gauges (#e8a23a) */
+  .picker{
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    font-weight:600;
+    padding:10px 38px 10px 18px;
+    border-radius:100px;
+    border:1px solid #e8a23a;
+    background-color: #e8a23a;
+    color: var(--ink);
+    cursor:pointer;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%230e1420' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position: right 16px center;
+  }
+  .picker:hover{ filter:brightness(1.08); }
+  .picker option{ background:#0e1420; color:#f3ede0; }
+
+  #archiveArea{ margin-top:28px; }
+
+  /* ---------- tabella dei giorni (stesso stile del riquadro Medie) ---------- */
+  .averages-panel{
+    background: var(--glass);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:18px 20px 20px;
+  }
+  .avg-grid{
+    display:grid;
+    grid-template-columns: 1fr repeat(4, 1.2fr);
+    gap:8px 10px;
+    align-items:center;
+  }
+  .avg-head{
+    font-size:11px;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+    opacity:.5;
+    text-align:center;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .avg-head.first{ text-align:left; }
+  .avg-row-label{
+    font-size:13px;
+    font-weight:500;
+    opacity:.85;
+  }
+  .avg-chip{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 6px;
+    border-radius:10px;
+    font-weight:500;
+    font-size:14px;
+    background-color: var(--page-bg);
+    border:1px solid var(--line);
+    color: var(--paper);
+  }
+  .avg-chip.empty{ opacity:.45; }
+
+  .note{
+    margin-top:14px;
+    font-size:12px;
+    opacity:.55;
+    text-align:center;
+  }
+
+  @media (max-width: 760px){
+    .page{ padding:16px 14px 44px; }
+    .head{ grid-template-columns: 1fr; text-align:center; gap:8px; }
+    .head-time{ text-align:center; }
+    .averages-panel{ padding:14px 12px 16px; }
+    .avg-grid{ gap:6px 6px; }
+    .avg-chip{ font-size:12px; padding:6px 3px; }
+    .avg-row-label{ font-size:11.5px; }
+    .avg-head{ font-size:10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="head">
+    <div class="head-name" id="headName">Caricamento…</div>
+    <div class="head-data" id="headData">--</div>
+    <div class="head-time"><b id="headTime">--:--:-- --/--/----</b></div>
+  </div>
+
+  <a class="back" id="backLink" href="gauges.html">&larr; Torna ai gauges</a>
+
+  <div class="pickers">
+    <select class="picker" id="monthPicker"></select>
+    <select class="picker" id="yearPicker"></select>
+  </div>
+
+  <div id="archiveArea"></div>
+  <div class="note" id="archiveNote"></div>
+
+</div>
+
+<script>
+/* =========================================
+   STAZIONE DAL LINK (stessi parametri dei gauges)
+   ?station=...&source=...&name=...
+========================================= */
+
+function normalizeSource(s) {
+    return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const params    = new URLSearchParams(window.location.search);
+const stationId = params.get("station");
+const network   = normalizeSource(params.get("source"));
+const nameParam = params.get("name");
+
+document.getElementById("backLink").href = "gauges.html" + window.location.search;
+
+
+/* =========================================
+   DATI ATTUALI: configurazione per rete
+   t = temperatura, h = umidità, w = vento, d = direzione, r = pioggia
+   (per ogni campo: nomi possibili, il primo presente vince)
+
+   arc.t / arc.r = nomi delle serie su archivio-eventi
+   (temperature "<fonte>_T", pioggia "<fonte>"; per OMIRL il cumulato "omirlcum")
+========================================= */
+
+const BASE = "https://api-stazioni-meteo.eggittof.workers.dev/";
+const ARCHIVE_BASE = "https://archivio-eventi.eggittof.workers.dev";
+
+const CFG = {
+    omirl: {
+        urls: [BASE + "omirl.json"],
+        match: s => s.id,
+        f: { t: ["temp"], h: ["hum"], w: ["windValue", "wind"], d: ["windDir"], r: ["rainDaily"] },
+        arc: { t: ["omirl_T"], r: ["omirlcum"] }
+    },
+    ignorete: {
+        urls: [BASE + "ignorete.json"],
+        match: s => s.id ?? s.name ?? s.N,
+        f: { t: ["T", "temp"], h: ["H", "hum"], w: ["V", "windValue", "wind"], d: ["windDir", "VD"], r: ["R", "rainDaily"] },
+        arc: { t: ["ignorete_T"], r: ["ignorete"] }
+    },
+    limet: {
+        urls: [BASE + "limet.json", BASE + "limet2.json"],
+        match: s => s.N,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
+        arc: { t: ["limet1_T", "limet2_T"], r: ["limet1", "limet2"] }
+    },
+    acronet: {
+        urls: [BASE + "gepo.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD"], r: ["R"] },
+        arc: { t: ["gepo_T"], r: ["gepo"] }
+    },
+    comunedigenova: {
+        urls: [BASE + "comuneGenova.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["W"], d: ["WD"], r: ["R"] },
+        arc: { t: ["comuneGenova_T"], r: ["comuneGenova"] }
+    },
+    "3r": {
+        urls: [BASE + "meteo3rpiemonte.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD", "WD"], r: ["R"] },
+        arc: { t: ["3r_T"], r: [] }
+    },
+    dma: {
+        urls: [BASE + "asti-test.json"],
+        match: s => s.name,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
+        arc: { t: ["dma_T"], r: ["dma"] }
+    }
+};
+
+function toNum(v) {
+    if (v === null || v === undefined || v === "") return null;
+    const n = parseFloat(String(v).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+}
+
+function pick(raw, keys) {
+    for (const k of keys) {
+        if (raw[k] !== undefined && raw[k] !== null && raw[k] !== "") return toNum(raw[k]);
+    }
+    return null;
+}
+
+const DIRS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+
+function dirLabel(deg) {
+    return DIRS[Math.round(deg / 45) % 8];
+}
+
+let currentName = nameParam || stationId || "Stazione non trovata";
+
+// id con cui la stazione potrebbe essere salvata nell'archivio
+// (di solito è lo stesso del link; per DMA è l'id/MAC, non il nome)
+let archiveIds = stationId ? [String(stationId).trim()] : [];
+
+function collectArchiveIds(raw) {
+    const list = [];
+    const add = v => {
+        if (v === undefined || v === null || v === "") return;
+        const s = String(v).trim();
+        if (s && !list.includes(s)) list.push(s);
+    };
+
+    if (network === "dma") add(raw.id);
+    add(stationId);
+    add(raw.id);
+    add(raw.code);
+    add(raw.shortCode);
+    add(raw.name);
+    add(raw.N);
+
+    archiveIds = list;
+}
+
+async function loadCurrent() {
+
+    const cfg = CFG[network];
+
+    if (!stationId || !cfg) {
+        document.getElementById("headName").textContent = currentName;
+        document.getElementById("headData").textContent = "--";
+        return;
+    }
+
+    const wanted = String(stationId).trim().toLowerCase();
+
+    try {
+
+        let raw = null;
+
+        for (const url of cfg.urls) {
+
+            const res = await fetch(url + "?_=" + Date.now());
+            if (!res.ok) continue;
+
+            const json = await res.json();
+            const list = Array.isArray(json) ? json : (json.stations || []);
+
+            const matches = list.filter(s => s && String(cfg.match(s) ?? "").trim().toLowerCase() === wanted);
+
+            // nomi doppi: preferisco la stazione che ha la temperatura
+            raw = matches.find(s => pick(s, cfg.f.t) !== null) || matches[0] || null;
+
+            if (raw) break;
+        }
+
+        if (!raw) throw new Error("stazione non trovata");
+
+        collectArchiveIds(raw);
+
+        // DMA: il titolo è il nome della stazione, non l'id
+        if (network === "dma" && raw.name) currentName = raw.name;
+
+        const t = pick(raw, cfg.f.t);
+        const h = pick(raw, cfg.f.h);
+        const w = pick(raw, cfg.f.w);
+        const d = pick(raw, cfg.f.d);
+        const r = pick(raw, cfg.f.r);
+
+        const parts = [];
+
+        if (t !== null) parts.push(t.toFixed(1) + "°c");
+        if (h !== null) parts.push(Math.round(h) + "%");
+        if (w !== null) parts.push(w.toFixed(1) + " km/h" + (d !== null ? " " + dirLabel(d) : ""));
+        if (r !== null) parts.push(r.toFixed(1) + " mm");
+
+        document.getElementById("headData").textContent = parts.length ? parts.join(" - ") : "--";
+
+    } catch (err) {
+        console.error("Dati attuali non disponibili:", err);
+        document.getElementById("headData").textContent = "--";
+    }
+
+    document.getElementById("headName").textContent = currentName;
+    document.title = currentName + " · Archivio";
+}
+
+
+/* =========================================
+   OROLOGIO: 19:36:34 01/11/2026
+========================================= */
+
+function tickClock() {
+    const now = new Date();
+    document.getElementById("headTime").textContent =
+        now.toLocaleTimeString("it-IT") + " " +
+        now.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+
+/* =========================================
+   MENU MESE / ANNO (si aprono sul mese e anno correnti)
+========================================= */
+
+const MONTHS = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+                "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+
+const monthPicker = document.getElementById("monthPicker");
+const yearPicker  = document.getElementById("yearPicker");
+
+const today = new Date();
+
+MONTHS.forEach(function (m, i) {
+    const o = document.createElement("option");
+    o.value = String(i + 1);
+    o.textContent = m;
+    monthPicker.appendChild(o);
+});
+
+for (let y = 2026; y <= Math.max(2026, today.getFullYear()); y++) {
+    const o = document.createElement("option");
+    o.value = String(y);
+    o.textContent = String(y);
+    yearPicker.appendChild(o);
+}
+
+monthPicker.value = String(today.getMonth() + 1);
+yearPicker.value  = String(Math.max(2026, today.getFullYear()));
+
+/* Tabella del mese: una riga per giorno (28/29/30/31 in base al mese e all'anno). */
+function buildTable() {
+
+    const month = Number(monthPicker.value);
+    const year  = Number(yearPicker.value);
+
+    const days = new Date(year, month, 0).getDate();
+
+    let html =
+        '<div class="averages-panel"><div class="avg-grid">' +
+        '<span class="avg-head first">Giorno</span>' +
+        '<span class="avg-head">Temp. massima</span>' +
+        '<span class="avg-head">Temp. minima</span>' +
+        '<span class="avg-head">Temp. media</span>' +
+        '<span class="avg-head">Pioggia</span>';
+
+    for (let d = 1; d <= days; d++) {
+        html +=
+            '<span class="avg-row-label">' + d + '</span>' +
+            '<span class="avg-chip empty" data-day="' + d + '" data-field="tmax">--°</span>' +
+            '<span class="avg-chip empty" data-day="' + d + '" data-field="tmin">--°</span>' +
+            '<span class="avg-chip empty" data-day="' + d + '" data-field="tmean">--°</span>' +
+            '<span class="avg-chip empty" data-day="' + d + '" data-field="rain">-- mm</span>';
+    }
+
+    html += '</div></div>';
+
+    document.getElementById("archiveArea").innerHTML = html;
+}
+
+
+/* =========================================
+   ARCHIVIO: dati da archivio-eventi
+
+   /archivio?src=<serie>&mese=MMYY&st=<stazione>
+     serie temperatura (<fonte>_T): "TMAX, TMED, TMIN" per ogni giorno
+     serie pioggia (<fonte>)      : un valore per giorno
+
+   Se il giorno di oggi non è ancora in archivio (viene scritto a fine
+   giornata), max/min/media/pioggia si calcolano dalle righe al minuto di
+   /export?src=...&from=<mezzanotte di oggi>.
+========================================= */
+
+function setChip(day, field, text) {
+    const el = document.querySelector('.avg-chip[data-day="' + day + '"][data-field="' + field + '"]');
+
+    if (!el) return;
+
+    el.textContent = text;
+    el.classList.remove("empty");
+}
+
+function hasValue(day, field) {
+    const el = document.querySelector('.avg-chip[data-day="' + day + '"][data-field="' + field + '"]');
+
+    return !!el && !el.classList.contains("empty");
+}
+
+async function getJson(url) {
+    const res = await fetch(url);
+
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    return res.json();
+}
+
+// Cerca la stazione (provando gli id candidati) nelle serie indicate:
+// restituisce { arr, src, id } della prima serie che ha dati
+async function fetchArchiveSeries(srcs, mese) {
+    for (const src of srcs) {
+        for (const id of archiveIds) {
+            try {
+                const data = await getJson(
+                    ARCHIVE_BASE + "/archivio?src=" + encodeURIComponent(src) +
+                    "&mese=" + mese + "&st=" + encodeURIComponent(id)
+                );
+
+                const str = data.stations && data.stations[id];
+
+                if (str) return { arr: str.split(",").map(s => s.trim()), src, id };
+            } catch (err) {
+                console.warn("Archivio non disponibile per", src, id, err);
+            }
+        }
+    }
+
+    return null;
+}
+
+// Righe al minuto di oggi per una stazione: restituisce l'array dei valori numerici
+async function fetchTodayValues(srcs, fromIso) {
+    for (const src of srcs) {
+        try {
+            const data = await getJson(
+                ARCHIVE_BASE + "/export?src=" + encodeURIComponent(src) +
+                "&from=" + encodeURIComponent(fromIso) + "&limit=2000"
+            );
+
+            const ids = data.stations || [];
+            let idx = -1;
+
+            for (const id of archiveIds) {
+                idx = ids.indexOf(id);
+                if (idx >= 0) break;
+            }
+
+            if (idx < 0) continue;
+
+            const values = [];
+
+            for (const row of data.rows || []) {
+                const v = toNum(String(row[1]).split(",")[idx]);
+
+                if (v !== null) values.push(v);
+            }
+
+            if (values.length) return values;
+        } catch (err) {
+            console.warn("Export non disponibile per", src, err);
+        }
+    }
+
+    return null;
+}
+
+let loadToken = 0;
+
+async function loadArchive() {
+
+    const token = ++loadToken;
+
+    const note = document.getElementById("archiveNote");
+    note.textContent = "";
+
+    const cfg = CFG[network];
+
+    if (!cfg || !archiveIds.length) return;
+
+    const month = Number(monthPicker.value);
+    const year  = Number(yearPicker.value);
+    const mese  = String(month).padStart(2, "0") + String(year).slice(2);
+
+    const [tempRes, rainRes] = await Promise.all([
+        fetchArchiveSeries(cfg.arc.t, mese),
+        fetchArchiveSeries(cfg.arc.r, mese)
+    ]);
+
+    // nel frattempo l'utente ha cambiato mese/anno
+    if (token !== loadToken) return;
+
+    // temperatura: 3 valori per giorno (TMAX, TMED, TMIN)
+    if (tempRes) {
+        const a = tempRes.arr;
+
+        for (let d = 1; d <= a.length / 3; d++) {
+            const tmax = a[(d - 1) * 3];
+            const tmed = a[(d - 1) * 3 + 1];
+            const tmin = a[(d - 1) * 3 + 2];
+
+            if (tmax) setChip(d, "tmax", tmax + "°");
+            if (tmin) setChip(d, "tmin", tmin + "°");
+            if (tmed) setChip(d, "tmean", tmed + "°"); // l'asterisco = pochi campioni
+        }
+    }
+
+    // pioggia: 1 valore per giorno
+    if (rainRes) {
+        rainRes.arr.forEach(function (v, i) {
+            if (v !== "") setChip(i + 1, "rain", v + " mm");
+        });
+    }
+
+    // giorno attuale ancora vuoto: uso i dati correnti di archivio-eventi
+    const now = new Date();
+
+    if (now.getFullYear() === year && now.getMonth() + 1 === month) {
+
+        const day = now.getDate();
+
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const fromIso = midnight.toISOString().slice(0, 19) + "Z";
+
+        const needTemp = !hasValue(day, "tmax") || !hasValue(day, "tmin");
+        const needRain = !hasValue(day, "rain");
+
+        const [tv, rv] = await Promise.all([
+            needTemp ? fetchTodayValues(cfg.arc.t, fromIso) : null,
+            needRain && cfg.arc.r.length ? fetchTodayValues(cfg.arc.r, fromIso) : null
+        ]);
+
+        if (token !== loadToken) return;
+
+        if (tv) {
+            const max  = Math.max.apply(null, tv);
+            const min  = Math.min.apply(null, tv);
+            const mean = tv.reduce((a, b) => a + b, 0) / tv.length;
+
+            if (!hasValue(day, "tmax"))  setChip(day, "tmax", max.toFixed(1) + "°");
+            if (!hasValue(day, "tmin"))  setChip(day, "tmin", min.toFixed(1) + "°");
+            if (!hasValue(day, "tmean")) setChip(day, "tmean", mean.toFixed(1) + "°");
+        }
+
+        if (rv) {
+            setChip(day, "rain", Math.max.apply(null, rv).toFixed(1) + " mm");
+        }
+    }
+
+    if (!tempRes && !rainRes) {
+        note.textContent = "Nessun dato in archivio per questo mese.";
+    }
+}
+
+function onPickerChange() {
+    buildTable();
+    loadArchive();
+}
+
+monthPicker.addEventListener("change", onPickerChange);
+yearPicker.addEventListener("change", onPickerChange);
+
+
+/* =========================================
+   AVVIO
+========================================= */
+
+buildTable();
+
+tickClock();
+setInterval(tickClock, 1000);
+
+// prima i dati attuali (servono gli id della stazione), poi l'archivio
+loadCurrent().then(loadArchive);
+setInterval(loadCurrent, 10 * 1000);
+</script>
+</body>
+</html>
