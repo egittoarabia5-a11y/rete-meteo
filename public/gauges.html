@@ -792,6 +792,10 @@
   <div class="section-title">Temperatura</div>
   <div id="tempChartSection"></div>
 
+  <!-- GRAFICO UMIDITÀ -->
+  <div class="section-title">Umidità</div>
+  <div id="humChartSection"></div>
+
   <!-- GRAFICO PIOGGIA -->
   <div class="section-title">Pioggia</div>
   <div id="chartSection"></div>
@@ -1533,7 +1537,9 @@ const NETWORKS = {
     limet:          "LIMET",
     ignorete:       "IGNORETE",
     comunedigenova: "Comune di Genova",
-    acronet:        "Acronet"
+    acronet:        "Acronet",
+    "3r":           "3R",
+    dma:            "DMA"
 };
 
 function normalizeSource(s) {
@@ -1923,18 +1929,289 @@ async function fetchLIMET(stationName) {
     };
 }
 
+/* =========================================
+   FETCH GEPO (rete Acronet)
+   gepo.json: array, il primo elemento è solo {timestamp}.
+   La stazione si riconosce dall'id (es. CAMIN).
+========================================= */
 
+const GEPO_URL = "https://api-stazioni-meteo.eggittof.workers.dev/gepo.json";
+
+async function fetchGEPO(stationId) {
+
+    const res = await fetch(GEPO_URL + "?_=" + Date.now());
+
+    if (!res.ok) {
+        throw new Error("GEPO HTTP " + res.status);
+    }
+
+    const json = await res.json();
+
+    const list = Array.isArray(json) ? json : (json.stations || []);
+
+    const wanted = String(stationId).trim().toUpperCase();
+
+    const raw = list.find(function (s) {
+        return s && s.id && String(s.id).trim().toUpperCase() === wanted;
+    });
+
+    if (!raw) {
+        throw new Error("Stazione GEPO non trovata nel JSON: " + stationId);
+    }
+
+    return {
+
+        source: "GEPO",
+        id: raw.id,
+        lat: toNum(raw.LAT),
+        lon: toNum(raw.LON),
+
+        // Temperatura
+        temp: toNum(raw.T),
+        tempHigh: toNum(raw.TH),
+        tempLow: toNum(raw.TL),
+
+        // Umidità
+        hum: toNum(raw.H),
+        humHigh: toNum(raw.HH),
+        humLow: toNum(raw.HL),
+
+        // Dew point e heat index
+        dewp: toNum(raw.D),
+        heat: toNum(raw.HI),
+
+        // Vento (V = velocità, VR = raffica, VD = direzione in gradi)
+        wind: toNum(raw.V),
+        windGust: toNum(raw.VR),
+        windDir: toNum(raw.VD),
+
+        // Pioggia (R = giornaliera, RR = intensità)
+        rainRate: toNum(raw.RR),
+        rainDaily: toNum(raw.R),
+
+        // Pressione
+        pressure: toNum(raw.P),
+        pressHigh: toNum(raw.PH),
+        pressLow: toNum(raw.PL),
+
+        // Radiazione solare e UV (null se la stazione non li ha)
+        solar: toNum(raw.RAD),
+        uv: toNum(raw.UV),
+
+        raw
+    };
+}
+
+
+/* =========================================
+   FETCH COMUNE DI GENOVA
+   comuneGenova.json: { stations: [...] }, la stazione si riconosce dall'id
+   (es. Scarpino). Nessuna pressione, nessun minimo/massimo di umidità.
+========================================= */
+
+const COMUNE_URL = "https://api-stazioni-meteo.eggittof.workers.dev/comuneGenova.json";
+
+async function fetchComuneGenova(stationId) {
+
+    const res = await fetch(COMUNE_URL + "?_=" + Date.now());
+
+    if (!res.ok) {
+        throw new Error("Comune di Genova HTTP " + res.status);
+    }
+
+    const json = await res.json();
+
+    const list = Array.isArray(json) ? json : (json.stations || []);
+
+    const wanted = String(stationId).trim().toUpperCase();
+
+    const raw = list.find(function (s) {
+        return s && String(s.id ?? "").trim().toUpperCase() === wanted;
+    });
+
+    if (!raw) {
+        throw new Error("Stazione Comune di Genova non trovata nel JSON: " + stationId);
+    }
+
+    return {
+
+        source: "COMUNE_GENOVA",
+        id: raw.id,
+        lat: toNum(raw.lat),
+        lon: toNum(raw.lon),
+
+        // Temperatura
+        temp: toNum(raw.T),
+        tempHigh: toNum(raw.TH),
+        tempLow: toNum(raw.TL),
+
+        // Umidità
+        hum: toNum(raw.H),
+
+        // Dew point e heat index
+        dewp: toNum(raw.D),
+        heat: toNum(raw.HI),
+
+        // Vento (W = velocità, WD = direzione in gradi)
+        wind: toNum(raw.W),
+        windDir: toNum(raw.WD),
+
+        // Pioggia (R = giornaliera, Rh = oraria)
+        rainRate: toNum(raw.Rh),
+        rainDaily: toNum(raw.R),
+
+        raw
+    };
+}
+/* =========================================
+   FETCH 3R METEO PIEMONTE
+   meteo3rpiemonte.json: { stations: [...] }, la stazione si riconosce
+   dall'id (es. PIE_217). Campi certi: N, lat, lon, T, TH, TL, V, R.
+   Gli altri (umidità, dew point, raffica, pressione…) sono cercati con
+   i nomi più probabili: se il file li ha, compaiono da soli.
+========================================= */
+
+const R3_URL = "https://api-stazioni-meteo.eggittof.workers.dev/meteo3rpiemonte.json";
+
+async function fetch3R(stationId) {
+
+    const res = await fetch(R3_URL + "?_=" + Date.now());
+
+    if (!res.ok) {
+        throw new Error("3R HTTP " + res.status);
+    }
+
+    const json = await res.json();
+
+    const list = Array.isArray(json) ? json : (json.stations || []);
+
+    const wanted = String(stationId).trim().toUpperCase();
+
+    const raw = list.find(function (s) {
+        return s && String(s.id ?? "").trim().toUpperCase() === wanted;
+    });
+
+    if (!raw) {
+        throw new Error("Stazione 3R non trovata nel JSON: " + stationId);
+    }
+
+    return {
+
+        source: "3R",
+        id: raw.id,
+        lat: pickNum(raw, ["lat"]),
+        lon: pickNum(raw, ["lon"]),
+
+        // Temperatura
+        temp: pickNum(raw, ["T"]),
+        tempHigh: pickNum(raw, ["TH"]),
+        tempLow: pickNum(raw, ["TL"]),
+
+        // Umidità
+        hum: pickNum(raw, ["H"]),
+        humHigh: pickNum(raw, ["HH"]),
+        humLow: pickNum(raw, ["HL"]),
+
+        // Dew point e heat index
+        dewp: pickNum(raw, ["D"]),
+        heat: pickNum(raw, ["HI"]),
+
+        // Vento (V = velocità)
+        wind: pickNum(raw, ["V"]),
+        windGust: pickNum(raw, ["VR"]),
+        windDir: pickNum(raw, ["VD"]),
+
+        // Pioggia (R = giornaliera)
+        rainRate: pickNum(raw, ["RR"]),
+        rainDaily: pickNum(raw, ["R"]),
+
+        // Pressione
+        pressure: pickNum(raw, ["P"]),
+
+        raw
+    };
+}
+/* =========================================
+   FETCH DMA
+   asti-test.json: { stations: [...] }, la stazione si riconosce dall'id
+   (indirizzo MAC, es. 04:f5:64:9b:cd:99). Dati ogni 2 minuti.
+   T/H/V/G/R/RR/P/D con i relativi massimi (…H) e minimi (…L).
+========================================= */
+
+const DMA_URL = "https://api-stazioni-meteo.eggittof.workers.dev/asti-test.json";
+
+async function fetchDMA(stationId) {
+
+    const res = await fetch(DMA_URL + "?_=" + Date.now());
+
+    if (!res.ok) {
+        throw new Error("DMA HTTP " + res.status);
+    }
+
+    const json = await res.json();
+
+    const list = Array.isArray(json) ? json : (json.stations || []);
+
+    const wanted = String(stationId).trim().toLowerCase();
+
+    const raw = list.find(function (s) {
+        return s && String(s.id ?? "").trim().toLowerCase() === wanted;
+    });
+
+    if (!raw) {
+        throw new Error("Stazione DMA non trovata nel JSON: " + stationId);
+    }
+
+    return {
+
+        source: "DMA",
+        id: raw.id,
+        lat: toNum(raw.lat),
+        lon: toNum(raw.lon),
+
+        // Temperatura
+        temp: toNum(raw.T),
+        tempHigh: toNum(raw.TH),
+        tempLow: toNum(raw.TL),
+
+        // Umidità
+        hum: toNum(raw.H),
+        humHigh: toNum(raw.HH),
+        humLow: toNum(raw.HL),
+
+        // Dew point
+        dewp: toNum(raw.D),
+        dewpHigh: toNum(raw.DH),
+        dewpLow: toNum(raw.DL),
+
+        // Vento (V = velocità, G = raffica; nessuna direzione nel file)
+        wind: toNum(raw.V),
+        windGust: toNum(raw.G),
+        windGustHigh: toNum(raw.GH),
+        windDir: null,
+
+        // Pioggia (R = giornaliera, RR = intensità, RH = intensità massima)
+        rainRate: toNum(raw.RR),
+        rainRateMax: toNum(raw.RH),
+        rainDaily: toNum(raw.R),
+
+        // Pressione
+        pressure: toNum(raw.P),
+        pressHigh: toNum(raw.PH),
+        pressLow: toNum(raw.PL),
+
+        raw
+    };
+}
 const FETCHERS = {
     limet: fetchLIMET,
     ignorete: fetchIGNORETE,
-    omirl: fetchOMIRL
-    // limet: fetchLimet,
-    // wunderground: fetchPws,
-    // ignorete: ...,
-    // comunedigenova: ...,
-    // acronet: ...
+    omirl: fetchOMIRL,
+    acronet: fetchGEPO,
+    comunedigenova: fetchComuneGenova,
+    "3r": fetch3R,
+    dma: fetchDMA
 };
-
 async function refreshData() {
 
     const fetcher = FETCHERS[stationContext.network];
@@ -2180,7 +2457,27 @@ function renderChart() {
         if (gridMax - gridMin < step * 2) gridMax = gridMin + step * 2;
     }
 
-    const yFor = v => padT + (1 - (v - gridMin) / (gridMax - gridMin)) * plotH;
+    // limiti assoluti dell'asse (es. umidità 0-100)
+    const hasLo = typeof CHART.limitMin === "number";
+    const hasHi = typeof CHART.limitMax === "number";
+
+    if (hasHi && gridMax > CHART.limitMax) {
+        gridMax = CHART.limitMax;
+        if (gridMax - gridMin < step * 2) gridMin = gridMax - step * 2;
+    }
+
+    if (hasLo && gridMin < CHART.limitMin) {
+        gridMin = CHART.limitMin;
+        if (gridMax - gridMin < step * 2) gridMax = gridMin + step * 2;
+    }
+
+    if (hasHi && gridMax > CHART.limitMax) gridMax = CHART.limitMax;
+
+    // un valore fuori dai limiti viene disegnato sul bordo, non fuori dal grafico
+    const clampV = v => Math.max(hasLo ? CHART.limitMin : -Infinity,
+                         Math.min(hasHi ? CHART.limitMax : Infinity, v));
+
+    const yFor = v => padT + (1 - (clampV(v) - gridMin) / (gridMax - gridMin)) * plotH;
 
     // ----- segmenti continui (un buco nei dati interrompe la linea)
     const segments = [];
@@ -2556,17 +2853,28 @@ const rainChart = createChart({
     id: 'Rain', mount: 'chartSection',
     unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
     colorFn: getRainScaleColor,
-    archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'] }
+    archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'],
+           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma']  }
 });
+const humChart = createChart({
+    id: 'Hum', mount: 'humChartSection',
+    unit: '%', decimals: 0, gridStep: 5, minZero: false,
+    limitMin: 0, limitMax: 100,
+    colorFn: getHumColor,
+    archive: { omirl: ['omirl_H'], ignorete: ['ignorete_H'], limet: ['limet1_H', 'limet2_H'],
+           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H']  }
+});
+
 
 const tempChart = createChart({
     id: 'Temp', mount: 'tempChartSection',
     unit: '°C', decimals: 1, gridStep: 1, minZero: false,
     colorFn: getTempColor,
-    archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'] }
+    archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'],
+           acronet: ['gepo_T'], comunedigenova: ['comuneGenova_T'], "3r": ['3r_T'], dma: ['dma_T'] }
 });
 
-window.stationCharts = { rain: rainChart, temp: tempChart };
+window.stationCharts = { rain: rainChart, temp: tempChart, hum: humChart };
 
 
 
