@@ -136,11 +136,30 @@
     border-radius:10px;
     font-weight:500;
     font-size:14px;
-    background-color: var(--page-bg);
+    background-color: rgba(14,20,32,0.5); /* grigio scuro al 50%: l'alone traspare */
     border:1px solid var(--line);
     color: var(--paper);
   }
+  /* Il pannello grigio crea il proprio livello: l'alone (z-index -1) sta
+     sopra lo sfondo grigio del pannello e sotto i riquadri scuri. */
+  .averages-panel{ isolation:isolate; }
+  .avg-chip{
+    position:relative;
+    overflow:visible;
+  }
+  .avg-chip::before{
+    content:"";
+    position:absolute;
+    inset:-4px;
+    border-radius:16px;
+    background-color: var(--card-glow, transparent);
+    filter: blur(9px);
+    opacity:.5;
+    z-index:-1;
+    pointer-events:none;
+  }
   .avg-chip.empty{ opacity:.45; }
+  .avg-chip.empty::before{ display:none; }
 
   .note{
     margin-top:14px;
@@ -450,6 +469,55 @@ function buildTable() {
    /export?src=...&from=<mezzanotte di oggi>.
 ========================================= */
 
+/* Colori delle scale (gli stessi dei gauges) */
+function getTempColor(value){
+  if (value < -15) return "#f54dff";
+  if (value < -10) return "#c65bff";
+  if (value < -4) return "#4d54ff";
+  if (value < -2) return "#1f7eb9";
+  if (value <= 0) return "#539eb0";
+  if (value < 2) return "#67bac8";
+  if (value < 4) return "#5ac5ba";
+  if (value < 6) return "#42a37b";
+  if (value < 8) return "#538b53";
+  if (value < 10) return "#419a41";
+  if (value < 12) return "#5cb425";
+  if (value < 14) return "#76ca38";
+  if (value < 16) return "#a1d950";
+  if (value < 18) return "#eadf00";
+  if (value < 20) return "#ffcc55";
+  if (value < 22) return "#ffaf54";
+  if (value < 24) return "#fa8f4b";
+  if (value < 26) return "#f26969";
+  if (value < 28) return "#de5a5a";
+  if (value < 30) return "#b05151";
+  if (value < 32) return "#994848";
+  if (value < 34) return "#743e3e";
+  if (value < 36) return "#b874ac";
+  if (value < 38) return "#ea7bea";
+  return "#995a99";
+}
+
+function getRainScaleColor(v){
+  if (v === 0) return "#808080";
+  if (v < 2) return "#f9ae6c";
+  if (v < 5) return "#f9966c";
+  if (v < 10) return "#6ca561";
+  if (v < 20) return "#65d050";
+  if (v < 30) return "#4dc8ff";
+  if (v < 50) return "#4da9ff";
+  return "#2c278e";
+}
+
+// colore dell'alone in base al campo e al valore (l'asterisco della media si ignora)
+function glowColor(field, text) {
+    const n = parseFloat(String(text).replace(",", "."));
+
+    if (!Number.isFinite(n)) return null;
+
+    return field === "rain" ? getRainScaleColor(n) : getTempColor(n);
+}
+
 function setChip(day, field, text) {
     const el = document.querySelector('.avg-chip[data-day="' + day + '"][data-field="' + field + '"]');
 
@@ -457,6 +525,10 @@ function setChip(day, field, text) {
 
     el.textContent = text;
     el.classList.remove("empty");
+
+    const color = glowColor(field, text);
+
+    if (color) el.style.setProperty("--card-glow", color);
 }
 
 function hasValue(day, field) {
