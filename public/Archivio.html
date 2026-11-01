@@ -302,6 +302,9 @@ let currentName = nameParam || stationId || "Stazione non trovata";
 // (di solito è lo stesso del link; per DMA è l'id/MAC, non il nome)
 let archiveIds = stationId ? [String(stationId).trim()] : [];
 
+// ultima lettura della stazione (serve per max/min di OMIRL)
+let currentRaw = null;
+
 function collectArchiveIds(raw) {
     const list = [];
     const add = v => {
@@ -356,6 +359,7 @@ async function loadCurrent() {
         if (!raw) throw new Error("stazione non trovata");
 
         collectArchiveIds(raw);
+        currentRaw = raw;
 
         // DMA: il titolo è il nome della stazione, non l'id
         if (network === "dma" && raw.name) currentName = raw.name;
@@ -678,14 +682,19 @@ async function loadArchive() {
 
         if (token !== loadToken) return;
 
-        if (tv) {
-            const max  = Math.max.apply(null, tv);
-            const min  = Math.min.apply(null, tv);
-            const mean = tv.reduce((a, b) => a + b, 0) / tv.length;
+        if (tv || (network === "omirl" && currentRaw)) {
+            // OMIRL: massima e minima le dà la stazione (tempHigh / tempLow)
+            const okT = v => v !== null && EXCLUDED_TEMPS.indexOf(v.toFixed(1)) < 0;
+            const hMax = network === "omirl" && currentRaw ? toNum(currentRaw.tempHigh) : null;
+            const hMin = network === "omirl" && currentRaw ? toNum(currentRaw.tempLow) : null;
 
-            if (!hasValue(day, "tmax"))  setChip(day, "tmax", max.toFixed(1) + "°");
-            if (!hasValue(day, "tmin"))  setChip(day, "tmin", min.toFixed(1) + "°");
-            if (!hasValue(day, "tmean")) setChip(day, "tmean", mean.toFixed(1) + "°");
+            const max  = okT(hMax) ? hMax : (tv ? Math.max.apply(null, tv) : null);
+            const min  = okT(hMin) ? hMin : (tv ? Math.min.apply(null, tv) : null);
+            const mean = tv ? tv.reduce((a, b) => a + b, 0) / tv.length : null;
+
+            if (max !== null && !hasValue(day, "tmax"))  setChip(day, "tmax", max.toFixed(1) + "°");
+            if (min !== null && !hasValue(day, "tmin"))  setChip(day, "tmin", min.toFixed(1) + "°");
+            if (mean !== null && !hasValue(day, "tmean")) setChip(day, "tmean", mean.toFixed(1) + "°");
         }
 
         if (rv) {
