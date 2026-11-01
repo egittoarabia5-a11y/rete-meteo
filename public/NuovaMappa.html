@@ -3838,7 +3838,7 @@ const fetchDMA = async () => {
 
     stations.forEach((st) => {
 
-      const id = st.id || st.N;
+      const id = st.name;
 
       const lat = Number(st.lat ?? st.LAT);
       const lon = Number(st.lon ?? st.LON);
@@ -3851,7 +3851,7 @@ const fetchDMA = async () => {
       allStations[id] = {
 
         id,
-        N: st.id || st.N || id,
+        N: st.name,
 
         source: "DMA",
 
