@@ -569,7 +569,9 @@ async function fetchArchiveSeries(srcs, mese) {
 }
 
 // Righe al minuto di oggi per una stazione: restituisce l'array dei valori numerici
-async function fetchTodayValues(srcs, fromIso) {
+const EXCLUDED_TEMPS = ["-44.9", "-17.8"];
+
+async function fetchTodayValues(srcs, fromIso, isTemp) {
     for (const src of srcs) {
         try {
             const data = await getJson(
@@ -592,7 +594,12 @@ async function fetchTodayValues(srcs, fromIso) {
             for (const row of data.rows || []) {
                 const v = toNum(String(row[1]).split(",")[idx]);
 
-                if (v !== null) values.push(v);
+                if (v === null) continue;
+
+                // temperature errate da escludere (come nell'archivio)
+                if (isTemp && EXCLUDED_TEMPS.indexOf(v.toFixed(1)) >= 0) continue;
+
+                values.push(v);
             }
 
             if (values.length) return values;
@@ -665,7 +672,7 @@ async function loadArchive() {
         const needRain = !hasValue(day, "rain");
 
         const [tv, rv] = await Promise.all([
-            needTemp ? fetchTodayValues(cfg.arc.t, fromIso) : null,
+            needTemp ? fetchTodayValues(cfg.arc.t, fromIso, true) : null,
             needRain && cfg.arc.r.length ? fetchTodayValues(cfg.arc.r, fromIso) : null
         ]);
 
