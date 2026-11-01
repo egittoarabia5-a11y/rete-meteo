@@ -2155,7 +2155,7 @@ async function fetchDMA(stationId) {
     const wanted = String(stationId).trim().toLowerCase();
 
     const raw = list.find(function (s) {
-        return s && String(s.id ?? "").trim().toLowerCase() === wanted;
+        return s && String(s.name ?? "").trim().toLowerCase() === wanted;
     });
 
     if (!raw) {
@@ -2165,7 +2165,7 @@ async function fetchDMA(stationId) {
     return {
 
         source: "DMA",
-        id: raw.id,
+        id: raw.name,
         lat: toNum(raw.lat),
         lon: toNum(raw.lon),
 
@@ -2258,7 +2258,7 @@ const MAX_GAP_MIN = 3;                      // un buco più lungo interrompe la 
 const BLOCK_MIN = DAY24 ? 1440 : 720;                      // 6 ore per riquadro
 const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 2 riquadri fissi al giorno
 const ROLL_BLOCK = DAY24 ? 2 : 3;           // riquadro "ultime 12 ore" (finestra che scorre)
-const DEFAULT_BLOCK = DAY24 ? 1 : ROLL_BLOCK;   // all'apertura: oggi
+const DEFAULT_BLOCK = ROLL_BLOCK;   // all'apertura: ultime 24h   // all'apertura: oggi
 
 // La finestra che scorre dura 12 ore e finisce all'ora piena successiva
 // (19:07 → 08-20, 20:01 → 09-21). Prima delle 12 parte dalla mezzanotte.
