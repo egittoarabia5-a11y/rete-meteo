@@ -161,6 +161,29 @@
   .avg-chip.empty{ opacity:.45; }
   .avg-chip.empty::before{ display:none; }
 
+  /* ---------- righe riepilogative in fondo al mese ---------- */
+  .avg-gap{
+    grid-column:1 / -1;
+    height:12px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:6px;
+  }
+  .avg-row-label.sum{
+    font-weight:600;
+    opacity:1;
+  }
+  .avg-chip.sum{
+    flex-direction:column;
+    gap:2px;
+    padding:9px 6px;
+  }
+  .avg-chip.sum small{
+    font-size:10.5px;
+    font-weight:400;
+    opacity:.65;
+    letter-spacing:.02em;
+  }
+
   .note{
     margin-top:14px;
     font-size:12px;
@@ -175,6 +198,8 @@
     .averages-panel{ padding:14px 12px 16px; }
     .avg-grid{ gap:6px 6px; }
     .avg-chip{ font-size:12px; padding:6px 3px; }
+    .avg-chip.sum{ padding:7px 3px; }
+    .avg-chip.sum small{ font-size:9.5px; }
     .avg-row-label{ font-size:11.5px; }
     .avg-head{ font-size:10px; }
   }
@@ -420,7 +445,7 @@ MONTHS.forEach(function (m, i) {
     monthPicker.appendChild(o);
 });
 
-for (let y = 2026; y <= Math.max(2026, today.getFullYear()); y++) {
+for (let y = Math.max(2026, today.getFullYear()); y >= 2002; y--) {
     const o = document.createElement("option");
     o.value = String(y);
     o.textContent = String(y);
@@ -430,7 +455,11 @@ for (let y = 2026; y <= Math.max(2026, today.getFullYear()); y++) {
 monthPicker.value = String(today.getMonth() + 1);
 yearPicker.value  = String(Math.max(2026, today.getFullYear()));
 
-/* Tabella del mese: una riga per giorno (28/29/30/31 in base al mese e all'anno). */
+/* Tabella del mese: una riga per giorno (28/29/30/31 in base al mese e all'anno),
+   poi, staccate, le tre righe riepilogative:
+     avg = medie mensili e accumulo di pioggia
+     max = massimi (con data)
+     min = minimi (per la pioggia: giorni di pioggia) */
 function buildTable() {
 
     const month = Number(monthPicker.value);
@@ -454,6 +483,28 @@ function buildTable() {
             '<span class="avg-chip empty" data-day="' + d + '" data-field="tmean">--°</span>' +
             '<span class="avg-chip empty" data-day="' + d + '" data-field="rain">-- mm</span>';
     }
+
+    html +=
+        '<div class="avg-gap"></div>' +
+        '<span class="avg-head first"></span>' +
+        '<span class="avg-head">Massima</span>' +
+        '<span class="avg-head">Minima</span>' +
+        '<span class="avg-head">Media</span>' +
+        '<span class="avg-head">Accumulo</span>';
+
+    const sumRows = [
+        { key: "avg", label: "Medie mensili", units: ["--°", "--°", "--°", "-- mm"] },
+        { key: "max", label: "Estremi",       units: ["--°", "--°", "--°", "-- mm"] },
+        { key: "min", label: "Altri estremi", units: ["--°", "--°", "--°", "--"] }
+    ];
+
+    sumRows.forEach(function (row) {
+        html += '<span class="avg-row-label sum">' + row.label + '</span>';
+
+        ["tmax", "tmin", "tmean", "rain"].forEach(function (f, i) {
+            html += '<span class="avg-chip sum empty" data-sum="' + row.key + '-' + f + '">' + row.units[i] + '</span>';
+        });
+    });
 
     html += '</div></div>';
 
@@ -539,6 +590,94 @@ function hasValue(day, field) {
     const el = document.querySelector('.avg-chip[data-day="' + day + '"][data-field="' + field + '"]');
 
     return !!el && !el.classList.contains("empty");
+}
+
+
+/* =========================================
+   RIGHE RIEPILOGATIVE (medie / massimi / minimi del mese)
+========================================= */
+
+// valori numerici già presenti in tabella per un campo: [{ day, v }]
+function readField(field) {
+    const out = [];
+
+    document.querySelectorAll('.avg-chip[data-field="' + field + '"]:not(.empty)').forEach(function (el) {
+        const n = parseFloat(el.textContent.replace(",", "."));
+
+        if (Number.isFinite(n)) out.push({ day: Number(el.dataset.day), v: n });
+    });
+
+    return out;
+}
+
+function fmtDate(day) {
+    return String(day).padStart(2, "0") + "/" + String(monthPicker.value).padStart(2, "0");
+}
+
+// scrive un riquadro riepilogativo: valore, eventuale data sotto, alone colorato
+function setSum(key, field, text, sub, glow) {
+    const el = document.querySelector('.avg-chip[data-sum="' + key + '-' + field + '"]');
+
+    if (!el) return;
+
+    el.innerHTML = text + (sub ? "<small>" + sub + "</small>" : "");
+    el.classList.remove("empty");
+
+    if (glow) el.style.setProperty("--card-glow", glow);
+    else el.style.removeProperty("--card-glow");
+}
+
+function extreme(list, wantMax) {
+    let best = null;
+
+    list.forEach(function (o) {
+        if (best === null || (wantMax ? o.v > best.v : o.v < best.v)) best = o;
+    });
+
+    return best;
+}
+
+function updateSummary() {
+
+    ["tmax", "tmin", "tmean"].forEach(function (f) {
+        const list = readField(f);
+
+        if (!list.length) return;
+
+        // medie mensili
+        const mean = list.reduce(function (a, o) { return a + o.v; }, 0) / list.length;
+        setSum("avg", f, mean.toFixed(1) + "°", "", getTempColor(mean));
+
+        // seconda riga (estremi): ext. max. per massima e media, ext. min. per minima
+        const wantMax2 = (f !== "tmin");
+        const e2 = extreme(list, wantMax2);
+        setSum("max", f, e2.v.toFixed(1) + "°",
+               (wantMax2 ? "ext. max." : "ext. min.") + " · " + fmtDate(e2.day), getTempColor(e2.v));
+
+        // terza riga: ext. min. per massima e media, ext. max. per minima
+        const wantMax3 = (f === "tmin");
+        const e3 = extreme(list, wantMax3);
+        setSum("min", f, e3.v.toFixed(1) + "°",
+               (wantMax3 ? "ext. max." : "ext. min.") + " · " + fmtDate(e3.day), getTempColor(e3.v));
+    });
+
+    const rain = readField("rain");
+
+    if (rain.length) {
+        // accumulo mensile
+        const tot = rain.reduce(function (a, o) { return a + o.v; }, 0);
+        setSum("avg", "rain", tot.toFixed(1) + " mm", "", getRainScaleColor(tot));
+
+        // giorno più piovoso (con data); se non ha mai piovuto niente data
+        const top = extreme(rain, true);
+
+        if (top.v > 0) setSum("max", "rain", top.v.toFixed(1) + " mm", "ext. max. · " + fmtDate(top.day), getRainScaleColor(top.v));
+        else setSum("max", "rain", "0.0 mm", "ext. max.", getRainScaleColor(0));
+
+        // giorni di pioggia
+        const nDays = rain.filter(function (o) { return o.v > 0; }).length;
+        setSum("min", "rain", String(nDays), "Giorni di pioggia", null);
+    }
 }
 
 async function getJson(url) {
@@ -701,6 +840,9 @@ async function loadArchive() {
             setChip(day, "rain", Math.max.apply(null, rv).toFixed(1) + " mm");
         }
     }
+
+    // righe riepilogative (dopo che tutti i giorni, oggi compreso, sono stati scritti)
+    updateSummary();
 
     if (!tempRes && !rainRes) {
         note.textContent = "Nessun dato in archivio per questo mese.";
