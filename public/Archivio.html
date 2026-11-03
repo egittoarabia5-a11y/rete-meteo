@@ -202,7 +202,42 @@
     opacity:.55;
     text-align:center;
   }
-
+  /* ---------- grafici di fine pagina ---------- */
+  #chartsArea{ margin-top:18px; }
+  .chart-legend{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin:-6px 0 10px; font-size:12px; opacity:.8;
+  }
+  .chart-legend i{
+    display:inline-block; width:22px; height:0;
+    border-top:2px solid var(--paper);
+    margin-right:6px; vertical-align:middle;
+  }
+  .chart-legend i.dash{ border-top-style:dashed; }
+  .chart-wrap{ position:relative; width:100%; }
+  .chart-wrap svg{
+    display:block; width:100%;
+    cursor:crosshair; touch-action:pan-y;
+  }
+  .chart-tooltip{
+    position:absolute; top:0; left:0;
+    pointer-events:none; opacity:0;
+    background: rgba(243,237,224,0.96);
+    color:#12202b;
+    padding:6px 10px; border-radius:8px;
+    font-size:12px; line-height:1.45; white-space:nowrap;
+    box-shadow:0 4px 15px rgba(0,0,0,0.25);
+    transition: opacity .1s ease;
+  }
+  .chart-tooltip.visible{ opacity:1; }
+  .chart-tooltip .chip{
+    display:inline-block; width:9px; height:9px;
+    border-radius:50%; margin-right:5px;
+  }
+  .cg-line{ stroke: rgba(243,237,224,0.13); stroke-width:1; }
+  .cg-line.v{ stroke: rgba(243,237,224,0.09); }
+  .cg-label{ font-family:'Work Sans', sans-serif; font-size:11px; fill: rgba(243,237,224,0.5); }
+  .cg-empty{ font-family:'Work Sans', sans-serif; font-size:14px; fill: rgba(243,237,224,0.5); }
   @media (max-width: 760px){
     .page{ padding:16px 14px 44px; }
     .head{ grid-template-columns: 1fr; text-align:center; gap:8px; }
@@ -233,8 +268,8 @@
     <select class="picker" id="monthPicker"></select>
     <select class="picker" id="yearPicker"></select>
   </div>
-
   <div id="archiveArea"></div>
+  <div id="chartsArea"></div>
   <div class="note" id="archiveNote"></div>
 
 </div>
@@ -467,7 +502,18 @@ MONTHS.forEach(function (m, i) {
     o.textContent = "Anno";
     monthPicker.appendChild(o);
 })();
+(function () {
+    const o = document.createElement("option");
+    o.value = "T";
+    o.textContent = "Totale";
+    yearPicker.appendChild(o);
+})();
 
+const TOTAL_FROM = 2002;   // primo anno cercato nella vista Totale
+
+function isTotalMode() {
+    return yearPicker.value === "T";
+}
 for (let y = Math.max(2026, today.getFullYear()); y >= 2002; y--) {
     const o = document.createElement("option");
     o.value = String(y);
@@ -558,8 +604,30 @@ async function getJson(url) {
 
 // Cerca la stazione (provando gli id candidati) nelle serie indicate:
 // restituisce { arr, src, id } della prima serie che ha dati
+let availablePromise = null;
+
+function getAvailable() {
+    if (!availablePromise) {
+        availablePromise = getJson(ARCHIVE_BASE + "/archivio")
+            .then(function (j) {
+                const s = new Set();
+                (j.disponibili || []).forEach(function (r) { s.add(r.mese + "|" + r.src); });
+                return s;
+            })
+            .catch(function () { return null; });
+    }
+
+    return availablePromise;
+}
+
 async function fetchArchiveSeries(srcs, mese) {
+
+    const avail = await getAvailable();
+
     for (const src of srcs) {
+
+        if (avail && !avail.has(mese + "|" + src)) continue;
+
         for (const id of archiveIds) {
             try {
                 const data = await getJson(
@@ -569,7 +637,7 @@ async function fetchArchiveSeries(srcs, mese) {
 
                 const str = data.stations && data.stations[id];
 
-                if (str) return { arr: str.split(",").map(s => s.trim()), src, id };
+                if (str) return { arr: str.split(",").map(function (s) { return s.trim(); }), src: src, id: id };
             } catch (err) {
                 console.warn("Archivio non disponibile per", src, id, err);
             }
@@ -579,6 +647,40 @@ async function fetchArchiveSeries(srcs, mese) {
     return null;
 }
 
+// cache dei mesi già caricati (il mese in corso no, perché cambia)
+const monthCache = new Map();
+
+function fetchMonthCached(month, year) {
+    const now = new Date();
+
+    if (now.getFullYear() === year && now.getMonth() + 1 === month) return fetchMonthData(month, year);
+
+    const k = month + "-" + year;
+
+    if (!monthCache.has(k)) monthCache.set(k, fetchMonthData(month, year));
+
+    return monthCache.get(k);
+}
+
+// esegue le richieste a gruppi, per non sommergere il server
+async function runPool(tasks, limit) {
+    const out = new Array(tasks.length);
+    let next = 0;
+
+    async function worker() {
+        while (true) {
+            const i = next++;
+
+            if (i >= tasks.length) return;
+
+            out[i] = await tasks[i]();
+        }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+
+    return out;
+}
 // Righe al minuto di oggi per una stazione: restituisce l'array dei valori numerici
 const EXCLUDED_TEMPS = ["-44.9", "-17.8"];
 
@@ -718,16 +820,21 @@ async function fetchMonthData(month, year) {
 ========================================= */
 
 // [{ day, month, v }] dai testi di un mese
-function numList(arr, month) {
+function numList(arr, month, year) {
     const out = [];
 
     arr.forEach(function (s, i) {
         const n = toNum(s);
 
-        if (n !== null) out.push({ day: i + 1, month: month, v: n });
+        if (n !== null) out.push({ day: i + 1, month: month, year: year, v: n });
     });
 
     return out;
+}
+
+function fmtDM(o) {
+    return String(o.day).padStart(2, "0") + "/" + String(o.month).padStart(2, "0") +
+           (o.year ? "/" + o.year : "");
 }
 
 function extreme(list, wantMax) {
@@ -750,10 +857,6 @@ function sumOf(list) {
 
 function rainyDays(list) {
     return list.filter(function (o) { return o.v >= RAIN_DAY_MM; }).length;
-}
-
-function fmtDM(o) {
-    return String(o.day).padStart(2, "0") + "/" + String(o.month).padStart(2, "0");
 }
 
 // scrive un riquadro: valore, etichetta grigia sotto, alone colorato
@@ -885,7 +988,7 @@ function updateSummary() {
 
     if (rain.length) {
         // accumulo mensile
-        const tot = sumOf(rain);
+                const tot = sumOf(rain) / (tg.accDiv || 1);
         setSum("avg", "rain", tot.toFixed(1) + " mm", "accumulo mensile", getRainScaleColor(tot));
 
         // giorno più piovoso (con data)
@@ -931,7 +1034,7 @@ async function loadArchive() {
 
     // righe riepilogative (dopo che tutti i giorni, oggi compreso, sono stati scritti)
     updateSummary();
-
+    renderCharts(buildDaily([{ month: month, year: year, data: data }]), false);
     if (!data.has) {
         note.textContent = "Nessun dato in archivio per questo mese.";
     }
@@ -993,11 +1096,12 @@ function setYear(table, key, field, text, sub, glow) {
 }
 
 // riempie la riga di un mese (key "1".."12") o la riga annua (key "T") nelle 3 tabelle
-function fillYearRow(key, L, isYear) {
+function fillYearRow(key, L, isYear, tags) {
 
-    const meanLbl = isYear ? "media annua"    : "media mensile";
-    const accLbl  = isYear ? "accumulo annuo" : "accumulo mensile";
-    const extTag  = isYear ? " annuo" : "";
+    const tg = tags || {};
+    const meanLbl = tg.mean || (isYear ? "media annua"    : "media mensile");
+    const accLbl  = tg.acc  || (isYear ? "accumulo annuo" : "accumulo mensile");
+    const extTag  = tg.ext !== undefined ? tg.ext : (isYear ? " annuo" : "");
 
     ["tmax", "tmin", "tmean"].forEach(function (f) {
         const list = L[f];
@@ -1035,7 +1139,7 @@ function fillYearRow(key, L, isYear) {
         else setYear(2, key, "rain", "0.0 mm", "ext. max." + extTag, getRainScaleColor(0));
 
         // tabella 3: giorni di pioggia (>= 1.0 mm)
-        setYear(3, key, "rain", String(rainyDays(rain)), isYear ? "giorni di pioggia annui" : "giorni di pioggia", null);
+        setYear(3, key, "rain", String(rainyDays(rain)), tg.days || (isYear ? "giorni di pioggia annui" : "giorni di pioggia"), null);
     }
 }
 
@@ -1099,29 +1203,747 @@ async function loadYear() {
     );
 
     // nel frattempo l'utente ha cambiato mese/anno
+        // nel frattempo l'utente ha cambiato mese/anno
     if (token !== loadToken) return;
 
     note.textContent = "";
 
     fillYear(months);
 
+    renderCharts(
+        buildDaily(months.map(function (md, i) { return { month: i + 1, year: year, data: md }; })),
+        true
+    );
+
     if (!months.some(function (x) { return x.has; })) {
         note.textContent = "Nessun dato in archivio per questo anno.";
     }
 }
 
+/* =========================================
+   GRAFICI DI FINE PAGINA
+   1) temperature: massima, media, minima
+   2) pioggia giornaliera (asse sinistro) e accumulo (asse destro)
+   Mese: un punto per giorno. Anno: 365/366 punti, con i mesi sull'asse.
+========================================= */
 
+const SHORT = MONTHS.map(function (m) { return m.slice(0, 3); });
+
+let chartsState = [];
+
+function niceStep(range, maxTicks) {
+    const raw = range / maxTicks;
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / pow;
+    const m = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+
+    return m * pow;
+}
+
+function fmtAx(v) {
+    return String(Math.round(v * 10) / 10);
+}
+
+// serie giornaliera continua a partire da [{ month, year, data }]
+function buildDaily(parts) {
+
+    const d = { labels: [], tmax: [], tmin: [], tmean: [], rain: [], monthStarts: [] };
+
+    parts.forEach(function (p) {
+
+        const days = p.data.tmax.length;
+
+        d.monthStarts.push({ i: d.labels.length, month: p.month });
+
+        for (let k = 0; k < days; k++) {
+            d.labels.push(String(k + 1).padStart(2, "0") + "/" + String(p.month).padStart(2, "0") + "/" + p.year);
+
+            ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
+                d[f].push(toNum(p.data[f][k]));
+            });
+        }
+    });
+
+    return d;
+}
+
+// accumulo di pioggia dal primo giorno con dato fino all'ultimo con dato
+function cumulative(rain) {
+
+    const out = new Array(rain.length).fill(null);
+
+    let first = -1, last = -1;
+
+    rain.forEach(function (v, i) {
+        if (v !== null) {
+            if (first < 0) first = i;
+            last = i;
+        }
+    });
+
+    if (first < 0) return out;
+
+    let s = 0;
+
+    for (let i = first; i <= last; i++) {
+        s += rain[i] === null ? 0 : rain[i];
+        out[i] = Math.round(s * 10) / 10;
+    }
+
+    return out;
+}
+
+function drawChart(wrap, cfg) {
+
+    const W = Math.max(280, wrap.clientWidth || 800);
+    const H = window.innerWidth <= 700 ? 280 : 360;
+
+    const dual = cfg.series.some(function (s) { return s.axis === "r"; });
+
+    const padL = 46, padR = dual ? 50 : 22, padT = 18, padB = 30;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    const n = cfg.n;
+
+    const xFor = function (i) {
+        return n <= 1 ? padL + plotW / 2 : padL + i / (n - 1) * plotW;
+    };
+
+    const valsOf = function (ax) {
+        const a = [];
+
+        cfg.series.forEach(function (s) {
+            if ((s.axis || "l") !== ax) return;
+            s.vals.forEach(function (v) { if (v !== null) a.push(v); });
+        });
+
+        return a;
+    };
+
+    const lv = valsOf("l");
+
+    if (!lv.length) {
+        wrap.innerHTML =
+            '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+            '<text class="cg-empty" x="' + (W / 2) + '" y="' + (H / 2) + '" text-anchor="middle">Nessun dato disponibile</text></svg>';
+        return;
+    }
+
+    // ----- asse sinistro
+    let lMin = Math.min.apply(null, lv), lMax = Math.max.apply(null, lv);
+
+    if (cfg.minZero) lMin = Math.min(0, lMin);
+    if (lMax - lMin < 1) lMax = lMin + 1;
+
+    const lStep = niceStep(lMax - lMin, 6);
+    const gMinL = Math.floor(lMin / lStep) * lStep;
+
+    let gMaxL = Math.ceil(lMax / lStep) * lStep;
+    if (gMaxL <= gMinL) gMaxL = gMinL + lStep;
+
+    const divs = Math.max(1, Math.round((gMaxL - gMinL) / lStep));
+
+    // ----- asse destro (stesse divisioni orizzontali di quello sinistro)
+    let gMinR = 0, gMaxR = 1, rStep = 1;
+    const rv = valsOf("r");
+
+    if (dual && rv.length) {
+        let rMin = Math.min.apply(null, rv), rMax = Math.max.apply(null, rv);
+
+        if (cfg.minZero) rMin = Math.min(0, rMin);
+        if (rMax - rMin < 1) rMax = rMin + 1;
+
+        rStep = niceStep(rMax - rMin, divs);
+        gMinR = Math.floor(rMin / rStep) * rStep;
+        gMaxR = gMinR + rStep * divs;
+    }
+
+    const yFor = function (ax, v) {
+        const a = ax === "r" ? gMinR : gMinL;
+        const b = ax === "r" ? gMaxR : gMaxL;
+
+        return padT + (1 - (v - a) / (b - a)) * plotH;
+    };
+
+    // ----- punti di ogni serie
+    const pts = cfg.series.map(function (s) {
+        const ax = s.axis || "l";
+        const list = [];
+
+        s.vals.forEach(function (v, i) {
+            if (v !== null) list.push({ i: i, v: v, x: xFor(i), y: yFor(ax, v) });
+        });
+
+        return list;
+    });
+
+    // ----- tacche dell'asse orizzontale
+    let ticks = [];
+
+    if (cfg.isYear) {
+        ticks = cfg.monthStarts.map(function (s) { return { i: s.i, label: SHORT[s.month - 1] }; });
+        } else {
+        const minGap = cfg.tickLabels ? 44 : 28;
+        const stepD = Math.max(1, Math.ceil(minGap / (n > 1 ? plotW / (n - 1) : minGap)));
+
+        for (let i = 0; i < n; i += stepD) {
+            ticks.push({ i: i, label: cfg.tickLabels ? cfg.tickLabels[i] : String(i + 1) });
+        }
+    }
+
+    // ----- svg
+    let svg = "<defs>" +
+        '<filter id="ab' + cfg.id + '" filterUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '">' +
+        '<feGaussianBlur stdDeviation="8"/></filter>';
+
+    cfg.series.forEach(function (s, k) {
+        if (pts[k].length < 2) return;
+
+        let stops = "";
+
+        pts[k].forEach(function (p) {
+            stops += '<stop offset="' + ((p.x - padL) / plotW * 100).toFixed(2) + '%" stop-color="' + s.colorFn(p.v) + '"/>';
+        });
+
+        svg += '<linearGradient id="ag' + cfg.id + k + '" gradientUnits="userSpaceOnUse" x1="' + padL + '" y1="0" x2="' + (W - padR) + '" y2="0">' + stops + "</linearGradient>";
+    });
+
+    svg += "</defs>";
+
+    // griglia orizzontale e scale
+    for (let k = 0; k <= divs; k++) {
+        const y = padT + (1 - k / divs) * plotH;
+
+        svg += '<line class="cg-line" x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '"/>';
+        svg += '<text class="cg-label" x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + fmtAx(gMinL + k * lStep) + "</text>";
+
+        if (dual) {
+            svg += '<text class="cg-label" x="' + (W - padR + 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="start">' + fmtAx(gMinR + k * rStep) + "</text>";
+        }
+    }
+
+    // griglia verticale
+    ticks.forEach(function (t) {
+        const x = xFor(t.i).toFixed(1);
+
+        svg += '<line class="cg-line v" x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (H - padB) + '"/>';
+        svg += '<text class="cg-label" x="' + x + '" y="' + (H - 8) + '" text-anchor="middle">' + t.label + "</text>";
+    });
+
+    svg += '<text class="cg-label" x="' + (padL - 8) + '" y="12" text-anchor="end" style="font-weight:600">' + cfg.unitL + "</text>";
+
+    if (dual) svg += '<text class="cg-label" x="' + (W - padR + 8) + '" y="12" text-anchor="start" style="font-weight:600">' + cfg.unitR + "</text>";
+
+    // linee: alone colorato sfocato + linea chiara (tratteggiata per la serie "dash")
+    cfg.series.forEach(function (s, k) {
+
+        const segs = [];
+        let cur = [];
+
+        pts[k].forEach(function (p) {
+            if (cur.length && p.i - cur[cur.length - 1].i > 1) { segs.push(cur); cur = []; }
+            cur.push(p);
+        });
+
+        if (cur.length) segs.push(cur);
+
+        segs.forEach(function (seg) {
+
+            if (seg.length === 1) {
+                svg += '<circle cx="' + seg[0].x.toFixed(1) + '" cy="' + seg[0].y.toFixed(1) + '" r="3" fill="' + s.colorFn(seg[0].v) + '"/>';
+                return;
+            }
+
+            const line = seg.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
+
+            svg += '<polyline points="' + line + '" fill="none" stroke="url(#ag' + cfg.id + k + ')" stroke-width="10" filter="url(#ab' + cfg.id + ')" opacity="0.65" stroke-linecap="round" stroke-linejoin="round"/>';
+            svg += '<polyline points="' + line + '" fill="none" stroke="#f3ede0" stroke-width="2.2" opacity="0.95" stroke-linecap="round" stroke-linejoin="round"' + (s.dash ? ' stroke-dasharray="' + s.dash + '"' : "") + "/>";
+        });
+    });
+
+    // elementi dell'interazione
+    svg += '<line class="x-cross" x1="0" y1="' + padT + '" x2="0" y2="' + (H - padB) + '" stroke="rgba(243,237,224,.7)" stroke-width="1" style="display:none"/>';
+
+    cfg.series.forEach(function (s, k) {
+        svg += '<circle class="x-dot x-dot-' + k + '" r="5" cx="0" cy="0" stroke="#f3ede0" stroke-width="2" style="display:none"/>';
+    });
+
+    wrap.innerHTML =
+        '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '">' + svg + "</svg>" +
+        '<div class="chart-tooltip"></div>';
+
+    // ----- interazione (mouse e touch)
+    const svgEl = wrap.querySelector("svg");
+    const tip   = wrap.querySelector(".chart-tooltip");
+    const cross = svgEl.querySelector(".x-cross");
+
+    const hide = function () {
+        tip.classList.remove("visible");
+        cross.style.display = "none";
+
+        cfg.series.forEach(function (s, k) {
+            svgEl.querySelector(".x-dot-" + k).style.display = "none";
+        });
+    };
+
+    const onMove = function (e) {
+
+        const x = e.clientX - svgEl.getBoundingClientRect().left;
+
+        if (x < padL - 6 || x > W - padR + 6) { hide(); return; }
+
+        let i = n <= 1 ? 0 : Math.round((x - padL) / plotW * (n - 1));
+        i = Math.max(0, Math.min(n - 1, i));
+
+        const cx = xFor(i);
+
+        cross.setAttribute("x1", cx);
+        cross.setAttribute("x2", cx);
+        cross.style.display = "";
+
+        let html = "<b>" + cfg.labels[i] + "</b>";
+
+        cfg.series.forEach(function (s, k) {
+
+            const v = s.vals[i];
+            const dot = svgEl.querySelector(".x-dot-" + k);
+
+            if (v === null) {
+                dot.style.display = "none";
+                html += '<br><span class="chip" style="background:#999"></span>' + s.name + ": --";
+                return;
+            }
+
+            const col = s.colorFn(v);
+
+            dot.setAttribute("cx", cx);
+            dot.setAttribute("cy", yFor(s.axis || "l", v));
+            dot.setAttribute("fill", col);
+            dot.style.display = "";
+
+            html += '<br><span class="chip" style="background:' + col + '"></span>' + s.name + ": " + v.toFixed(cfg.decimals) + (s.unit || "");
+        });
+
+        tip.innerHTML = html;
+        tip.classList.add("visible");
+
+        let left = cx + 14;
+
+        if (left + tip.offsetWidth > W) left = cx - 14 - tip.offsetWidth;
+
+        tip.style.left = Math.max(2, left) + "px";
+        tip.style.top = (padT + 6) + "px";
+    };
+
+    svgEl.addEventListener("pointermove", onMove);
+    svgEl.addEventListener("pointerdown", onMove);
+    svgEl.addEventListener("pointerleave", hide);
+}
+
+function renderCharts(daily, isYear) {
+
+    const area = document.getElementById("chartsArea");
+
+    const legend = function (items) {
+        return '<div class="chart-legend">' + items.map(function (it) {
+            return "<span><i" + (it.dash ? ' class="dash"' : "") + "></i>" + it.name + "</span>";
+        }).join("") + "</div>";
+    };
+
+    area.innerHTML =
+        '<div class="averages-panel"><div class="panel-title">Temperature</div>' +
+        legend([{ name: "Massima" }, { name: "Media", dash: true }, { name: "Minima" }]) +
+        '<div class="chart-wrap" id="chartTemp"></div></div>' +
+        '<div class="averages-panel"><div class="panel-title">Precipitazioni</div>' +
+        legend([{ name: "Giornaliera (asse sinistro)" }, { name: "Accumulo dal 1° " + (isYear ? "gennaio" : "del mese") + " (asse destro)", dash: true }]) +
+        '<div class="chart-wrap" id="chartRain"></div></div>';
+
+    const base = { n: daily.labels.length, labels: daily.labels, monthStarts: daily.monthStarts, isYear: isYear, decimals: 1 };
+
+    chartsState = [
+        {
+            wrap: document.getElementById("chartTemp"),
+            cfg: Object.assign({}, base, {
+                id: "T", unitL: "°C", minZero: false,
+                series: [
+                    { name: "Massima", vals: daily.tmax,  colorFn: getTempColor, unit: "°" },
+                    { name: "Media",   vals: daily.tmean, colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Minima",  vals: daily.tmin,  colorFn: getTempColor, unit: "°" }
+                ]
+            })
+        },
+        {
+            wrap: document.getElementById("chartRain"),
+            cfg: Object.assign({}, base, {
+                id: "R", unitL: "mm", unitR: "mm", minZero: true,
+                series: [
+                    { name: "Giornaliera", vals: daily.rain,             colorFn: getRainScaleColor, axis: "l", unit: " mm" },
+                    { name: "Accumulo",    vals: cumulative(daily.rain), colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
+                ]
+            })
+        }
+    ];
+
+    chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
+}
+
+// ridisegno al cambio di larghezza della pagina
+if (window.ResizeObserver) {
+    let lastW = 0;
+
+    new ResizeObserver(function (entries) {
+        const w = Math.round(entries[0].contentRect.width);
+
+        if (w === lastW) return;
+
+        lastW = w;
+        chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
+    }).observe(document.getElementById("chartsArea"));
+}
+/* =========================================
+   VISTA TOTALE (anno = "Totale")
+   Mese scelto o "Anno": una riga per ogni anno con dati, più la riga Totale.
+========================================= */
+
+function hasAny(md) {
+    return ["tmax", "tmin", "tmean", "rain"].some(function (f) {
+        return md[f].some(function (v) { return v !== null; });
+    });
+}
+
+function buildTotalTables(years) {
+
+    const what = isYearMode() ? "Anno" : MONTHS[Number(monthPicker.value) - 1];
+
+    let html = "";
+
+    YEAR_TABLES.forEach(function (t) {
+
+        html +=
+            '<div class="averages-panel"><div class="panel-title">' + t.title + ' · ' + what + '</div><div class="avg-grid">' +
+            '<span class="avg-head first">Anno</span>' +
+            '<span class="avg-head">Temp. massima</span>' +
+            '<span class="avg-head">Temp. minima</span>' +
+            '<span class="avg-head">Temp. media</span>' +
+            '<span class="avg-head">' + t.rainHead + '</span>';
+
+        const rowHtml = function (key, label, isTotal) {
+            let h = '<span class="avg-row-label' + (isTotal ? ' sum' : '') + '">' + label + '</span>';
+
+            ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
+                h += '<span class="avg-chip sum empty" data-y="' + t.n + '-' + key + '-' + f + '">' +
+                     (f === "rain" ? t.rainEmpty : "--°") + '</span>';
+            });
+
+            return h;
+        };
+
+        years.forEach(function (y) { html += rowHtml(String(y), String(y), false); });
+
+        html += '<div class="avg-gap"></div>';
+        html += rowHtml("T", "Totale", true);
+
+        html += '</div></div>';
+    });
+
+    document.getElementById("archiveArea").innerHTML = html;
+}
+
+function legendHtml(items) {
+    return '<div class="chart-legend">' + items.map(function (it) {
+        return "<span><i" + (it.dash ? ' class="dash"' : "") + "></i>" + it.name + "</span>";
+    }).join("") + "</div>";
+}
+
+function renderTotalCharts(years, per) {
+
+    const first = years[0], last = years[years.length - 1];
+
+    const r1 = function (v) { return Math.round(v * 10) / 10; };
+
+    const S = { emax: [], mmax: [], mmean: [], mmin: [], emin: [], acc: [], rtop: [] };
+    const labels = [];
+
+    for (let y = first; y <= last; y++) {
+
+        labels.push(String(y));
+
+        const L = per[y];
+
+        const has = function (f) { return L && L[f].length > 0; };
+
+        S.emax.push(has("tmax")  ? r1(extreme(L.tmax, true).v)  : null);
+        S.mmax.push(has("tmax")  ? r1(avgOf(L.tmax))            : null);
+        S.mmean.push(has("tmean") ? r1(avgOf(L.tmean))          : null);
+        S.mmin.push(has("tmin")  ? r1(avgOf(L.tmin))            : null);
+        S.emin.push(has("tmin")  ? r1(extreme(L.tmin, false).v) : null);
+        S.acc.push(has("rain")   ? r1(sumOf(L.rain))            : null);
+        S.rtop.push(has("rain")  ? r1(extreme(L.rain, true).v)  : null);
+    }
+
+    const area = document.getElementById("chartsArea");
+
+    area.innerHTML =
+        '<div class="averages-panel"><div class="panel-title">Temperature per anno</div>' +
+        legendHtml([
+            { name: "Ext. max.", dash: true }, { name: "Massima media" },
+            { name: "Media", dash: true }, { name: "Minima media" }, { name: "Ext. min.", dash: true }
+        ]) +
+        '<div class="chart-wrap" id="chartTemp"></div></div>' +
+        '<div class="averages-panel"><div class="panel-title">Precipitazioni per anno</div>' +
+        legendHtml([{ name: "Accumulo (asse sinistro)" }, { name: "Giorno più piovoso (asse destro)", dash: true }]) +
+        '<div class="chart-wrap" id="chartRain"></div></div>';
+
+    const base = { n: labels.length, labels: labels, tickLabels: labels, monthStarts: [], isYear: false, decimals: 1 };
+
+    chartsState = [
+        {
+            wrap: document.getElementById("chartTemp"),
+            cfg: Object.assign({}, base, {
+                id: "TT", unitL: "°C", minZero: false,
+                series: [
+                    { name: "Ext. max.",      vals: S.emax,  colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Massima media",  vals: S.mmax,  colorFn: getTempColor, unit: "°" },
+                    { name: "Media",          vals: S.mmean, colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Minima media",   vals: S.mmin,  colorFn: getTempColor, unit: "°" },
+                    { name: "Ext. min.",      vals: S.emin,  colorFn: getTempColor, unit: "°", dash: "7 4" }
+                ]
+            })
+        },
+        {
+            wrap: document.getElementById("chartRain"),
+            cfg: Object.assign({}, base, {
+                id: "TR", unitL: "mm", unitR: "mm", minZero: true,
+                series: [
+                    { name: "Accumulo",           vals: S.acc,  colorFn: getRainScaleColor, axis: "l", unit: " mm" },
+                    { name: "Giorno più piovoso", vals: S.rtop, colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
+                ]
+            })
+        }
+    ];
+
+    chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
+}
+// 29/02 compreso: la posizione di ogni giorno è la stessa in tutti gli anni
+const LEAP_OFFSET = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+const LEAP_DAYS   = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+function renderTotalDayCharts(jobs, results) {
+
+    const N  = 366;
+    const r1 = function (v) { return Math.round(v * 10) / 10; };
+
+    // anno -> 366 valori per campo
+    const byYear = {};
+
+    jobs.forEach(function (j, i) {
+
+        const md = results[i];
+
+        if (!hasAny(md)) return;
+
+        const e = byYear[j.year] || (byYear[j.year] = {
+            tmax:  new Array(N).fill(null), tmin: new Array(N).fill(null),
+            tmean: new Array(N).fill(null), rain: new Array(N).fill(null)
+        });
+
+        const base = LEAP_OFFSET[j.month - 1];
+
+        ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
+            md[f].forEach(function (s, k) {
+                const v = toNum(s);
+
+                if (v !== null) e[f][base + k] = v;
+            });
+        });
+    });
+
+    const yrs = Object.keys(byYear);
+
+    if (!yrs.length) {
+        document.getElementById("chartsArea").innerHTML = "";
+        return;
+    }
+
+    // accumulo dal 1° gennaio di ogni anno
+    const cum = {};
+    yrs.forEach(function (y) { cum[y] = cumulative(byYear[y].rain); });
+
+    const col = function (get, i) {
+        const a = [];
+
+        yrs.forEach(function (y) {
+            const v = get(y)[i];
+
+            if (v !== null && v !== undefined) a.push(v);
+        });
+
+        return a;
+    };
+
+    const mean = function (a) { return a.length ? r1(a.reduce(function (s, v) { return s + v; }, 0) / a.length) : null; };
+    const maxO = function (a) { return a.length ? r1(Math.max.apply(null, a)) : null; };
+    const minO = function (a) { return a.length ? r1(Math.min.apply(null, a)) : null; };
+
+    const S = { emax: [], mmax: [], mmean: [], mmin: [], emin: [], acc: [], rtop: [] };
+
+    for (let i = 0; i < N; i++) {
+        S.emax.push(maxO(col(function (y) { return byYear[y].tmax;  }, i)));
+        S.mmax.push(mean(col(function (y) { return byYear[y].tmax;  }, i)));
+        S.mmean.push(mean(col(function (y) { return byYear[y].tmean; }, i)));
+        S.mmin.push(mean(col(function (y) { return byYear[y].tmin;  }, i)));
+        S.emin.push(minO(col(function (y) { return byYear[y].tmin;  }, i)));
+        S.acc.push(mean(col(function (y) { return cum[y]; }, i)));
+        S.rtop.push(maxO(col(function (y) { return byYear[y].rain; }, i)));
+    }
+
+    const labels = [];
+
+    LEAP_DAYS.forEach(function (n, m) {
+        for (let d = 1; d <= n; d++) {
+            labels.push(String(d).padStart(2, "0") + "/" + String(m + 1).padStart(2, "0"));
+        }
+    });
+
+    const monthStarts = LEAP_OFFSET.map(function (o, m) { return { i: o, month: m + 1 }; });
+
+    document.getElementById("chartsArea").innerHTML =
+        '<div class="averages-panel"><div class="panel-title">Temperature · ogni giorno dell\'anno, tutti gli anni</div>' +
+        legendHtml([
+            { name: "Ext. max.", dash: true }, { name: "Massima media" },
+            { name: "Media", dash: true }, { name: "Minima media" }, { name: "Ext. min.", dash: true }
+        ]) +
+        '<div class="chart-wrap" id="chartTemp"></div></div>' +
+        '<div class="averages-panel"><div class="panel-title">Precipitazioni · ogni giorno dell\'anno, tutti gli anni</div>' +
+        legendHtml([{ name: "Accumulo medio dal 1° gennaio (asse sinistro)" }, { name: "Giorno più piovoso (asse destro)", dash: true }]) +
+        '<div class="chart-wrap" id="chartRain"></div></div>';
+
+    const base = { n: N, labels: labels, monthStarts: monthStarts, isYear: true, decimals: 1 };
+
+    chartsState = [
+        {
+            wrap: document.getElementById("chartTemp"),
+            cfg: Object.assign({}, base, {
+                id: "TDT", unitL: "°C", minZero: false,
+                series: [
+                    { name: "Ext. max.",     vals: S.emax,  colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Massima media", vals: S.mmax,  colorFn: getTempColor, unit: "°" },
+                    { name: "Media",         vals: S.mmean, colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Minima media",  vals: S.mmin,  colorFn: getTempColor, unit: "°" },
+                    { name: "Ext. min.",     vals: S.emin,  colorFn: getTempColor, unit: "°", dash: "7 4" }
+                ]
+            })
+        },
+        {
+            wrap: document.getElementById("chartRain"),
+            cfg: Object.assign({}, base, {
+                id: "TDR", unitL: "mm", unitR: "mm", minZero: true,
+                series: [
+                    { name: "Accumulo medio",      vals: S.acc,  colorFn: getRainScaleColor, axis: "l", unit: " mm" },
+                    { name: "Giorno più piovoso",  vals: S.rtop, colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
+                ]
+            })
+        }
+    ];
+
+    chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
+}
+async function loadTotal() {
+
+    const token = ++loadToken;
+
+    const note = document.getElementById("archiveNote");
+    note.textContent = "Caricamento…";
+
+    const cfg = CFG[network];
+
+    if (!cfg || !archiveIds.length) { note.textContent = ""; return; }
+
+    const now    = new Date();
+    const lastY  = now.getFullYear();
+    const isAnno = isYearMode();
+    const selM   = Number(monthPicker.value);
+
+    // un mese per ogni anno (oppure tutti i 12 mesi nella vista "Anno")
+    const jobs = [];
+
+    for (let y = TOTAL_FROM; y <= lastY; y++) {
+        const ms = isAnno ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [selM];
+
+        ms.forEach(function (m) {
+            if (y === lastY && m > now.getMonth() + 1) return;   // mesi futuri
+            jobs.push({ year: y, month: m });
+        });
+    }
+
+    const results = await runPool(jobs.map(function (j) {
+        return function () { return fetchMonthCached(j.month, j.year); };
+    }), 6);
+
+    // nel frattempo l'utente ha cambiato scelta
+    if (token !== loadToken) return;
+
+    const per = {};
+    const all = { tmax: [], tmin: [], tmean: [], rain: [] };
+
+    jobs.forEach(function (j, i) {
+
+        const md = results[i];
+
+        if (!hasAny(md)) return;
+
+        const e = per[j.year] || (per[j.year] = { tmax: [], tmin: [], tmean: [], rain: [] });
+
+        ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
+            e[f]   = e[f].concat(numList(md[f], j.month));
+            all[f] = all[f].concat(numList(md[f], j.month, j.year));
+        });
+    });
+
+    const years = Object.keys(per).map(Number).sort(function (a, b) { return a - b; });
+
+    if (!years.length) {
+        document.getElementById("archiveArea").innerHTML = "";
+        document.getElementById("chartsArea").innerHTML = "";
+        note.textContent = "Nessun dato in archivio.";
+        return;
+    }
+
+    note.textContent = "";
+
+    buildTotalTables(years);
+
+    years.forEach(function (y) { fillYearRow(String(y), per[y], isAnno); });
+    const nRainYears = years.filter(function (y) { return per[y].rain.length > 0; }).length;
+
+    fillYearRow("T", all, false, {
+        mean:   "media di tutti gli anni",
+        acc:    isAnno ? "media accumuli annui" : "media accumuli mensili",
+        accDiv: nRainYears || 1,
+        ext:    " assoluto",
+        days:   "giorni di pioggia totali"
+    });
+
+        if (isAnno) renderTotalDayCharts(jobs, results);
+    else renderTotalCharts(years, per);
+}
 /* =========================================
    SCELTA DELLA VISTA (mese / anno)
 ========================================= */
 
 function buildView() {
-    if (isYearMode()) buildYear();
+    chartsState = [];
+    document.getElementById("chartsArea").innerHTML = "";
+
+    if (isTotalMode()) document.getElementById("archiveArea").innerHTML = "";
+    else if (isYearMode()) buildYear();
     else buildTable();
 }
 
 function loadView() {
-    if (isYearMode()) loadYear();
+    if (isTotalMode()) loadTotal();
+    else if (isYearMode()) loadYear();
     else loadArchive();
 }
 
