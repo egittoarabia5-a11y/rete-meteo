@@ -534,31 +534,38 @@ function isYearMode() {
 ========================================= */
 
 function getTempColor(value){
-  if (value < -15) return "#f54dff";
+if (value < -15) return "#f54dff";
   if (value < -10) return "#c65bff";
+  if (value < -8) return "#9650ff";
+  if (value < -6) return "#775ae9";
   if (value < -4) return "#4d54ff";
   if (value < -2) return "#1f7eb9";
   if (value <= 0) return "#539eb0";
   if (value < 2) return "#67bac8";
   if (value < 4) return "#5ac5ba";
-  if (value < 6) return "#42a37b";
-  if (value < 8) return "#538b53";
-  if (value < 10) return "#419a41";
-  if (value < 12) return "#5cb425";
-  if (value < 14) return "#76ca38";
-  if (value < 16) return "#a1d950";
-  if (value < 18) return "#eadf00";
-  if (value < 20) return "#ffcc55";
-  if (value < 22) return "#ffaf54";
-  if (value < 24) return "#fa8f4b";
-  if (value < 26) return "#f26969";
-  if (value < 28) return "#de5a5a";
+  if (value < 6) return "#489c7e";
+  if (value < 8) return "#3b9459";
+  if (value < 10) return "#378537";
+  if (value < 12) return "#51a31b";
+  if (value < 14) return "#6fbf32";
+  if (value < 16) return "#98cc4a";
+  if (value < 18) return "#dec800";
+  if (value < 20) return "#f5be40";
+  if (value < 22) return "#fa9d40";
+  if (value < 24) return "#f0752f";
+  if (value < 26) return "#d4582f";
+  if (value < 28) return "#d14f4f";
   if (value < 30) return "#b05151";
   if (value < 32) return "#994848";
   if (value < 34) return "#743e3e";
   if (value < 36) return "#b874ac";
   if (value < 38) return "#ea7bea";
-  return "#995a99";
+  if (value < 40) return "#995a99";
+  if (value < 42) return "#747474";
+  if (value < 44) return "#5a433e";
+  if (value < 46) return "#785c55";
+  if (value > 46) return "#9b8987";
+  return "#ff5c5c";
 }
 
 function getRainScaleColor(v){
