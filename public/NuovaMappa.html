@@ -684,7 +684,6 @@ const stationsPiemonte = {
 const map = new maplibregl.Map({
   container: "map",
   style: "https://api.maptiler.com/maps/01a1b564-bf5e-75e3-ac6d-7d3c9a3c00ec/style.json?key=yoJV05O0V6lTp5gne3Fr",
-  center: [8.98, 44.41],
   zoom: 12,
   pitch: 0,
   bearing: 0,
@@ -5389,7 +5388,19 @@ document
     }, 1500);
 
   });
-  setRegion("liguria");
+// Regione scelta dalla pagina iniziale (?region=...). Senza parametro: Liguria.
+const REGION_VIEW = {
+  liguria:   { center: [8.98, 44.41], zoom: 12 },
+  piemonte:  { center: [7.60, 45.10], zoom: 8 },
+  lombardia: { center: [9.80, 45.60], zoom: 8 },
+  trentino:  { center: [11.10, 46.20], zoom: 8 }
+};
+
+const wantedRegion = (new URLSearchParams(window.location.search).get("region") || "liguria").toLowerCase();
+const initialRegion = REGION_VIEW[wantedRegion] ? wantedRegion : "liguria";
+
+map.jumpTo(REGION_VIEW[initialRegion]);
+setRegion(initialRegion);
 
   // Avvio
 function loadLiguriaData(){
