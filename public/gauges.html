@@ -1576,7 +1576,8 @@ const NETWORKS = {
     comunedigenova: "Comune di Genova",
     acronet:        "Acronet",
     "3r":           "3R",
-    dma:            "DMA"
+    dma:            "DMA",
+    weatherlink:    "WeatherLink"
 };
 
 function normalizeSource(s) {
@@ -2262,6 +2263,77 @@ async function resolveDmaArchiveId(name) {
         return name;
     }
 }
+/* =========================================
+   FETCH WEATHERLINK (SoluzioniMeteo)
+   SoluzioniMeteo.json: { stations: [...] }, la stazione si riconosce
+   dall'id (es. tavagnasco). T/H/V/G/R/RR/P/D con massimi (…H) e minimi (…L).
+========================================= */
+
+const WEATHERLINK_URL = "https://api-stazioni-meteo.eggittof.workers.dev/SoluzioniMeteo.json";
+
+async function fetchWeatherLink(stationId) {
+
+    const res = await fetch(WEATHERLINK_URL + "?_=" + Date.now());
+
+    if (!res.ok) {
+        throw new Error("WeatherLink HTTP " + res.status);
+    }
+
+    const json = await res.json();
+
+    const list = Array.isArray(json) ? json : (json.stations || []);
+
+    const wanted = String(stationId).trim().toLowerCase();
+
+    const raw = list.find(function (s) {
+        return s && String(s.id ?? "").trim().toLowerCase() === wanted;
+    });
+
+    if (!raw) {
+        throw new Error("Stazione WeatherLink non trovata nel JSON: " + stationId);
+    }
+
+    return {
+
+        source: "WEATHERLINK",
+        id: raw.id,
+        lat: toNum(raw.lat),
+        lon: toNum(raw.lon),
+
+        // Temperatura
+        temp: toNum(raw.T),
+        tempHigh: toNum(raw.TH),
+        tempLow: toNum(raw.TL),
+
+        // Umidità
+        hum: toNum(raw.H),
+        humHigh: toNum(raw.HH),
+        humLow: toNum(raw.HL),
+
+        // Dew point
+        dewp: toNum(raw.D),
+        dewpHigh: toNum(raw.DH),
+        dewpLow: toNum(raw.DL),
+
+        // Vento (V = velocità, G = raffica; nessuna direzione nel file)
+        wind: toNum(raw.V),
+        windGust: toNum(raw.G),
+        windGustHigh: toNum(raw.GH),
+        windDir: null,
+
+        // Pioggia (R = giornaliera, RR = intensità, RH = intensità massima)
+        rainRate: toNum(raw.RR),
+        rainRateMax: toNum(raw.RH),
+        rainDaily: toNum(raw.R),
+
+        // Pressione
+        pressure: toNum(raw.P),
+        pressHigh: toNum(raw.PH),
+        pressLow: toNum(raw.PL),
+
+        raw
+    };
+}
 const FETCHERS = {
     limet: fetchLIMET,
     ignorete: fetchIGNORETE,
@@ -2269,7 +2341,8 @@ const FETCHERS = {
     acronet: fetchGEPO,
     comunedigenova: fetchComuneGenova,
     "3r": fetch3R,
-    dma: fetchDMA
+    dma: fetchDMA,
+    weatherlink: fetchWeatherLink
 };
 async function refreshData() {
 
@@ -2944,7 +3017,7 @@ const rainChart = createChart({
     unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
     colorFn: getRainScaleColor,
     archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'],
-           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma'] }
+           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma'], weatherlink: ['soluzionimeteo'] }
 });
 const humChart = createChart({
     id: 'Hum', mount: 'humChartSection', mirror: miniHum,
@@ -2952,14 +3025,14 @@ const humChart = createChart({
     limitMin: 0, limitMax: 100,
     colorFn: getHumColor,
     archive: { omirl: ['omirl_H'], ignorete: ['ignorete_H'], limet: ['limet1_H', 'limet2_H'],
-           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H'] }
+           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H'], weatherlink: ['soluzionimeteo_H'] }
 });
 const tempChart = createChart({
     id: 'Temp', mount: 'tempChartSection', mirror: miniTemp,
     unit: '°C', decimals: 1, gridStep: 1, minZero: false,
     colorFn: getTempColor,
     archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'],
-           acronet: ['gepo_T'], comunedigenova: ['comuneGenova_T'], "3r": ['3r_T'], dma: ['dma_T'] }
+           acronet: ['gepo_T'], comunedigenova: ['comuneGenova_T'], "3r": ['3r_T'], dma: ['dma_T'], weatherlink: ['soluzionimeteo_T'] }
 });
 
 window.stationCharts = { rain: rainChart, temp: tempChart, hum: humChart };
