@@ -995,7 +995,7 @@ function updateSummary() {
 
     if (rain.length) {
         // accumulo mensile
-                const tot = sumOf(rain) / (tg.accDiv || 1);
+                const tot = sumOf(rain);
         setSum("avg", "rain", tot.toFixed(1) + " mm", "accumulo mensile", getRainScaleColor(tot));
 
         // giorno più piovoso (con data)
@@ -1136,7 +1136,7 @@ function fillYearRow(key, L, isYear, tags) {
 
     if (rain.length) {
         // tabella 1: accumulo
-        const tot = sumOf(rain);
+        const tot = sumOf(rain) / (tg.accDiv || 1);
         setYear(1, key, "rain", tot.toFixed(1) + " mm", accLbl, getRainScaleColor(tot));
 
         // tabella 2: giorno più piovoso
@@ -1529,7 +1529,8 @@ function drawChart(wrap, cfg) {
             dot.setAttribute("fill", col);
             dot.style.display = "";
 
-            html += '<br><span class="chip" style="background:' + col + '"></span>' + s.name + ": " + v.toFixed(cfg.decimals) + (s.unit || "");
+            html += '<br><span class="chip" style="background:' + col + '"></span>' + s.name + ": " + v.toFixed(cfg.decimals) + (s.unit || "") +
+        (s.notes && s.notes[i] ? " (" + s.notes[i] + ")" : "");
         });
 
         tip.innerHTML = html;
@@ -1669,7 +1670,8 @@ function renderTotalCharts(years, per) {
 
     const r1 = function (v) { return Math.round(v * 10) / 10; };
 
-    const S = { emax: [], mmax: [], mmean: [], mmin: [], emin: [], acc: [], rtop: [] };
+        const S = { emax: [], mmax: [], mmean: [], mmin: [], emin: [], acc: [], rtop: [] };
+    const N = { emax: [], emin: [], rtop: [] };
     const labels = [];
 
     for (let y = first; y <= last; y++) {
@@ -1679,14 +1681,23 @@ function renderTotalCharts(years, per) {
         const L = per[y];
 
         const has = function (f) { return L && L[f].length > 0; };
+        const note = function (o) { return o ? fmtDM({ day: o.day, month: o.month, year: y }) : null; };
 
-        S.emax.push(has("tmax")  ? r1(extreme(L.tmax, true).v)  : null);
-        S.mmax.push(has("tmax")  ? r1(avgOf(L.tmax))            : null);
-        S.mmean.push(has("tmean") ? r1(avgOf(L.tmean))          : null);
-        S.mmin.push(has("tmin")  ? r1(avgOf(L.tmin))            : null);
-        S.emin.push(has("tmin")  ? r1(extreme(L.tmin, false).v) : null);
-        S.acc.push(has("rain")   ? r1(sumOf(L.rain))            : null);
-        S.rtop.push(has("rain")  ? r1(extreme(L.rain, true).v)  : null);
+        const eMax  = has("tmax") ? extreme(L.tmax, true)  : null;
+        const eMin  = has("tmin") ? extreme(L.tmin, false) : null;
+        const eRain = has("rain") ? extreme(L.rain, true)  : null;
+
+        S.emax.push(eMax ? r1(eMax.v) : null);
+        S.mmax.push(has("tmax")  ? r1(avgOf(L.tmax))  : null);
+        S.mmean.push(has("tmean") ? r1(avgOf(L.tmean)) : null);
+        S.mmin.push(has("tmin")  ? r1(avgOf(L.tmin))  : null);
+        S.emin.push(eMin ? r1(eMin.v) : null);
+        S.acc.push(has("rain")   ? r1(sumOf(L.rain))  : null);
+        S.rtop.push(eRain ? r1(eRain.v) : null);
+
+        N.emax.push(note(eMax));
+        N.emin.push(note(eMin));
+        N.rtop.push(note(eRain));
     }
 
     const area = document.getElementById("chartsArea");
@@ -1710,11 +1721,11 @@ function renderTotalCharts(years, per) {
             cfg: Object.assign({}, base, {
                 id: "TT", unitL: "°C", minZero: false,
                 series: [
-                    { name: "Ext. max.",      vals: S.emax,  colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Ext. max.",      vals: S.emax,  notes: N.emax,  colorFn: getTempColor, unit: "°", dash: "7 4" },
                     { name: "Massima media",  vals: S.mmax,  colorFn: getTempColor, unit: "°" },
                     { name: "Media",          vals: S.mmean, colorFn: getTempColor, unit: "°", dash: "7 4" },
                     { name: "Minima media",   vals: S.mmin,  colorFn: getTempColor, unit: "°" },
-                    { name: "Ext. min.",      vals: S.emin,  colorFn: getTempColor, unit: "°", dash: "7 4" }
+                    { name: "Ext. min.",      vals: S.emin, notes: N.emin, colorFn: getTempColor, unit: "°", dash: "7 4" }
                 ]
             })
         },
@@ -1724,7 +1735,7 @@ function renderTotalCharts(years, per) {
                 id: "TR", unitL: "mm", unitR: "mm", minZero: true,
                 series: [
                     { name: "Accumulo",           vals: S.acc,  colorFn: getRainScaleColor, axis: "l", unit: " mm" },
-                    { name: "Giorno più piovoso", vals: S.rtop, colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
+                    { name: "Giorno più piovoso", vals: S.rtop, notes: N.rtop, colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
                 ]
             })
         }
@@ -1776,7 +1787,21 @@ function renderTotalDayCharts(jobs, results) {
     // accumulo dal 1° gennaio di ogni anno
     const cum = {};
     yrs.forEach(function (y) { cum[y] = cumulative(byYear[y].rain); });
+const labels = [];
 
+const extWith = function (get, i, wantMax) {
+    let best = null, by = null;
+
+    yrs.forEach(function (y) {
+        const v = get(y)[i];
+
+        if (v === null || v === undefined) return;
+
+        if (best === null || (wantMax ? v > best : v < best)) { best = v; by = y; }
+    });
+
+    return { v: best === null ? null : r1(best), y: by };
+};
     const col = function (get, i) {
         const a = [];
 
@@ -1793,19 +1818,24 @@ function renderTotalDayCharts(jobs, results) {
     const maxO = function (a) { return a.length ? r1(Math.max.apply(null, a)) : null; };
     const minO = function (a) { return a.length ? r1(Math.min.apply(null, a)) : null; };
 
-    const S = { emax: [], mmax: [], mmean: [], mmin: [], emin: [], acc: [], rtop: [] };
+    const S  = { emax: [], mmax: [], mmean: [], mmin: [], emin: [], acc: [], rtop: [] };
+    const NY = { emax: [], emin: [], rtop: [] };
 
     for (let i = 0; i < N; i++) {
-        S.emax.push(maxO(col(function (y) { return byYear[y].tmax;  }, i)));
+
+        const a = extWith(function (y) { return byYear[y].tmax; }, i, true);
+        const b = extWith(function (y) { return byYear[y].tmin; }, i, false);
+        const c = extWith(function (y) { return byYear[y].rain; }, i, true);
+
+        S.emax.push(a.v);   NY.emax.push(a.y);
+        S.emin.push(b.v);   NY.emin.push(b.y);
+        S.rtop.push(c.v);   NY.rtop.push(c.y);
+
         S.mmax.push(mean(col(function (y) { return byYear[y].tmax;  }, i)));
         S.mmean.push(mean(col(function (y) { return byYear[y].tmean; }, i)));
         S.mmin.push(mean(col(function (y) { return byYear[y].tmin;  }, i)));
-        S.emin.push(minO(col(function (y) { return byYear[y].tmin;  }, i)));
         S.acc.push(mean(col(function (y) { return cum[y]; }, i)));
-        S.rtop.push(maxO(col(function (y) { return byYear[y].rain; }, i)));
     }
-
-    const labels = [];
 
     LEAP_DAYS.forEach(function (n, m) {
         for (let d = 1; d <= n; d++) {
@@ -1834,11 +1864,11 @@ function renderTotalDayCharts(jobs, results) {
             cfg: Object.assign({}, base, {
                 id: "TDT", unitL: "°C", minZero: false,
                 series: [
-                    { name: "Ext. max.",     vals: S.emax,  colorFn: getTempColor, unit: "°", dash: "7 4" },
+                    { name: "Ext. max.",     vals: S.emax, notes: NY.emax,  colorFn: getTempColor, unit: "°", dash: "7 4" },
                     { name: "Massima media", vals: S.mmax,  colorFn: getTempColor, unit: "°" },
                     { name: "Media",         vals: S.mmean, colorFn: getTempColor, unit: "°", dash: "7 4" },
                     { name: "Minima media",  vals: S.mmin,  colorFn: getTempColor, unit: "°" },
-                    { name: "Ext. min.",     vals: S.emin,  colorFn: getTempColor, unit: "°", dash: "7 4" }
+                    { name: "Ext. min.",     vals: S.emin, notes: NY.emin, colorFn: getTempColor, unit: "°", dash: "7 4" }
                 ]
             })
         },
@@ -1848,7 +1878,7 @@ function renderTotalDayCharts(jobs, results) {
                 id: "TDR", unitL: "mm", unitR: "mm", minZero: true,
                 series: [
                     { name: "Accumulo medio",      vals: S.acc,  colorFn: getRainScaleColor, axis: "l", unit: " mm" },
-                    { name: "Giorno più piovoso",  vals: S.rtop, colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
+                    { name: "Giorno più piovoso",  vals: S.rtop, notes: NY.rtop, colorFn: getRainScaleColor, axis: "r", unit: " mm", dash: "7 4" }
                 ]
             })
         }
