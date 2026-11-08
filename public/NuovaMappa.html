@@ -4968,6 +4968,140 @@ const fetchLimet = async () => {
 
   }
 };
+const fetchPortofino = async () => {
+
+  try {
+
+    // ==============================
+    // FETCH PORTOFINO
+    // ==============================
+
+    const res = await fetch(
+      "https://api-stazioni-meteo.eggittof.workers.dev/portofino.json"
+    );
+
+    if (!res.ok) {
+      throw new Error(`Errore HTTP PORTOFINO: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+
+    // ==============================
+    // STAZIONI
+    // ==============================
+
+    const stations = data?.stations || [];
+
+    if (!stations.length) return;
+
+
+    // ==============================
+    // SALVATAGGIO STAZIONI
+    // ==============================
+
+    stations.forEach((st) => {
+
+      const id = st.id;
+
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
+
+      if (!lat || !lon) return;
+
+
+      // ==============================
+      // TEMPERATURE
+      // ==============================
+
+      const temp = st.T ?? null;
+      const tempHigh = st.TH ?? null;
+      const tempLow = st.TL ?? null;
+
+
+      // ==============================
+      // SALVATAGGIO
+      // ==============================
+
+      allStations[id] = {
+
+        id,
+
+        source: "Parco di Portofino",
+
+        N: st.id ?? null,
+
+
+        // ===== TEMPERATURE =====
+
+        temp,
+        tempHigh,
+        tempLow,
+
+
+        // ===== HUMIDITY =====
+
+        hum: st.H ?? null,
+        humHigh: null,
+        humLow: null,
+
+
+        // ===== WIND =====
+
+        wind: st.V ?? null,
+        windGust: st.VR ?? null,
+        windDir: st.VD ?? null,
+        windDirLabel: st.VDL ?? null,
+
+
+        // ===== RAIN =====
+
+        rainDaily: st.R ?? null,
+        rainRate: st.R10 ?? null,
+        rain60: st.R60 ?? null,
+
+
+        // ===== DEWPOINT =====
+
+        dewp: null,
+        dewpHigh: null,
+        dewpLow: null,
+
+
+        // ===== PRESSURE =====
+
+        pressure: null,
+
+
+        // ===== EXTRA =====
+
+        heat: null,
+        heatHigh: null,
+        heatLow: null,
+
+        time: st.updated ?? null,
+        windGustTime: st.VRT ?? null,
+
+
+        // ===== COORDINATES =====
+
+        lat,
+        lon
+
+      };
+
+
+      updateLayer(id);
+
+    });
+
+  } catch (err) {
+
+    console.error("Errore fetch PORTOFINO:", err);
+
+  }
+
+};
 async function fetchPWSWorld() {
   try {
 
@@ -5562,6 +5696,7 @@ function loadLiguriaData(){
   fetchIgnorete();
   fetchComuneGenova();
   fetchLimet();
+  fetchPortofino();
   const pAeris = fetchPWSGenova();
   fetchWeatherLinkLIG();
   fetchGepo();
@@ -5589,6 +5724,7 @@ function startLiguria(clear = true){
   intervals.push(setInterval(fetchIgnorete, 300000));
   intervals.push(setInterval(fetchComuneGenova, 300000));
   intervals.push(setInterval(fetchLimet, 300000));
+  intervals.push(setInterval(fetchPortofino, 300000));
   intervals.push(setInterval(fetchPWSGenova, 300000));  
   intervals.push(setInterval(fetchGepo, 300000));
   intervals.push(setInterval(fetchDMA, 300000));

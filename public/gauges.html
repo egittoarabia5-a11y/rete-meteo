@@ -1577,7 +1577,8 @@ const NETWORKS = {
     acronet:        "Acronet",
     "3r":           "3R",
     dma:            "DMA",
-    weatherlink:    "WeatherLink"
+    weatherlink:    "WeatherLink",
+    parcodiportofino: "Parco di Portofino"
 };
 
 function normalizeSource(s) {
@@ -2334,6 +2335,71 @@ async function fetchWeatherLink(stationId) {
         raw
     };
 }
+/* =========================================
+   FETCH PORTOFINO (Parco di Portofino, Retemet/Acronet)
+   portofino.json: { stations: [...] }, la stazione si riconosce dall'id
+   (nome, es. "Portofino", "Mulino del Gassetta", "Molini San Fruttuoso",
+   "Semaforo Nuovo"). Campi: T/TH/TL, H, R (pioggia di oggi), R10/R60
+   (ultimi 10/60 min, a seconda della stazione), V, VD (gradi), VR (raffica).
+========================================= */
+
+const PORTOFINO_URL = "https://api-stazioni-meteo.eggittof.workers.dev/portofino.json";
+
+async function fetchPORTOFINO(stationId) {
+
+    const res = await fetch(PORTOFINO_URL + "?_=" + Date.now());
+
+    if (!res.ok) {
+        throw new Error("Portofino HTTP " + res.status);
+    }
+
+    const json = await res.json();
+
+    const list = Array.isArray(json) ? json : (json.stations || []);
+
+    const wanted = String(stationId).trim().toLowerCase();
+
+    const raw = list.find(function (s) {
+        return s && String(s.id ?? "").trim().toLowerCase() === wanted;
+    });
+
+    if (!raw) {
+        throw new Error("Stazione Portofino non trovata nel JSON: " + stationId);
+    }
+
+    // il JSON non ha il rain rate: lo stimo dalla pioggia degli ultimi 10 min
+    // (x6) o, se manca, da quella dell'ultima ora
+    const r10 = pickNum(raw, ["R10"]);
+    const r60 = pickNum(raw, ["R60"]);
+    const rate = r10 !== null ? r10 * 6 : r60;
+
+    return {
+
+        source: "PORTOFINO",
+        id: raw.id,
+        lat: pickNum(raw, ["lat"]),
+        lon: pickNum(raw, ["lon"]),
+
+        // Temperatura
+        temp: pickNum(raw, ["T"]),
+        tempHigh: pickNum(raw, ["TH"]),
+        tempLow: pickNum(raw, ["TL"]),
+
+        // Umidità (massimo/minimo non disponibili)
+        hum: pickNum(raw, ["H"]),
+
+        // Vento (V = velocità, VD = direzione in gradi, VR = raffica massima)
+        wind: pickNum(raw, ["V"]),
+        windGust: pickNum(raw, ["VR"]),
+        windDir: pickNum(raw, ["VD"]),
+
+        // Pioggia (R = di oggi)
+        rainRate: rate,
+        rainDaily: pickNum(raw, ["R"]),
+
+        raw
+    };
+}
 const FETCHERS = {
     limet: fetchLIMET,
     ignorete: fetchIGNORETE,
@@ -2342,7 +2408,8 @@ const FETCHERS = {
     comunedigenova: fetchComuneGenova,
     "3r": fetch3R,
     dma: fetchDMA,
-    weatherlink: fetchWeatherLink
+    weatherlink: fetchWeatherLink,
+    parcodiportofino: fetchPORTOFINO
 };
 async function refreshData() {
 
@@ -3017,7 +3084,7 @@ const rainChart = createChart({
     unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
     colorFn: getRainScaleColor,
     archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'],
-           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma'], weatherlink: ['soluzionimeteo'] }
+           acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma'], weatherlink: ['soluzionimeteo'], parcodiportofino: ['portofino'] }
 });
 const humChart = createChart({
     id: 'Hum', mount: 'humChartSection', mirror: miniHum,
@@ -3025,14 +3092,14 @@ const humChart = createChart({
     limitMin: 0, limitMax: 100,
     colorFn: getHumColor,
     archive: { omirl: ['omirl_H'], ignorete: ['ignorete_H'], limet: ['limet1_H', 'limet2_H'],
-           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H'], weatherlink: ['soluzionimeteo_H'] }
+           acronet: ['gepo_H'], comunedigenova: ['comuneGenova_H'], "3r": ['3r_H'], dma: ['dma_H'], weatherlink: ['soluzionimeteo_H'], parcodiportofino: ['portofino_H'] }
 });
 const tempChart = createChart({
     id: 'Temp', mount: 'tempChartSection', mirror: miniTemp,
     unit: '°C', decimals: 1, gridStep: 1, minZero: false,
     colorFn: getTempColor,
     archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'],
-           acronet: ['gepo_T'], comunedigenova: ['comuneGenova_T'], "3r": ['3r_T'], dma: ['dma_T'], weatherlink: ['soluzionimeteo_T'] }
+           acronet: ['gepo_T'], comunedigenova: ['comuneGenova_T'], "3r": ['3r_T'], dma: ['dma_T'], weatherlink: ['soluzionimeteo_T'], parcodiportofino: ['portofino_T'] }
 });
 
 window.stationCharts = { rain: rainChart, temp: tempChart, hum: humChart };

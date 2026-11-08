@@ -352,6 +352,12 @@ const CFG = {
         match: s => s.id,
         f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
         arc: { t: ["soluzionimeteo_T"], r: ["soluzionimeteo"] }
+    },
+    parcodiportofino: {
+        urls: [BASE + "portofino.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD"], r: ["R"] },
+        arc: { t: ["portofino_T"], r: ["portofino"] }
     }
 };
 
@@ -695,7 +701,7 @@ async function runPool(tasks, limit) {
     return out;
 }
 // Righe al minuto di oggi per una stazione: restituisce l'array dei valori numerici
-const EXCLUDED_TEMPS = ["-44.9", "-17.8"];
+const EXCLUDED_TEMPS = ["-44.9", "-17.8", "-67.8"];
 
 async function fetchTodayValues(srcs, fromIso, isTemp) {
     for (const src of srcs) {
