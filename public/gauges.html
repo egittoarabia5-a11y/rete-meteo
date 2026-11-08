@@ -2920,7 +2920,10 @@ function pointSlot(p) {
     return null;
 }
 
-setChartData(CHART.despike ? despikeTemp(points) : points); {
+function setChartData(points) {
+
+    // salti bruschi (>= 1° in 2 min): filtrati anche per il mini grafico
+    if (CHART.despike) points = despikeTemp(points || []);
 
     dayValues[0].fill(null);
     dayValues[1].fill(null);

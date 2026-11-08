@@ -723,6 +723,11 @@ async function fetchTodayValues(srcs, fromIso, isTemp) {
 
             const values = [];
 
+            // salti bruschi (>= 1° entro 2 min) solo per le temperature di Portofino:
+            // non contano per massima, minima e media. Dopo 3 min il nuovo livello è accettato.
+            const despike = isTemp && network === "parcodiportofino";
+            let lastV = null, lastM = 0;
+
             for (const row of data.rows || []) {
                 const v = toNum(String(row[1]).split(",")[idx]);
 
@@ -730,6 +735,15 @@ async function fetchTodayValues(srcs, fromIso, isTemp) {
 
                 // temperature errate da escludere (come nell'archivio)
                 if (isTemp && EXCLUDED_TEMPS.indexOf(v.toFixed(1)) >= 0) continue;
+
+                if (despike) {
+                    const rm = Math.floor(Date.parse(row[0]) / 60000);
+
+                    if (lastV !== null && rm - lastM <= 2 && Math.abs(v - lastV) >= 1) continue;
+
+                    lastV = v;
+                    lastM = rm;
+                }
 
                 values.push(v);
             }
