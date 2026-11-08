@@ -346,6 +346,12 @@ const CFG = {
         match: s => s.name,
         f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
         arc: { t: ["dma_T"], r: ["dma"] }
+    },
+    weatherlink: {
+        urls: [BASE + "SoluzioniMeteo.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
+        arc: { t: ["soluzionimeteo_T"], r: ["soluzionimeteo"] }
     }
 };
 
