@@ -819,9 +819,10 @@ async function fetchMonthData(month, year) {
             if (mean !== null && out.tmean[day - 1] === null) out.tmean[day - 1] = mean.toFixed(1);
         }
 
-        if (rv) {
-            out.rain[day - 1] = Math.max.apply(null, rv).toFixed(1);
-        }
+if (rv) {
+    // ultimo valore del giorno, mai il massimo
+    out.rain[day - 1] = rv[rv.length - 1].toFixed(1);
+}
     }
 
     return out;
