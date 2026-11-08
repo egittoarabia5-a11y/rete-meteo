@@ -594,8 +594,6 @@
   IGENOA3170: { api: "IGENOA3170", nome: "Genova Via Posalunga", sovrastima: "yes" },
   IGENOA3135: { api: "IGENOA3135", nome: "Genova S.Desiderio", sovrastima: "yes" },
   IGENOA3138: { api: "IGENOA3138", nome: "Genova Pino", sovrastima: "no" },
-  IVARAZ2: { api: "IVARAZ2", nome: "Monte Beigua", sovrastima: "no" },
-  IURBE3: { api: "URBE3", nome: "Passo del Faiallo", sovrastima: "no" },
   ILIGURIA181: { api: "ILIGURIA181", nome: "Veirera", sovrastima: "yes" },
   IVALBR3: { api: "IVALBR3", nome: "Senarega", sovrastima: "no" },
   ITORRI20: { api: "ITORRI20", nome: "Pentema", sovrastima: "no" },
@@ -689,7 +687,81 @@ const map = new maplibregl.Map({
   bearing: 0,
   antialias: true
 });
+const LIGinPIE = {
+  MURTA: {nome: "Genova Murta (GE)", rete: "DMA"},
+  ARENZ: {nome: "Arenzano (GE)", rete: "DMA"},
+  GASCA: {nome: "Urbe, Passo del Faiallo (SV) - LIMET", rete: "DMA"},
+  VARAZ: {nome: "Monte Beigua, Varazze (SV) - LIMET", rete: "DMA"},
+  GASCA: {nome: "Arenzano, loc. Gasca (GE)", rete: "DMA"},
+  VARAZ: {nome: "Varazze (SV)", rete: "DMA"},
+  SAVON: {nome: "Savona (SV)", rete: "DMA"},
+  CAIRO: {nome: "Cairo Montenotte (SV)", rete: "DMA"},
+  ALBEN: {nome: "Albenga (SV)", rete: "DMA"},
+  BUSLA: {nome: "Busalla (GE)", rete: "DMA"},
+  SAVSB: {nome: "Savignone, loc. San Bartolomeo (GE)", rete: "DMA"},
+  TGLTO: {nome: "Tiglieto (GE) - LIMET", rete: "DMA"},
+  RSGLN: {nome: "Rossiglione (GE) - LIMET", rete: "DMA"},
+  FAIAL: {nome: "Urbe, Passo del Faiallo (SV) - LIMET", rete: "DMA"},
+  BIGUA: {nome: "Monte Beigua, Varazze (SV) - LIMET", rete: "DMA"},
+  TOIRA: {nome: "Toirano (SV)", rete: "DMA"},
+};
+const PIEinLIG = {
+  SRRVL: {nome: "Serravalle Scrivia - IC Serravalle Scrivia", rete: "IGNORETE"},
+  BOSIO: {nome: "Bosio - Loc Perghelle", rete: "IGNORETE"},
+  LERMA: {nome: "Lerma - Loc. Mascatagliata", rete: "IGNORETE"},
+  SCETO: {nome: "Saliceto", rete: "IGNORETE"},
+  MSMNO: {nome: "Massimino - Municipio", rete: "IGNORETE"},
+  GARES: {nome: "Garessio", rete: "IGNORETE"},
+  ORMEA: {nome: "Ormea Ulmeta", rete: "IGNORETE"},
+  RCUCC: {nome: "Ormea - Rocca degli Uccelli", rete: "IGNORETE"},
+  FOORS: {nome: "Garessio 2000 Fonte dell’Orso", rete: "IGNORETE"},
+  SGRBU: {nome: "San Giacomo di Roburent", rete: "IGNORETE"},
+  PNEVO: {nome: "Prato Nevoso", rete: "IGNORETE"},
+  VLSCS: {nome: "Villar San Costanzo", rete: "IGNORETE"},
+  PERNO: {nome: "Sommariva Perno - Loc. Piano", rete: "IGNORETE"},
+  CCERM: {nome: "Casal Cermelli", rete: "IGNORETE"},
+};
+const PIEOUT = [
+  "Genova Multedo (GE)",
+  "Genova Prà (GE)",
+  "Masone, fraz. San Pietro (GE) - LIMET",
+  "Montoggio (GE)",
+  "Propata, Rifugio Parco Antola (GE) - LIMET",
+  "Ronco Scrivia (GE) - LIMET",
+  "Pietralavezzara (GE) - LIMET",
+  "Sassello, fraz. Alberola (SV) - LIMET",
+  "Urbe, fraz. San Pietro (SV) - LIMET",
+  "Giusvalla (SV) - LIMET",
+  "Cadibona (SV) - LIMET",
+  "Cairo Montenotte, loc. Ferrere (SV) - LIMET",
+  "Millesimo (SV) - LIMET",
+  "Triora, Rifugio La Terza (IM) - LIMET",
+  "Masone, loc. Vallechiara (GE) - LIMET",
+  "Savignone, loc. San Bartolomeo (GE)",
+  "Tiglieto (GE) - LIMET",
+  "Monte Beigua, Varazze (SV) - LIMET",
+  "Urbe, Passo del Faiallo (SV) - LIMET",
+];
+// Confronto robusto: l'id della stazione può essere il codice (es. "MURTA")
+// oppure il nome (es. "Genova Murta (GE)"), quindi accetto entrambi
+const _norm = s => String(s ?? "").trim().toLowerCase();
+// toglie il suffisso " - LIMET" e normalizza, così il nome combacia comunque
+const _nameKey = s => _norm(s).replace(/\s*-\s*limet$/, "");
+const PIEOUT_SET = new Set(PIEOUT.map(_nameKey));
+function buildStationSet(obj) {
+  const set = new Set();
+  Object.entries(obj).forEach(([code, v]) => {
+    set.add(_norm(code));
+    if (v.nome) set.add(_norm(v.nome));
+  });
+  return set;
+}
 
+const LIGinPIE_SET = buildStationSet(LIGinPIE);
+const PIEinLIG_SET = buildStationSet(PIEinLIG);
+
+const matchesSet = (set, ...candidates) =>
+  candidates.some(c => c != null && set.has(_norm(c)));
 // ================= PITCH CONTROLS =================
 let is3D = false;
 
@@ -4118,7 +4190,17 @@ const fetchDMA = async () => {
     stations.forEach((st) => {
 
       const id = st.name;
+      const isLig = matchesSet(LIGinPIE_SET, st.name, st.id);
+      const isOut = PIEOUT_SET.has(_nameKey(st.name)) || PIEOUT_SET.has(_nameKey(st.id));
 
+      // Liguria: solo le stazioni DMA presenti in LIGinPIE
+      if (currentRegion === "liguria" && !isLig) return;
+      // Piemonte: nascondi quelle di PIEOUT (e quelle di LIGinPIE)
+      if (currentRegion === "piemonte" && (isOut || isLig)) return;
+      // In Liguria: tieni SOLO le stazioni liguri della rete DMA
+      if (currentRegion === "liguria" && !isLig) return;
+      // In Piemonte: nascondi le stazioni liguri della rete DMA
+      if (currentRegion === "piemonte" && isLig) return;
       const lat = Number(st.lat ?? st.LAT);
       const lon = Number(st.lon ?? st.LON);
 
@@ -4197,7 +4279,12 @@ const fetchDMA = async () => {
     data.stations.forEach((st) => {
 
       const id = st.id;
+      const isPie = matchesSet(PIEinLIG_SET, st.id, st.name);
 
+      // In Liguria: nascondi le stazioni piemontesi di Ignorete
+      if (currentRegion === "liguria" && isPie) return;
+      // In Piemonte: tieni SOLO quelle piemontesi di Ignorete
+      if (currentRegion === "piemonte" && !isPie) return;
       const lat = Number(st.lat);
       const lon = Number(st.lon);
 
@@ -5416,6 +5503,7 @@ function loadLiguriaData(){
   const pAeris = fetchPWSGenova();
   fetchWeatherLinkLIG();
   fetchGepo();
+  fetchDMA();
 
   // L'archivio parte quando OMIRL e Aeris hanno finito
   Promise.allSettled([pOmirl, pAeris]).then(fetchArchivioLiguria);
@@ -5441,6 +5529,7 @@ function startLiguria(clear = true){
   intervals.push(setInterval(fetchLimet, 300000));
   intervals.push(setInterval(fetchPWSGenova, 300000));  
   intervals.push(setInterval(fetchGepo, 300000));
+  intervals.push(setInterval(fetchDMA, 300000));
   intervals.push(setInterval(fetchArchivioLiguria, 900000));
   
 }
@@ -5462,6 +5551,7 @@ function startPiemonte(clear = true){
   fetch3R();
   fetchTorinoMeteo();
   fetchWeatherLink();
+  fetchIgnorete();
 
   intervals.push(setInterval(() => {
     Object.keys(stationsPiemonte).forEach(id =>
@@ -5472,6 +5562,7 @@ function startPiemonte(clear = true){
   intervals.push(setInterval(fetchDMA, 300000));
   intervals.push(setInterval(fetch3R, 300000));
   intervals.push(setInterval(fetchTorinoMeteo, 300000));
+  intervals.push(setInterval(fetchIgnorete, 300000));
 }
 
 function startLombardia(clear = true){
