@@ -2447,7 +2447,20 @@ async function refreshData() {
 /* =========================================
    GRAFICI: pioggia e temperatura (stesso codice, due istanze)
 ========================================= */
-
+// Dato sballato: scarto >= 1° entro 2 min dall'ultimo valore valido
+function despikeTemp(points) {
+    const out = [];
+    let last = null;
+    points.forEach(function (p) {
+        const v = toNum(p.v);
+        const min = Math.floor(Date.parse(p.t) / 60000);
+        if (v === null || isNaN(min)) { out.push(p); return; }
+        if (last && (min - last.min) <= 2 && Math.abs(v - last.v) >= 1) return;
+        last = { v: v, min: min };
+        out.push(p);
+    });
+    return out;
+}
 function createChart(CHART) {
 
 // Grafici da 24 ore (ieri, oggi) con dati ogni 2 minuti.
@@ -2907,7 +2920,7 @@ function pointSlot(p) {
     return null;
 }
 
-function setChartData(points) {
+setChartData(CHART.despike ? despikeTemp(points) : points); {
 
     dayValues[0].fill(null);
     dayValues[1].fill(null);
@@ -3096,6 +3109,7 @@ const humChart = createChart({
 });
 const tempChart = createChart({
     id: 'Temp', mount: 'tempChartSection', mirror: miniTemp,
+    despike: stationContext.network === 'parcodiportofino',
     unit: '°C', decimals: 1, gridStep: 1, minZero: false,
     colorFn: getTempColor,
     archive: { omirl: ['omirl_T'], ignorete: ['ignorete_T'], limet: ['limet1_T', 'limet2_T'],
