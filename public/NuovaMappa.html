@@ -3848,7 +3848,8 @@ const fetchCML = async () => {
   } catch (err) {
     console.error("Errore fetch CML:", err);
   }
-};const fetchGepo = async () => {
+};
+const fetchGepo = async () => {
   try {
     const res = await fetch(
       "https://api-stazioni-meteo.eggittof.workers.dev/gepo.json"
@@ -3856,9 +3857,9 @@ const fetchCML = async () => {
 
     const data = await res.json();
 
-    if (!Array.isArray(data)) return;
+    if (!data?.stations || !Array.isArray(data.stations)) return;
 
-    data.forEach((st) => {
+    data.stations.forEach((st) => {
       if (!st.id) return;
 
       // 🚫 filtro esclusione
@@ -3866,16 +3867,16 @@ const fetchCML = async () => {
 
       const id = st.id;
 
-      const lat = Number(st.LAT);
-      const lon = Number(st.LON);
+      const lat = Number(st.lat);
+      const lon = Number(st.lon);
 
       if (isNaN(lat) || isNaN(lon)) return;
 
       allStations[id] = {
-        source: "Acronet",
+        source: "ACRONET",
 
         id,
-        N: st.N ?? st.id,
+        N: st.name ?? st.id,
 
         temp: st.T ?? null,
         tempHigh: st.TH ?? null,
@@ -3883,18 +3884,18 @@ const fetchCML = async () => {
 
         // ===== UMIDITÀ =====
         hum: st.H ?? null,
-        humHigh: st.HH ?? null,
-        humLow: st.HL ?? null,
+        humHigh: null,
+        humLow: null,
 
         // ===== DEW POINT =====
-        dewp: st.D ?? null,
-        dewpHigh: st.DH ?? null,
-        dewpLow: st.DL ?? null,
+        dewp: null,
+        dewpHigh: null,
+        dewpLow: null,
 
         // ===== HEAT INDEX =====
-        heat: st.HI ?? null,
-        heatHigh: st.HIH ?? null,
-        heatLow: st.HIL ?? null,
+        heat: null,
+        heatHigh: null,
+        heatLow: null,
 
         // ===== VENTO =====
         wind: st.V ?? null,
@@ -3909,7 +3910,7 @@ const fetchCML = async () => {
         rainDailyHigh: null,
         rainDailyLow: null,
 
-        rainRate: st.RR ?? null,
+        rainRate: null,
         rainRateHigh: null,
         rainRateLow: null,
 
@@ -3921,10 +3922,9 @@ const fetchCML = async () => {
     updateLayer();
 
   } catch (err) {
-    console.error("Errore fetch GEPO:", err);
+    console.error("Errore fetch Acronet:", err);
   }
-};
-const fetchTorinoMeteo = async () => {
+};const fetchTorinoMeteo = async () => {
   try {
     const res = await fetch(
       "https://api-stazioni-meteo.eggittof.workers.dev/TorinoMeteo.json"
