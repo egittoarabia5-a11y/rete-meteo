@@ -2466,7 +2466,7 @@ function createChart(CHART) {
 // Grafici da 24 ore (ieri, oggi) con dati ogni 2 minuti.
 const CUTOVER_MS = 0;
 const DAY24 = true;
-const MAX_GAP_MIN = 3;                      // un buco più lungo interrompe la linea
+const MAX_GAP_MIN = Number(CHART.maxGapMin) || 3; // intervallo massimo tra punti prima di interrompere la linea
 const BLOCK_MIN = DAY24 ? 1440 : 720;                      // 6 ore per riquadro
 const BLOCKS_PER_DAY = 1440 / BLOCK_MIN;    // 2 riquadri fissi al giorno
 const ROLL_BLOCK = DAY24 ? 2 : 3;           // riquadro "ultime 12 ore" (finestra che scorre)
@@ -2962,6 +2962,7 @@ const api = {
 ========================================= */
 
 const ARCHIVE_URL = "https://archivio-eventi.eggittof.workers.dev/export?format=stations&src=";
+const OMIRL_GRAPH_URL = "https://archivio-eventi.eggittof.workers.dev/omirl_graph";
 
 // rete del link → parametro "src" dell'archivio (altre reti si aggiungono qui)
 // Ogni rete ha un ELENCO di fonti: si provano in ordine e si usa la prima
@@ -2988,10 +2989,14 @@ async function loadChartFromArchive() {
 
         try {
 
-            const res = await fetch(
-                // limit=5000: due giorni sono fino a 2880 righe, il default del worker è 2000
-                ARCHIVE_URL + encodeURIComponent(src) + "&from=" + encodeURIComponent(from) + "&limit=5000"
-            );
+            // OMIRL pioggia: archivio dedicato con times ISO UTC e
+            // stations[ID] come stringa di valori cumulativi separati da virgola.
+            // Le altre serie continuano a usare /export?format=stations.
+            const url = src === "omirlgraph"
+                ? OMIRL_GRAPH_URL + "?_=" + Date.now()
+                : ARCHIVE_URL + encodeURIComponent(src) + "&from=" + encodeURIComponent(from) + "&limit=5000";
+
+            const res = await fetch(url);
 
             if (!res.ok) throw new Error("Archivio HTTP " + res.status + " (" + src + ")");
 
@@ -3029,6 +3034,12 @@ async function loadChartFromArchive() {
 }
 
 loadChartFromArchive();
+
+// /omirl_graph viene aggiornato ogni 5 minuti: ricarica la serie senza
+// attendere il refresh live della stazione (che è indipendente dal grafico).
+if (CHART.refreshMs && CHART.archive[stationContext.network]?.includes("omirlgraph")) {
+    setInterval(loadChartFromArchive, CHART.refreshMs);
+}
 
 
 /* =========================================
@@ -3081,6 +3092,7 @@ setInterval(function () {
 const miniRain = createChart({
     id: 'RainMini', mount: 'miniRainSection', compact: true, title: 'Pioggia',
     unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
+    maxGapMin: 7,
     colorFn: getRainScaleColor, archive: {}
 });
 const miniHum = createChart({
@@ -3099,7 +3111,11 @@ const rainChart = createChart({
     id: 'Rain', mount: 'chartSection', mirror: miniRain,
     unit: 'mm', decimals: 1, gridStep: 1, minZero: true,
     colorFn: getRainScaleColor,
-    archive: { omirl: ['omirl'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'],
+    // OMIRL usa la serie cumulativa dedicata, aggiornata ogni 5 minuti.
+    // Gli altri network mantengono le rispettive serie archiviate.
+    maxGapMin: 7,
+    refreshMs: 5 * 60 * 1000,
+    archive: { omirl: ['omirlgraph'], ignorete: ['ignorete'], limet: ['limet1', 'limet2'],
            acronet: ['gepo'], comunedigenova: ['comuneGenova'], dma: ['dma'], weatherlink: ['soluzionimeteo'], parcodiportofino: ['portofino'] }
 });
 const humChart = createChart({
