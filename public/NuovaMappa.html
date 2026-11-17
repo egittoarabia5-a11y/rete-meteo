@@ -685,7 +685,8 @@ const map = new maplibregl.Map({
   zoom: 12,
   pitch: 0,
   bearing: 0,
-  antialias: true
+  antialias: true,
+  fadeDuration: 0        // <-- nessuna dissolvenza dei simboli quando il dato cambia
 });
 const LIGinPIE = {
   MURTA: {nome: "Genova Murta (GE)", rete: "DMA"},
