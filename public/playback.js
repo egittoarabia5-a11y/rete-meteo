@@ -19,7 +19,6 @@
     limet1: "LIMET",
     limet2: "LIMET",
     gepo: "ACRONET",
-    comuneGenova: "Comune di Genova",
     dma: "DMA",
     portofino: "Parco di Portofino",
     soluzionimeteo: "WeatherLink",
@@ -33,7 +32,7 @@
 
   // fonti da scaricare per regione
   const REGION_SRCS = {
-    liguria: ["omirl", "ignorete", "limet1", "limet2", "gepo", "comuneGenova", "dma", "portofino"],
+    liguria: ["omirl", "ignorete", "limet1", "limet2", "gepo", "dma", "portofino"],
     piemonte: ["dma", "ignorete", "3r", "soluzionimeteo"],
     lombardia: [],
     trentino: []
