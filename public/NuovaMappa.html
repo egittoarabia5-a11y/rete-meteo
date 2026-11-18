@@ -1442,6 +1442,24 @@ function applyRainClimOverrides() {
   });
 }
 let markerKey = "";
+const SOURCE_LABELS = {
+  "OMIRL": "OMIRL",
+  "LIMET": "LIMET",
+  "3R": "3R",
+  "DMA": "DMA",
+  "IGNORETE": "IGNO",
+  "ACRONET": "ACRO",
+  "Comune di Genova": "COMUNE",
+  "Parco di Portofino": "PARCO",
+  "CML": "CML",
+  "AERIS": "AERIS",
+  "AERIS_WORLD": "AERIS",
+  "Wunderground": "WUNDER",
+  // tutto il resto (WeatherLink/soluzioniMeteo, Wunderground, TorinoMeteo, Netatmo, Meteo Trentino...) = ALTRO
+};
+function getSourceLabel(source) {
+  return SOURCE_LABELS[source] ?? "ALTRO";
+}
 function updateLayer() {
   applyRainClimOverrides();
 
@@ -1478,21 +1496,26 @@ function updateLayer() {
       }
 
       let textDisplay = "";
+      let srcLabel = "";
+      let srcScale = 0.4;   // dimensione della fonte rispetto al numero (0.6 = 60%)
+
       if (value !== null) {
         textDisplay = (currentZoom < 6 || isRainMean)
           ? Math.round(value).toString()
           : valueStr;
 
-        if (currentVariable === "rainClim" && st.rainClimRef != null) {
-          textDisplay = "\n" + textDisplay + "\n*";
+        const estimated =
+          (currentVariable === "rainClim" && st.rainClimRef != null) ||
+          (currentVariable === "media" && st.tempClimRef != null) ||
+          (currentVariable === "archive" && archiveState.stars[st.id]);
+
+        if (estimated) {
+          srcLabel = "*";
+          srcScale = 1;     // l'asterisco resta grande come prima
+        } else {
+          srcLabel = getSourceLabel(st.source);
         }
       }
-        if (currentVariable === "media" && st.tempClimRef != null) {
-          textDisplay = "\n" + textDisplay + "\n*";
-        }
-                if (currentVariable === "archive" && archiveState.stars[st.id]) {
-          textDisplay = "\n" + textDisplay + "\n*";
-        }
       let iconId;
       let rot = 0;
 
@@ -1520,6 +1543,8 @@ function updateLayer() {
           value,
           valueStr,
           textDisplay,
+          srcLabel,
+          srcScale,
           color,
           icon: iconId,
           rot                                     // NUOVO
@@ -2405,7 +2430,7 @@ map.addLayer({
   type: 'symbol',
   source: 'weather-stations',
 layout: {
-  'text-line-height': 0.8,
+  'text-line-height': 1.1,
   'icon-image': ['get', 'icon'],
   'icon-rotate': ['get', 'rot'],              // NUOVO
   'icon-rotation-alignment': 'viewport',      // NUOVO (diventa 'map' col vento)
@@ -2420,7 +2445,13 @@ layout: {
     'icon-padding': -9,
     'icon-allow-overlap': false,
     'icon-ignore-placement': false,
-    'text-field': ['get', 'textDisplay'],
+        'text-field': [
+      'format',
+      '\n',                     { 'font-scale': 0.6 },   // riga sopra, per tenere il numero centrato
+      ['get', 'textDisplay'],   {},
+      '\n',                     { 'font-scale': 0.6 },
+      ['get', 'srcLabel'],      { 'font-scale': ['get', 'srcScale'] }
+    ],
     'text-font': ['Inter Bold', 'Arial Bold'],
     'text-size': [
       'interpolate', ['linear'], ['zoom'],
