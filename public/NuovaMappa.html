@@ -1591,7 +1591,7 @@ const Altitudine = {
     // "Noli": 5,
   },
   "Wunderground": {
-    // "Genova S.Martino": 70,
+    "Genova S.Martino": 104,
   },
 };
 
@@ -1953,6 +1953,7 @@ const windNote = (isWind && windDirDeg != null)
       <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;">
         Altitudine: ${alt} m
       </div>` : ""}
+
       <div style="font-size:13px;opacity:0.75;margin-bottom:${(variable === "media" || variable === "rainClim") ? "0" : "4px"};">
         ${variable === "temp" ? "Temperatura" :
           variable === "dewp" ? "Dew Point" :
