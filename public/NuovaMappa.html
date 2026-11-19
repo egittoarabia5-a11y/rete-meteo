@@ -1206,7 +1206,10 @@ else if (currentVariable === "rainClim") {
   else if (currentVariable === "hum") value = get("hum"); 
   else if (currentVariable === "rainDaily") value = st.rainDaily; 
   else if (currentVariable === "rainRate") value = st.rainRate; 
-  else if (currentVariable === "rainYearly") value = st.rainYearly; 
+    else if (currentVariable === "rainYearly") {
+    value = st.rainYearly;
+    colorVariable = "rainClim";   // stessa scala colori della media annuale
+  }
  
   if (value !== null) { 
     value = Number(value); 
@@ -1464,8 +1467,9 @@ function updateLayer() {
   applyRainClimOverrides();
   applyOmirlYearRain();
   const isRainMean =
-    currentVariable === "rainClim" &&
-    (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month");
+    (currentVariable === "rainClim" &&
+      (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month")) ||
+    currentVariable === "rainYearly";
 
   const isWind = currentVariable === "wind";
 
@@ -1608,6 +1612,7 @@ const isWind = variable === "wind";
     isAnom ? "anom"
     : isRainMonth ? "rainClimMonth"
     : isRainMonthAnom ? "anom"
+    : variable === "rainYearly" ? "rainClim"      // <-- nuova
     : variable === "archive" ? (currentMode === "rain" ? "rainDaily" : "temp")
     : variable;
 
@@ -1618,6 +1623,7 @@ const isWind = variable === "wind";
   const isRain =
     variable === "rainDaily" ||
     variable === "rainRate" ||
+    variable === "rainYearly" ||     // <-- nuova
     variable === "rainClim" ||
     (variable === "archive" && currentMode === "rain");
 
