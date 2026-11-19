@@ -1574,7 +1574,33 @@ function normalizeVariable(v) {
 }
 
 const getColorMain = getColor;
- 
+ // ================= ALTITUDINI (da compilare a mano) =================
+// Formato:  "FONTE": { "NOME STAZIONE": quota in metri }
+// FONTE = il valore "Fonte" del popup (OMIRL, LIMET, IGNORETE, ACRONET, DMA, 3R,
+//         Comune di Genova, Parco di Portofino, Wunderground, WeatherLink, ...)
+// NOME  = id della stazione (es. "FIORI") oppure il nome mostrato nel popup
+const Altitudine = {
+  "OMIRL": {
+    // "FIORI": 150,
+    // "VIGAN": 480,
+},
+  "LIMET": {
+    // "Monte Beigua": 1200,
+  },
+  "IGNORETE": {
+    // "Noli": 5,
+  },
+  "Wunderground": {
+    // "Genova S.Martino": 70,
+  },
+};
+
+function getAltitudine(source, id, name) {
+  const group = Altitudine[source];
+  if (!group) return null;
+  const v = group[id] ?? group[name];
+  return (v === undefined || v === null || isNaN(Number(v))) ? null : Number(v);
+}
 // =====================================================================
 // showPopup
 // Le righe nuove/cambiate sono marcate con  // NUOVO
@@ -1595,7 +1621,7 @@ function showPopup(feature) {
   if (activePopup) activePopup.remove();
 
   const station = allStations[id] || {};
-
+  const alt = getAltitudine(source, id, name);
   const variable = normalizeVariable(currentVariable);
   const currentMode = modes[currentVariable];
 
@@ -1919,10 +1945,14 @@ const windNote = (isWind && windDirDeg != null)
         ${name}
       </div>
 
-      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;">
+      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:${alt != null ? "0" : "4px"};">
         Fonte: ${source}
       </div>
 
+      ${alt != null ? `
+      <div style="font-size:12px;opacity:0.8;line-height:1.1;margin-bottom:4px;">
+        Altitudine: ${alt} m
+      </div>` : ""}
       <div style="font-size:13px;opacity:0.75;margin-bottom:${(variable === "media" || variable === "rainClim") ? "0" : "4px"};">
         ${variable === "temp" ? "Temperatura" :
           variable === "dewp" ? "Dew Point" :
