@@ -1448,7 +1448,7 @@ const SOURCE_LABELS = {
   "3R": "3R",
   "DMA": "DMA",
   "IGNORETE": "IGNO",
-  "ACRONET": "ACRO",
+  "ACRONET": "ACRONET",
   "Comune di Genova": "COMUNE",
   "Parco di Portofino": "PARCO",
   "CML": "CML",
@@ -1462,7 +1462,7 @@ function getSourceLabel(source) {
 }
 function updateLayer() {
   applyRainClimOverrides();
-
+  applyOmirlYearRain();
   const isRainMean =
     currentVariable === "rainClim" &&
     (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month");
@@ -2078,7 +2078,80 @@ async function fetchArchiveMonth(src, mese) {
 
   return data;
 }
+// ================= PIOGGIA ANNUA OMIRL (somma archivio dal 1 gennaio) =================
+const omirlYear = { sums: {}, today: {}, ok: false };
 
+function romeToday() {
+  const p = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(new Date());
+  const g = t => Number(p.find(x => x.type === t).value);
+  return { y: g("year"), m: g("month"), d: g("day") };
+}
+
+async function loadOmirlYearRain() {
+  try {
+    const t = romeToday();
+    const yy = String(t.y).slice(2);
+    const months = [];
+    for (let m = 1; m <= t.m; m++) months.push(m);
+
+    // tutti i mesi da gennaio a quello corrente (stesso endpoint dell'archivio pioggia)
+    const results = await Promise.all(
+      months.map(m => fetchArchiveMonth("omirl", String(m).padStart(2, "0") + yy))
+    );
+
+    const sums = {}, today = {};
+
+    results.forEach((data, i) => {
+      const m = months[i];
+      const lastDay = (m === t.m) ? t.d : 31;
+
+      Object.entries(data.stations || {}).forEach(([id, str]) => {
+        const parts = String(str).split(",");
+
+        for (let d = 1; d <= lastDay && d <= parts.length; d++) {
+          const n = parseFloat((parts[d - 1] ?? "").trim());
+          if (!Number.isFinite(n)) continue;
+
+          if (m === t.m && d === t.d) { today[id] = n; continue; }   // oggi a parte
+          sums[id] = (sums[id] ?? 0) + n;
+        }
+      });
+    });
+
+    omirlYear.sums = sums;
+    omirlYear.today = today;
+    omirlYear.ok = true;
+
+    if (map.loaded()) updateLayer();
+
+  } catch (err) {
+    // se un mese non si carica non sovrascrivo nulla: resta il valore del worker
+    console.error("Errore pioggia annua OMIRL:", err);
+  }
+}
+
+function applyOmirlYearRain() {
+  if (!omirlYear.ok) return;
+
+  Object.values(allStations).forEach(st => {
+    if (st.source !== "OMIRL") return;
+
+    const hasArc = omirlYear.sums[st.id] !== undefined || omirlYear.today[st.id] !== undefined;
+    if (!hasArc) return;
+
+    const base = omirlYear.sums[st.id] ?? 0;
+    const live = st.rainDaily != null ? Number(st.rainDaily) : 0;
+    const todayVal = omirlYear.today[st.id] ?? (Number.isFinite(live) ? live : 0);
+
+    st.rainYearly = +(base + todayVal).toFixed(1);
+  });
+}
+
+if (map.loaded()) loadOmirlYearRain();
+else map.once("load", loadOmirlYearRain);
+setInterval(loadOmirlYearRain, 900000);   // ogni 15 minuti
 async function loadArchiveDay() {
 
   const { day, month, year, what } = archiveState;
