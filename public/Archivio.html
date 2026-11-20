@@ -592,7 +592,29 @@ function getRainScaleColor(v){
   if (v < 50) return "#4da9ff";
   return "#2c278e";
 }
-
+// scala per gli accumuli annui di pioggia
+function getRainAnnualColor(value){
+  if (value === 0) return "#808080";
+  else if (value < 2) return "#f9ae6c";
+  else if (value < 5) return "#f9966c";
+  else if (value < 10) return "#6ca561";
+  else if (value < 20) return "#65d050";
+  else if (value < 30) return "#4dc8ff";
+  else if (value < 40) return "#3394ee";
+  else if (value < 50) return "#0d78dc";
+  else if (value < 75) return "#0d54dc";
+  else if (value < 100) return "#0d30dc";
+  else if (value < 150) return "#0720a0";
+  else if (value < 200) return "#5a01ba";
+  else if (value < 250) return "#8501ba";
+  else if (value < 300) return "#b301ba";
+  else if (value < 400) return "#8f1c7a";
+  else if (value < 500) return "#5e2052";
+  else if (value < 600) return "#31182c";
+  else if (value < 700) return "#21171f";
+  else if (value < 800) return "#000000";
+  return "#2c278e";
+}
 // colore dell'alone in base al campo e al valore (l'asterisco della media si ignora)
 function glowColor(field, text) {
     const n = parseFloat(String(text).replace(",", "."));
@@ -1165,6 +1187,7 @@ function fillYearRow(key, L, isYear, tags) {
     const meanLbl = tg.mean || (isYear ? "media annua"    : "media mensile");
     const accLbl  = tg.acc  || (isYear ? "accumulo annuo" : "accumulo mensile");
     const extTag  = tg.ext !== undefined ? tg.ext : (isYear ? " annuo" : "");
+        const annual = isYear || tg.annual;
     const dn = function (n) { return tg.noDays ? "" : "<br>" + n + " giorni di dati"; };
     ["tmax", "tmin", "tmean"].forEach(function (f) {
         const list = L[f];
@@ -1193,7 +1216,7 @@ function fillYearRow(key, L, isYear, tags) {
     if (rain.length) {
         // tabella 1: accumulo
         const tot = sumOf(rain) / (tg.accDiv || 1);
-                setYear(1, key, "rain", tot.toFixed(1) + " mm", accLbl + dn(rain.length), getRainScaleColor(tot));
+                        setYear(1, key, "rain", tot.toFixed(1) + " mm", accLbl + dn(rain.length), (annual ? getRainAnnualColor : getRainScaleColor)(tot));
 
         // tabella 2: giorno più piovoso
         const top = extreme(rain, true);
@@ -2065,6 +2088,7 @@ async function loadTotal() {
     const nRainYears = years.filter(function (y) { return valid[y] && per[y].rain.length > 0; }).length;
 
     fillYearRow("T", all, false, {
+        annual: isAnno,
         noDays: true,
         mean:   "media di tutti gli anni",
         acc:    isAnno ? "media accumuli annui" : "media accumuli mensili",
