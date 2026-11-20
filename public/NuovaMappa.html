@@ -578,6 +578,10 @@
       <option value="tmin">Temp. min</option>
       <option value="tmean">Temp. media</option>
       <option value="rain">Pioggia</option>
+      <option value="accY">Accumulo annuo</option>
+      <option value="accM">Accumulo mensile</option>
+      <option value="accYto">Accumulo annuo al…</option>
+      <option value="accMto">Accumulo mensile al…</option>
     </select>
     <button type="button" id="arcShow">Mostra</button>
     <div class="archiveNote" id="arcNote">Stazioni OMIRL</div>
@@ -1199,7 +1203,7 @@ else if (currentVariable === "rainClim") {
 }
   else if (currentVariable === "archive") {
     value = getArchiveValue(st);
-    colorVariable = (mode === "rain") ? "rainDaily" : "temp";
+    colorVariable = archiveColorVar();
   }
   else if (currentVariable === "dewp") value = get("dewp"); 
   else if (currentVariable === "heat") value = get("heat"); 
@@ -1208,7 +1212,7 @@ else if (currentVariable === "rainClim") {
   else if (currentVariable === "rainRate") value = st.rainRate; 
     else if (currentVariable === "rainYearly") {
     value = st.rainYearly;
-    colorVariable = "rainClim";   // stessa scala colori della media annuale
+    colorVariable = archiveColorVar();   // stessa scala colori della media annuale
   }
  
   if (value !== null) { 
@@ -1469,7 +1473,8 @@ function updateLayer() {
   const isRainMean =
     (currentVariable === "rainClim" &&
       (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month")) ||
-    currentVariable === "rainYearly";
+    currentVariable === "rainYearly" ||
+    (currentVariable === "archive" && isAccMode(archiveState.what));
 
   const isWind = currentVariable === "wind";
 
@@ -1581,8 +1586,12 @@ const getColorMain = getColor;
 // NOME  = id della stazione (es. "FIORI") oppure il nome mostrato nel popup
 const Altitudine = {
   "OMIRL": {
-    // "FIORI": 150,
-    // "VIGAN": 480,
+    "CFUNZ": 30,
+    "RIGHI": 360,
+    "GEQUE": 200,
+    "PREMA": 234,
+    "VIGAN": 430,
+    "STILA": 174,
 },
   "LIMET": {
     // "Monte Beigua": 1200,
@@ -1639,7 +1648,7 @@ const isWind = variable === "wind";
     : isRainMonth ? "rainClimMonth"
     : isRainMonthAnom ? "anom"
     : variable === "rainYearly" ? "rainClim"      // <-- nuova
-    : variable === "archive" ? (currentMode === "rain" ? "rainDaily" : "temp")
+        : variable === "archive" ? archiveColorVar()
     : variable;
 
   const value = Number(props.value);
@@ -1651,7 +1660,7 @@ const isWind = variable === "wind";
     variable === "rainRate" ||
     variable === "rainYearly" ||     // <-- nuova
     variable === "rainClim" ||
-    (variable === "archive" && currentMode === "rain");
+        (variable === "archive" && isRainArchive());
 
   const getColor = (v, variable) => {
 if (variable === "riverLevel") return getRiverIncrementColor(station.riverIncrement);
@@ -2054,7 +2063,10 @@ const archiveState = {
   year: _now.getFullYear(),
   what: "tmax",
   values: {},   // id stazione -> valore del giorno scelto
-  stars: {}     // id stazione -> true se la media ha l'asterisco
+    stars: {},
+  sums: {},            // somma dei giorni passati per ogni stazione (accumuli)
+  todayArc: {},        // valore di oggi dall'archivio, se già scritto
+  includesToday: false // il periodo scelto comprende oggi?
 };
 
 let archiveToken = 0;
@@ -2066,19 +2078,48 @@ const arcYear  = document.getElementById("arcYear");
 const arcWhat  = document.getElementById("arcWhat");
 const arcNote  = document.getElementById("arcNote");
 
-function archiveTitle() {
-  const w = { tmax: "Temp. max", tmin: "Temp. min", tmean: "Temp. media", rain: "Pioggia" }[archiveState.what];
+function isAccMode(w) { return w === "accY" || w === "accM" || w === "accYto" || w === "accMto"; }
+function isRainArchive() { return archiveState.what === "rain" || isAccMode(archiveState.what); }
 
-  return w + " · " +
-    String(archiveState.day).padStart(2, "0") + "/" +
-    String(archiveState.month).padStart(2, "0") + "/" +
-    archiveState.year;
+// scala colori: annuo = come media annuale, mensile = come media mensile
+function archiveColorVar() {
+  const w = archiveState.what;
+  if (w === "rain") return "rainDaily";
+  if (w === "accY" || w === "accYto") return "rainClim";
+  if (w === "accM" || w === "accMto") return "rainClimMonth";
+  return "temp";
 }
 
+function archiveTitle() {
+  const s = archiveState;
+  const dd = String(s.day).padStart(2, "0");
+  const mm = String(s.month).padStart(2, "0");
+
+  if (s.what === "accY")   return "Accumulo annuo · " + s.year;
+  if (s.what === "accM")   return "Accumulo mensile · " + mm + "/" + s.year;
+  if (s.what === "accYto") return "Accumulo annuo al " + dd + "/" + mm + "/" + s.year;
+  if (s.what === "accMto") return "Accumulo mensile al " + dd + "/" + mm + "/" + s.year;
+
+  const w = { tmax: "Temp. max", tmin: "Temp. min", tmean: "Temp. media", rain: "Pioggia" }[s.what];
+  return w + " · " + dd + "/" + mm + "/" + s.year;
+}
 // valore da mostrare sul marker (solo OMIRL)
 function getArchiveValue(st) {
   if (st.source !== "OMIRL") return null;
+  if (isAccMode(archiveState.what)) {
+    const base = archiveState.sums[st.id];
+    let total = base;
 
+    if (archiveState.includesToday) {
+      let tv = archiveState.todayArc[st.id];
+      if (tv === undefined && st.rainDaily != null && Number.isFinite(Number(st.rainDaily))) {
+        tv = Number(st.rainDaily);        // oggi l'archivio non è completo: uso il dato attuale
+      }
+      if (tv !== undefined) total = (base ?? 0) + tv;
+    }
+
+    return total === undefined ? null : +total.toFixed(1);
+  }
   const v = archiveState.values[st.id];
 
   if (v !== undefined) return v;
@@ -2188,9 +2229,89 @@ function applyOmirlYearRain() {
 
 if (map.loaded()) loadOmirlYearRain();
 else map.once("load", loadOmirlYearRain);
-setInterval(loadOmirlYearRain, 900000);   // ogni 15 minuti
-async function loadArchiveDay() {
+setInterval(loadOmirlYearRain, 900000);
+async function loadArchiveAcc() {
 
+  const { day, month, year, what } = archiveState;
+  const token = ++archiveToken;
+
+  archiveState.values = {};
+  archiveState.stars  = {};
+  archiveState.sums = {};
+  archiveState.todayArc = {};
+  archiveState.includesToday = false;
+  arcNote.textContent = "Caricamento…";
+  updateLayer();
+
+  // periodo: dal (sM/sD) al (eM/eD)
+  let sM, sD, eM, eD;
+  if (what === "accY")        { sM = 1;     sD = 1; eM = 12;    eD = 31; }
+  else if (what === "accM")   { sM = month; sD = 1; eM = month; eD = new Date(year, month, 0).getDate(); }
+  else if (what === "accYto") { sM = 1;     sD = 1; eM = month; eD = day; }
+  else                        { sM = month; sD = 1; eM = month; eD = day; }   // accMto
+
+  const t = romeToday();
+  const yy = String(year).slice(2);
+
+  const months = [];
+  for (let m = sM; m <= eM; m++) {
+    if (year > t.y || (year === t.y && m > t.m)) break;   // mesi futuri: nessun dato
+    months.push(m);
+  }
+
+  if (!months.length) {
+    arcNote.textContent = "Periodo nel futuro";
+    updateLayer();
+    return;
+  }
+
+  const results = await Promise.allSettled(
+    months.map(m => fetchArchiveMonth("omirl", String(m).padStart(2, "0") + yy))
+  );
+
+  if (token !== archiveToken) return;   // nel frattempo hai cambiato scelta
+
+  let okMonths = 0;
+
+  results.forEach((r, i) => {
+    if (r.status !== "fulfilled") return;
+    okMonths++;
+
+    const m = months[i];
+    const dFrom = (m === sM) ? sD : 1;
+    const dTo   = (m === eM) ? eD : new Date(year, m, 0).getDate();
+
+    Object.entries(r.value.stations || {}).forEach(([id, str]) => {
+      const parts = String(str).split(",");
+
+      for (let d = dFrom; d <= dTo && d <= parts.length; d++) {
+        const n = parseFloat((parts[d - 1] ?? "").trim());
+        if (!Number.isFinite(n)) continue;
+
+        if (year === t.y && m === t.m && d === t.d) {   // oggi a parte
+          archiveState.todayArc[id] = n;
+          continue;
+        }
+        archiveState.sums[id] = (archiveState.sums[id] ?? 0) + n;
+      }
+    });
+  });
+
+  const todayKey = t.m * 100 + t.d;
+  archiveState.includesToday =
+    year === t.y && todayKey >= sM * 100 + sD && todayKey <= eM * 100 + eD;
+
+  const n = Object.keys(archiveState.sums).length;
+
+  arcNote.textContent =
+    okMonths === 0 ? "Archivio non raggiungibile"
+    : n ? ("Stazioni OMIRL · " + n + " con dato")
+    : "Nessun dato in archivio per questo periodo";
+
+  updateLayer();
+}   // ogni 15 minuti
+async function loadArchiveDay() {
+  if (isAccMode(archiveState.what)) return loadArchiveAcc();
   const { day, month, year, what } = archiveState;
 
   const mese   = String(month).padStart(2, "0") + String(year).slice(2);
@@ -2295,7 +2416,13 @@ fillArcDays();
 arcMonth.addEventListener("change", function () { fillArcDays(); applyArchive(); });
 arcYear.addEventListener("change",  function () { fillArcDays(); applyArchive(); });
 arcDay.addEventListener("change", applyArchive);
-arcWhat.addEventListener("change", applyArchive);
+function updateArcVisibility() {
+  const w = arcWhat.value;
+  arcDay.style.display   = (w === "accY" || w === "accM") ? "none" : "";   // annuo/mensile: niente giorno
+  arcMonth.style.display = (w === "accY") ? "none" : "";                   // annuo: solo anno
+}
+arcWhat.addEventListener("change", function () { updateArcVisibility(); applyArchive(); });
+updateArcVisibility();
 document.getElementById("arcShow").addEventListener("click", applyArchive);
 
 document.getElementById("archiveButton").onclick = function () {
