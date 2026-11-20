@@ -1860,7 +1860,18 @@ function renderTotalDayCharts(jobs, results, valid) {
 
     // accumulo dal 1° gennaio di ogni anno
     const cum = {};
-    yrs.forEach(function (y) { cum[y] = cumulative(byYear[y].rain); });
+        yrs.forEach(function (y) {
+        const c = cumulative(byYear[y].rain);
+        let last = null;
+
+        // dopo l'ultimo giorno con dato, l'accumulo resta fermo al totale raggiunto
+        for (let i = 0; i < c.length; i++) {
+            if (c[i] !== null) last = c[i];
+            else if (last !== null) c[i] = last;
+        }
+
+        cum[y] = c;
+    });
 const labels = [];
 
 const extWith = function (get, i, wantMax) {
