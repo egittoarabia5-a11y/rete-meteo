@@ -171,7 +171,9 @@
   }
   .avg-chip.empty{ opacity:.45; }
   .avg-chip.empty::before{ display:none; }
-
+.avg-chip.excluded{ opacity:.4; filter:grayscale(1); }
+.avg-chip.excluded::before{ display:none; }
+.avg-row-label.excluded{ opacity:.4; }
   /* ---------- righe riepilogative / riquadri con etichetta in grigio ---------- */
   .avg-gap{
     grid-column:1 / -1;
@@ -903,7 +905,34 @@ function paintChip(el, text, sub, glow) {
     if (glow) el.style.setProperty("--card-glow", glow);
     else el.style.removeProperty("--card-glow");
 }
+const MIN_YEAR_DAYS   = 310;   // giorni con dati minimi per contare un anno
+const MIN_MONTH_RATIO = 0.5;   // quota minima di giorni per contare un mese
 
+function daysWithData(md) {
+    let n = 0;
+    for (let i = 0; i < md.tmax.length; i++) {
+        if (md.tmax[i] !== null || md.tmin[i] !== null || md.tmean[i] !== null || md.rain[i] !== null) n++;
+    }
+    return n;
+}
+
+function monthIsValid(md) {
+    return daysWithData(md) >= MIN_MONTH_RATIO * md.tmax.length;
+}
+
+// rende grigia una riga delle tabelle annuali / totali
+function markExcluded(key, tip) {
+    document.querySelectorAll('.avg-chip[data-y*="-' + key + '-"]').forEach(function (el) {
+        const p = el.dataset.y.split("-");
+        if (p[1] !== key) return;
+        el.classList.add("excluded");
+        el.title = tip;
+    });
+    document.querySelectorAll('.avg-row-label[data-yl$="-' + key + '"]').forEach(function (el) {
+        el.classList.add("excluded");
+        el.title = tip;
+    });
+}
 
 /* =========================================
    VISTA MENSILE: tabella dei giorni + 3 righe riepilogative
@@ -1104,7 +1133,7 @@ function buildYear() {
             '<span class="avg-head">' + t.rainHead + '</span>';
 
         const rowHtml = function (key, label, isTotal) {
-            let h = '<span class="avg-row-label' + (isTotal ? ' sum' : '') + '">' + label + '</span>';
+            let h = '<span class="avg-row-label' + (isTotal ? ' sum' : '') + '" data-yl="' + t.n + '-' + key + '">' + label + '</span>';
 
             ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
                 h += '<span class="avg-chip sum empty" data-y="' + t.n + '-' + key + '-' + f + '">' +
@@ -1136,7 +1165,7 @@ function fillYearRow(key, L, isYear, tags) {
     const meanLbl = tg.mean || (isYear ? "media annua"    : "media mensile");
     const accLbl  = tg.acc  || (isYear ? "accumulo annuo" : "accumulo mensile");
     const extTag  = tg.ext !== undefined ? tg.ext : (isYear ? " annuo" : "");
-
+    const dn = function (n) { return tg.noDays ? "" : "<br>" + n + " giorni di dati"; };
     ["tmax", "tmin", "tmean"].forEach(function (f) {
         const list = L[f];
 
@@ -1144,7 +1173,7 @@ function fillYearRow(key, L, isYear, tags) {
 
         // tabella 1: medie
         const mean = avgOf(list);
-        setYear(1, key, f, mean.toFixed(1) + "°", meanLbl, getTempColor(mean));
+                setYear(1, key, f, mean.toFixed(1) + "°", meanLbl + dn(list.length), getTempColor(mean));
 
         // tabella 2: ext. max. per massima e media, ext. min. per minima
         const wantMax2 = (f !== "tmin");
@@ -1164,7 +1193,7 @@ function fillYearRow(key, L, isYear, tags) {
     if (rain.length) {
         // tabella 1: accumulo
         const tot = sumOf(rain) / (tg.accDiv || 1);
-        setYear(1, key, "rain", tot.toFixed(1) + " mm", accLbl, getRainScaleColor(tot));
+                setYear(1, key, "rain", tot.toFixed(1) + " mm", accLbl + dn(rain.length), getRainScaleColor(tot));
 
         // tabella 2: giorno più piovoso
         const top = extreme(rain, true);
@@ -1180,23 +1209,40 @@ function fillYearRow(key, L, isYear, tags) {
 function fillYear(months) {
 
     const all = { tmax: [], tmin: [], tmean: [], rain: [] };
+    let excluded = 0, total = 0;
 
     months.forEach(function (md, i) {
         const m = i + 1;
         const L = {};
 
         ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
-            L[f]   = numList(md[f], m);
-            all[f] = all[f].concat(L[f]);
+            L[f] = numList(md[f], m);
         });
 
+        const cnt = daysWithData(md);
+        total += cnt;
+
+        const ok = monthIsValid(md);
+
+        if (ok) ["tmax", "tmin", "tmean", "rain"].forEach(function (f) { all[f] = all[f].concat(L[f]); });
+
         fillYearRow(String(m), L, false);
+
+        if (!ok && cnt > 0) {
+            markExcluded(String(m), "Dati insufficienti: " + cnt + " giorni su " + md.tmax.length + " (esclusi dall'anno)");
+            excluded++;
+        }
     });
 
-    // riga annua: medie calcolate su tutti i giorni dell'anno, estremi e totali dell'anno
     fillYearRow("T", all, true);
-}
 
+    if (total > 0 && total < MIN_YEAR_DAYS) {
+        markExcluded("T", "Dati insufficienti: " + total + " giorni su " + MIN_YEAR_DAYS);
+        excluded++;
+    }
+
+    return excluded;
+}
 async function loadYear() {
 
     const token = ++loadToken;
@@ -1242,7 +1288,7 @@ async function loadYear() {
 
     note.textContent = "";
 
-    fillYear(months);
+        const nEx = fillYear(months);
 
     renderCharts(
         buildDaily(months.map(function (md, i) { return { month: i + 1, year: year, data: md }; })),
@@ -1252,6 +1298,7 @@ async function loadYear() {
     if (!months.some(function (x) { return x.has; })) {
         note.textContent = "Nessun dato in archivio per questo anno.";
     }
+        if (nEx) note.textContent = "Righe grigie: dati insufficienti (mese sotto il 90% dei giorni, anno sotto i 330), non incluse nelle medie.";
 }
 
 /* =========================================
@@ -1774,7 +1821,7 @@ function renderTotalCharts(years, per) {
 const LEAP_OFFSET = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
 const LEAP_DAYS   = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-function renderTotalDayCharts(jobs, results) {
+function renderTotalDayCharts(jobs, results, valid) {
 
     const N  = 366;
     const r1 = function (v) { return Math.round(v * 10) / 10; };
@@ -1804,7 +1851,7 @@ function renderTotalDayCharts(jobs, results) {
         });
     });
 
-    const yrs = Object.keys(byYear);
+    const yrs = Object.keys(byYear).filter(function (y) { return valid[y]; });
 
     if (!yrs.length) {
         document.getElementById("chartsArea").innerHTML = "";
@@ -1950,6 +1997,7 @@ async function loadTotal() {
 
     const per = {};
     const all = { tmax: [], tmin: [], tmean: [], rain: [] };
+    const cnt = {};
 
     jobs.forEach(function (j, i) {
 
@@ -1959,8 +2007,29 @@ async function loadTotal() {
 
         const e = per[j.year] || (per[j.year] = { tmax: [], tmin: [], tmean: [], rain: [] });
 
+        cnt[j.year] = (cnt[j.year] || 0) + daysWithData(md);
+
         ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
-            e[f]   = e[f].concat(numList(md[f], j.month));
+            e[f] = e[f].concat(numList(md[f], j.month));
+        });
+    });
+
+    // anno valido: ≥330 giorni (vista Anno) oppure ≥90% dei giorni del mese scelto
+    const valid = {};
+
+    Object.keys(cnt).forEach(function (y) {
+        valid[y] = isAnno
+            ? cnt[y] >= MIN_YEAR_DAYS
+            : cnt[y] >= MIN_MONTH_RATIO * new Date(Number(y), selM, 0).getDate();
+    });
+
+    // il Totale conta solo gli anni validi
+    jobs.forEach(function (j, i) {
+        const md = results[i];
+
+        if (!hasAny(md) || !valid[j.year]) return;
+
+        ["tmax", "tmin", "tmean", "rain"].forEach(function (f) {
             all[f] = all[f].concat(numList(md[f], j.month, j.year));
         });
     });
@@ -1979,18 +2048,34 @@ async function loadTotal() {
     buildTotalTables(years);
 
     years.forEach(function (y) { fillYearRow(String(y), per[y], isAnno); });
-    const nRainYears = years.filter(function (y) { return per[y].rain.length > 0; }).length;
+        years.forEach(function (y) {
+        if (!valid[y]) markExcluded(String(y), "Dati insufficienti: " + cnt[y] + " giorni (esclusi dal totale)");
+    });
+    const nRainYears = years.filter(function (y) { return valid[y] && per[y].rain.length > 0; }).length;
 
     fillYearRow("T", all, false, {
+        noDays: true,
         mean:   "media di tutti gli anni",
         acc:    isAnno ? "media accumuli annui" : "media accumuli mensili",
         accDiv: nRainYears || 1,
         ext:    " assoluto",
         days:   "giorni di pioggia totali"
     });
-
-        if (isAnno) renderTotalDayCharts(jobs, results);
+    if (years.some(function (y) { return !valid[y]; })) {
+        note.textContent = "Righe grigie: dati insufficienti (" + (isAnno ? "anno sotto i 330 giorni" : "mese sotto il 90% dei giorni") + "), non incluse nel totale.";
+    }
+        if (isAnno) renderTotalDayCharts(jobs, results, valid);
     else renderTotalCharts(years, per);
+        // giorni di dati usati nel totale (solo anni validi)
+    const totDays = years.reduce(function (s, y) { return s + (valid[y] ? cnt[y] : 0); }, 0);
+    const nValid  = years.filter(function (y) { return valid[y]; }).length;
+
+    document.querySelectorAll('.avg-chip[data-y*="-T-"]:not(.empty)').forEach(function (el) {
+        if (el.dataset.y.split("-")[1] !== "T") return;
+
+        el.insertAdjacentHTML("beforeend",
+            "<small>" + totDays.toLocaleString("it-IT") + " giorni di dati · " + nValid + (nValid === 1 ? " anno" : " anni") + "</small>");
+    });
 }
 /* =========================================
    SCELTA DELLA VISTA (mese / anno)

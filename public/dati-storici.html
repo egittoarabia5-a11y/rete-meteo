@@ -173,7 +173,12 @@
     grid-template-columns: 0.6fr repeat(9, 1fr);
     min-width:860px;
   }
-
+/* dati insufficienti: valori visibili ma grigi ed esclusi dalle medie */
+.month-chip.chip-excluded{ color: rgba(243,237,224,.45); border-style:dashed; }
+.month-chip.chip-excluded::before{ background-color:#8a8a8a; opacity:.18; }
+.month-label.excluded{ opacity:.45; }
+.month-label small{ display:block; font-size:10px; opacity:.6; font-weight:400; }
+.summary-row-sep{ grid-column:1 / -1; border-top:1px solid var(--line); margin:4px 0; }
   /* ---------- selettore anno/mese ---------- */
   .period-selector{
     display:flex;
@@ -411,34 +416,106 @@ const MONTHLY_TEMPS = [
   { m:'Dicembre',  maxAbs:19.0, minAbs:-2.0, maxAvg:12.3, minAvg:6.0,  avg:9.2,  anomMax:0.4, anomMin:0.3, anomAvg:0.3 }
 ];
 
-function monthChip(value, colorFn){
+/* ============================================================
+   SOGLIE DI COMPLETEZZA DATI
+   ============================================================ */
+const MIN_YEAR_DATA = 330;     // giorni minimi per contare un anno nelle medie
+const MIN_MONTH_RATIO = 0.9;   // 90% dei giorni del mese
+
+/* DEMO: sostituisci con il conteggio reale dei giorni con dati
+   per quel mese/anno (es. dal tuo archivio) */
+function getDataCount(year, monthIndex){
+  const days = daysInMonth(monthIndex, year);
+  const ratio = 0.7 + 0.3 * pseudoRandom(year * 12 + monthIndex);
+  return Math.round(days * ratio);
+}
+/* DEMO: sostituisci con i valori reali del mese/anno */
+function getMonthData(year, monthIndex){ return MONTHLY_TEMPS[monthIndex]; }
+
+function isMonthValid(year, mi){
+  return getDataCount(year, mi) >= MIN_MONTH_RATIO * daysInMonth(mi, year);
+}
+function yearDataTotal(year){
+  let t = 0; for(let m=0;m<12;m++) t += getDataCount(year, m); return t;
+}
+function isYearValid(year){ return yearDataTotal(year) >= MIN_YEAR_DATA; }
+
+function monthChip(value, colorFn, excluded){
   const span = document.createElement('span');
-  span.className = 'month-chip';
-  span.style.setProperty('--chip-glow', colorFn(value));
+  span.className = 'month-chip' + (excluded ? ' chip-excluded' : '');
+  if(value === null || value === undefined || isNaN(value)){
+    span.textContent = '—';
+    return span;
+  }
+  if(!excluded) span.style.setProperty('--chip-glow', colorFn(value));
   const sign = value > 0 ? '+' : '';
   span.textContent = (colorFn === getAnomalyColor ? sign : '') + value.toFixed(1) + '°';
   return span;
 }
 
+function addRow(grid, labelHtml, v, excluded, labelExcluded){
+  const label = document.createElement('span');
+  label.className = 'month-label' + (labelExcluded ? ' excluded' : '');
+  label.innerHTML = labelHtml;
+  grid.appendChild(label);
+  const fns = [getTempColor,getTempColor,getTempColor,getTempColor,getTempColor,
+               getAnomalyColor,getAnomalyColor,getAnomalyColor];
+  [v.maxAbs,v.minAbs,v.maxAvg,v.minAvg,v.avg,v.anomMax,v.anomMin,v.anomAvg]
+    .forEach((val,i)=> grid.appendChild(monthChip(val, fns[i], excluded)));
+}
+
+const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+const maxOf = a => a.length ? Math.max(...a) : null;
+const minOf = a => a.length ? Math.min(...a) : null;
+
+/* riepilogo da un insieme di righe valide */
+function summarize(rows){
+  return {
+    maxAbs: maxOf(rows.map(r=>r.maxAbs)),
+    minAbs: minOf(rows.map(r=>r.minAbs)),
+    maxAvg: mean(rows.map(r=>r.maxAvg)),
+    minAvg: mean(rows.map(r=>r.minAvg)),
+    avg:    mean(rows.map(r=>r.avg)),
+    anomMax:mean(rows.map(r=>r.anomMax)),
+    anomMin:mean(rows.map(r=>r.anomMin)),
+    anomAvg:mean(rows.map(r=>r.anomAvg))
+  };
+}
+
+const FIRST_YEAR = 2020; // primo anno con dati: adegua
+
 function renderMonthlyTable(){
   const grid = document.getElementById('monthTempGrid');
-  MONTHLY_TEMPS.forEach(row=>{
-    const label = document.createElement('span');
-    label.className = 'month-label';
-    label.textContent = row.m;
-    grid.appendChild(label);
+  while(grid.children.length > 9){ grid.removeChild(grid.lastChild); } // tiene l'intestazione
 
-    grid.appendChild(monthChip(row.maxAbs, getTempColor));
-    grid.appendChild(monthChip(row.minAbs, getTempColor));
-    grid.appendChild(monthChip(row.maxAvg, getTempColor));
-    grid.appendChild(monthChip(row.minAvg, getTempColor));
-    grid.appendChild(monthChip(row.avg, getTempColor));
-    grid.appendChild(monthChip(row.anomMax, getAnomalyColor));
-    grid.appendChild(monthChip(row.anomMin, getAnomalyColor));
-    grid.appendChild(monthChip(row.anomAvg, getAnomalyColor));
-  });
+  const validRows = [];
+  for(let mi=0; mi<12; mi++){
+    const row = getMonthData(currentYear, mi);
+    const days = daysInMonth(mi, currentYear);
+    const cnt = getDataCount(currentYear, mi);
+    const ok = isMonthValid(currentYear, mi);
+    if(ok) validRows.push(row);
+    addRow(grid, `${row.m}<small>${cnt}/${days} giorni</small>`, row, !ok, !ok);
+  }
+
+  /* resoconto dell'anno selezionato: solo mesi con ≥90% dei dati */
+  const sep = document.createElement('div'); sep.className='summary-row-sep'; grid.appendChild(sep);
+  const total = yearDataTotal(currentYear);
+  const yOk = isYearValid(currentYear);
+  addRow(grid, `Anno ${currentYear}<small>${total} dati${yOk ? '' : ' · < '+MIN_YEAR_DATA}</small>`,
+         summarize(validRows), !yOk, !yOk);
+
+  /* media storica: solo anni con ≥330 dati */
+  const validYears = [];
+  for(let y=FIRST_YEAR; y<=new Date().getFullYear(); y++){
+    if(!isYearValid(y)) continue;
+    const ms = [];
+    for(let mi=0; mi<12; mi++) if(isMonthValid(y, mi)) ms.push(getMonthData(y, mi));
+    if(ms.length) validYears.push(summarize(ms));
+  }
+  addRow(grid, `Media storica<small>${validYears.length} anni validi</small>`,
+         summarize(validYears), false, false);
 }
-renderMonthlyTable();
 
 /* ============================================================
    SELETTORE ANNO / MESE + TABELLA TEMPERATURE GIORNALIERE
@@ -523,12 +600,14 @@ function renderMonthLabel(){
 document.getElementById('yearPrev').addEventListener('click', ()=>{
   currentYear -= 1;
   renderYearLabel();
-  renderDailyTable(); // il numero di giorni di febbraio dipende dall'anno
+  renderDailyTable();
+  renderMonthlyTable() // il numero di giorni di febbraio dipende dall'anno
 });
 document.getElementById('yearNext').addEventListener('click', ()=>{
   currentYear += 1;
   renderYearLabel();
   renderDailyTable();
+  renderMonthlyTable()
 });
 document.getElementById('monthPrev').addEventListener('click', ()=>{
   currentMonthIndex = (currentMonthIndex + 11) % 12;
@@ -544,7 +623,7 @@ document.getElementById('monthNext').addEventListener('click', ()=>{
 renderYearLabel();
 renderMonthLabel();
 renderDailyTable();
-
+renderMonthlyTable();
 /* ============================================================
    SFONDO SINCRONIZZATO CON LA CONDIZIONE METEO ATTUALE
    — stessa logica di classificazione della pagina principale,

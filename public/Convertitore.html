@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convertitore OMIRL → SQL D1</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mut:#6a737d;--bd:#d8dde3;--ac:#1668d9;--ok:#1a7f37;--okbg:#e6f6ea;--warn:#b35900;--warnbg:#fff3e0;--err:#c62828}
+  @media (prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1d2127;--tx:#e6e9ed;--mut:#8b949e;--bd:#323943;--ac:#4c9aff;--ok:#56d364;--okbg:#12301a;--warn:#f0a050;--warnbg:#3a2a12;--err:#ff7b72}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,sans-serif;padding:16px}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px}
+  p.sub{margin:0 0 14px;color:var(--mut)}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+  label{font-weight:600;font-size:13px}
+  input[type=text],input[type=number]{padding:7px 9px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit;width:140px}
+  textarea{width:100%;height:220px;margin-top:6px;padding:9px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:10px}
+  .row div{display:flex;flex-direction:column;gap:4px}
+  button{cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:6px;padding:8px 14px;font:inherit;font-weight:600}
+  button.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+  button:hover{filter:brightness(.95)}
+  .stats{color:var(--mut);font-size:13px;margin:4px 0 10px}
+  .ch{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--card)}
+  .ch.done{background:var(--okbg);border-color:var(--ok)}
+  .ch.big{border-color:var(--warn)}
+  .tag{font-weight:800;min-width:52px;font-size:16px;color:var(--ac)}
+  .ch.done .tag{color:var(--ok)}
+  .info{flex:1;min-width:0}
+  .what{font-size:14px;word-break:break-word}
+  .meta{font-size:12px;color:var(--mut);margin-top:2px}
+  .meta .w{color:var(--warn);font-weight:700}
+  details{margin-top:4px}
+  details summary{cursor:pointer;font-size:12px;color:var(--mut)}
+  pre{margin:6px 0 0;max-height:180px;overflow:auto;background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
+  .log{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:8px;max-height:160px;overflow:auto;white-space:pre-wrap}
+  .err{color:var(--err);font-weight:600}
+  @media(max-width:560px){.ch{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Convertitore OMIRL → SQL (D1)</h1>
+  <p class="sub">Incolla i dati di tutte le stazioni e di tutti gli anni, premi <b>Genera</b>: ottieni una lista di comandi CH1, CH2… da copiare uno alla volta nella console D1.</p>
+
+  <div class="card">
+    <div class="row">
+      <div><label for="src">Serie temperature (src)</label><input type="text" id="src" value="omirl_T"></div>
+      <div><label for="upc">Max stazione-anno per comando</label><input type="number" id="upc" value="5" min="1" max="50"></div>
+      <div><label for="lim">Limite caratteri D1</label><input type="number" id="lim" value="100000" min="1000"></div>
+    </div>
+    <label for="inp">Dati OMIRL incollati</label>
+    <textarea id="inp" placeholder="Località: ALASSIO  Parametro meteorologico: Temperatura massima ..."></textarea>
+    <div class="row" style="margin:10px 0 0">
+      <button class="pri" id="go">Genera comandi SQL</button>
+      <button id="clr">Svuota</button>
+    </div>
+  </div>
+
+  <div id="out" style="display:none">
+    <div class="card">
+      <div class="stats" id="stats"></div>
+      <div class="row" style="margin:0 0 10px"><button id="copyall">Copia tutti (uniti)</button><button id="reset">Azzera “copiati”</button></div>
+      <div id="list"></div>
+    </div>
+    <div class="card" id="logcard" style="display:none">
+      <label>Avvisi</label>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TABELLA = `
+AIROL;AIROLE
+AIRO0;AIROLE
+ALASS;ALASSIO
+ALBG0;ALBENGA
+ISBLL;ALBENGA - ISOLABELLA
+MOBRA;ALBENGA - MOLINO BRANCA
+ALBIS;ALBISOLA
+AGORR;ALPE GORRETO
+AVOBB;ALPE VOBBIA
+ALPIC;ALPICELLA
+SELSV;ALTARE
+AMBOR;AMBORZASCO
+AMEFM;AMEGLIA FOCE MAGRA
+AREN0;ARENZANO
+AREPO;ARENZANO-PORTO
+BALE0;BALESTRINO
+BRAC0;BARACCA BRACCO
+BRGEL;BARBAGELATA
+VESSA;BARCHEO
+SALBE;BARGAGLI
+BARGO;BARGONE
+BAVAR;BAVARI
+BESTA;BESTAGNO
+BMAGR;BOCCA DI MAGRA
+BOLS0;BOLSINE
+BOLSN;BOLSINE
+BOLSI;BOLSINE
+BMARO;BORGOMARO
+BONUO;BORGONUOVO
+BRZON;BORZONE
+BVARA;BRUGNATO
+BRUGN;BRUGNETO DIGA
+BUGGI;BUGGIO
+BUSAL;BUSALLA
+BUGA0;BUSALLETTA DIGA
+GOTTR;CA' DI FERRA
+CABAN;CABANNE
+CADE0;CADERIVA
+CAIRM;CAIRO MONTENOTTE
+CCORM;CALICE AL C. - MOLUNGHI
+CCORN;CALICE AL CORNOVIGLIO
+CALIG;CALICE LIGURE
+CALGR;CALICE LIGURE - CA ROSSE
+CALIZ;CALIZZANO
+CALV0;CALVO
+CMNT0;CAMINATA
+CAMIN;CAMINATA
+CAMOG;CAMOGLI
+CMGL0;CAMOGLI
+CAMPL;CAMPO LIGURE
+CANE0;CANELLONA
+CVADO;CAPO VADO
+CARAS;CARASCO
+CARCA;CARCARE
+CARPE;CARPE
+TOIR0;CARPE
+CARPG;CARPE - CASE GARONI
+CARRO;CARRO
+PIGNO;CASALE DI PIGNONE
+CASR0;CASARZA LIGURE
+CASON;CASONI DI SUVERO
+CSGN0;CASSAGNA
+CLARI;CASTELLARI
+CSMAG;CASTELNUOVO MAGRA
+CSMAM;CASTELNUOVO MAGRA - MONTECCHIO
+CASRB;CASTELVECCHIO DI R. B.
+CCAS0;CASTIGLIONE CHIAVARESE
+CAVIP;CAVI DI LAVAGNA
+CEMBR;CEMBRANO
+CENES;CENESI
+CENGI;CENGIO
+CERIA;CERIANA
+CHIRI;CHIAVARI
+CHIAV;CHIAVARI - CAPERANA
+CHGA0;CHIESANUOVA GARIBALDO
+CHIUS;CHIUSOLA
+CIAI0;CIAIRA
+CCHER;CICHERO
+CRAIN;CIPRESSA
+CISAN;CISANO SUL NEVA
+CISNE;CISANO SUL NEVA (METEO)
+COGO0;COGOLETO
+CLROS;COLLA ROSSA
+BELEN;COLLE BELENDA
+CODOG;COLLE D'OGGIA
+CMELO;COLLE DEL MELOGNO
+CCADB;COLLE DI CADIBONA
+CNAVA;COLLE DI NAVA
+CMEL0;COLLE MELOSA
+COCA0;COLLE S. BARTOLOMEO
+RCOL0;COLLODARI
+ARNAL;COLONIA ARNALDI
+COMA0;COMAGO
+CONNA;CONNA
+CRNLO;CORNIOLO
+CRNU0;CORNUA
+CRETO;CRETO
+ORERO;CROCE ORERO
+CFSC0;CROCEFIESCHI
+CRCFI;CROCEFIESCHI - SANTUARIO
+CRORE;CROCETTA DI ORERO
+CUCCA;CUCCARELLO
+DAVAG;DAVAGNA
+DEGIR;DEGO - GIRINI
+DCAST;DIANO CASTELLO
+DCAVV;DIANO CASTELLO - VARCAVELLO
+DVNO0;DIGA VAL NOCI
+DCQUA;DOLCEACQUA - MOLINETTI
+DOLCD;DOLCEDO
+DOLCE;DOLCEDO
+ELLE0;ELLERA
+ELLRA;ELLERA - FOGLIETTO
+FALLA;FALLAROSA
+FAVA0;FAVALE DI MALVARO
+FEGL0;FEGLINO
+FERRA;FERRANIA
+FIORI;FIORINO
+FFRES;FONTANA FRESCA
+FRNLA;FORNOLA
+FRAMU;FRAMURA
+GARL0;GARLENDA
+GEBOL;GENOVA - BOLZANETO
+BINCR;GENOVA - BORGO INCROCIATI
+RIGHI;GENOVA - CASTELLACCIO
+CFUNZ;GENOVA - CENTRO FUNZIONALE
+GECER;GENOVA - CERTOSA
+GEDIF;GENOVA - DIPARTIMENTO DI FISICA
+GEFER;GENOVA - FEREGGIANO
+FIRPO;GENOVA - FIRPO
+GEFIU;GENOVA - FIUMARA
+GEPCA;GENOVA - GAVETTE
+GEGEI;GENOVA - GEIRATO
+VAREN;GENOVA - GRANARA
+GEIDR;GENOVA - ISTITUTO DI IDRAULICA
+MOLA0;GENOVA - MOLASSANA
+GEMOL;GENOVA - MOLASSANA
+NEVI0;GENOVA - NERVI
+GEPEG;GENOVA - PEGLI
+PCA20;GENOVA - PONTE CARREGA
+GEPTX;GENOVA - PONTEDECIMO
+GEPOA;GENOVA - PORTO ANTICO
+PRATO;GENOVA - PRATO
+GEPVA;GENOVA - PUNTA VAGNO
+GEQUE;GENOVA - QUEZZI
+GERIV;GENOVA - RIVAROLO
+PROSA;GENOVA - ROSATA
+EUS20;GENOVA - S. EUSEBIO
+SIRO0;GENOVA - S. SIRO STRUPPA
+STILA;GENOVA - S.ILARIO
+GSTUR;GENOVA - STURLA
+UNIV0;GENOVA - UNIVERSITA'
+LGIAC;GIACOPIANE - DIGA
+GIACO;GIACOPIANE - LAGO
+PEROO;IL PERO
+IMPER;IMPERIA - OSS. METEOSISMICO
+ISOC0;ISOLA DEL CANTONE
+ISBO0;ISOLABONA
+ISBON;ISOLABONA
+ISOVE;ISOVERDE
+ISOVR;ISOVERDE
+LFSPE;LA FOCE
+LFMTV;LA FOCE - MTE VISEGGI
+LAMAC;LA MACCHIA
+LAPRS;LA PRESA
+SPZIA;LA SPEZIA
+FABIA;LA SPEZIA - FABIANO
+LAVPO;LAVAGNA - PORTO
+LAVAG;LAVAGNOLA
+LAVE0;LAVEZZE - LAGO
+MBOS0;LE PIANE
+LERCA;LERCA
+LEVAN;LEVANTO
+LVTSG;LEVANTO - SAN GOTTARDO
+LOCOC;LOCO CARCHELLI
+LUNIS;LUNI - PROVASCO
+MBO20;MADONNA DEL BOSCO
+GUAR0;MADONNA DELLA GUARDIA
+GUARD;MADONNA DELLA GUARDIA
+MADGR;MADONNA DELLE GRAZIE
+MLARE;MALLARE
+MANI0;MANIE
+MANIE;MANIE
+MALOA;MARINA LOANO
+MARIN;MARINELLA DI SARZANA
+MARS0;MARSIGLIA
+MTRAN;MATTARANA
+MATRA;MATTARANA - DATI DAL 2010.03.30
+MELEE;MELE
+AMERE;MERELLI
+MIGNA;MIGNANEGO
+MILL0;MILLESIMO
+NMOL0;MOLINETTI
+MOLIN;MOLINETTO
+MOPE0;MOLINO PERTI
+MONTA;MONTAGNA
+MONT0;MONTAGNA
+MTBNO;MONTALBANO
+MLEV0;MONTALE DI LEVANTO
+MONTL;MONTALTO LIGURE
+MTBEV;MONTE BEVERONE
+MCAPP;MONTE CAPPELLINO
+MTECA;MONTE CAPPELLINO
+MTMEZ;MONTE DI MEZZO
+MTDOM;MONTE DOMENICO
+MMAUR;MONTE MAURE
+MOPEN;MONTE PENNELLO
+MTPOR;MONTE PORTOFINO
+MROCC;MONTE ROCCHETTA
+MSETT;MONTE SETTEPANI
+MZAT0;MONTE ZATTA
+MNINF;MONTENOTTE INFERIORE
+MROSS;MONTEROSSO
+MONTG;MONTOGGIO
+MORT0;MORTOLA INFERIORE
+MMISL;MURELLA D'ISOLA
+MURIA;MURIALDO
+NASCE;NASCETO
+NRNE0;NEIRONE
+OGNIO;OGNIO
+OGNI0;OGNIO
+ONZPO;ONZO - PONTEROTTO
+OSIGL;OSIGLIA
+PACIA;PACIALLA
+PDVRM;PADIVARMA
+PANES;PANESI
+PANN0;PANNESI
+PRZZ0;PARAZZUOLO
+PCRO0;PASSO CENTO CROCI
+PTURC;PASSO DEL TURCHINO
+CERPG;PASSO GHIMBEGNA
+PIAMP;PIAMPALUDO
+PRTTI;PIAN DEI RATTI
+BATT0;PIANA BATTOLLA
+PBATT;PIANA BATTOLLA - PONTE
+PCRIX;PIANA CRIXIA
+PIAN0;PIANA DI SOGLIO
+PIAZ0;PIAZZA
+PTECO;PIEVE DI TECO
+PTECH;PIEVE DI TECO (IDRO)
+PIGNA;PIGNA
+PIGN0;PIGNA
+PITLL;PITELLI
+PZGLI;PIZZEGLIO
+PFEAR;POGGIO FEARZA
+POORT;POGLI D'ORTOVERO
+POGLI;POGLI D'ORTOVERO
+POLAN;POLANESI
+PCOLO;PONTE COLOMBIERA
+MPSGN;PONTE DI S. GENESIO
+PPOG0;PONTE POGGI
+PORNA;PORNASSIO
+PVENE;PORTOVENERE - COMUNE
+PRAIC;PRAI
+PRMLO;PRATOMOLLO
+PREMA;PREMANICO
+PROP0;PROPATA
+RANZO;RANZO
+RAPAL;RAPALLO
+REPPI;REPPIA
+CICA0;RESORDO
+RIAL0;RIALTO
+RICCO;RICCO' DEL GOLFO
+RICC0;RICCO' DEL GOLFO
+ROCNE;ROCCHETTA NERVINA
+ROMMG;ROMITO MAGRA
+ROSGL;ROSSIGLIONE
+ROVEG;ROVEGNO
+ROVPT;ROVEGNO - PONTE
+RUGGE;RUGGE DI PONTEDASSIO
+SALB0;S. ALBERTO
+BOGO0;S. ANNA
+SMARG;S. MARGHERITA LIGURE
+SMVAR;S. MARGHERITA VARA
+SMART;S. MARTINO
+LASM0;S. MARTINO
+SMON0;S. MARTINO DEL MONTE
+SMICH;S. MICHELE
+SPIE0;S. PIETRO DI NOVELLA
+PSSE0;S. SEBASTIANO
+SSTAV;S. STEFANO D'AVETO
+SANDA;SANDA
+SREMO;SANREMO
+SARE0;SANREMO - CASINO'
+SANTU;SANTUARIO DI SAVONA
+MGAZZ;SANTUARIO MONTE GAZZO
+SARO0;SAROLA
+SRZAN;SARZANA
+SASSL;SASSELLO
+INASV;SAVONA - ISTITUTO NAUTICO
+SCIAR;SCIARBORASCA
+SCIA0;SCIARBORASCA
+SCOFF;SCOFFERA
+SCURT;SCURTABO'
+SEBOR;SEBORGA
+SEGN0;SEGNO
+GOUTA;SELLA DI GOUTA
+SELL0;SELLA DI SAVONA
+SEGIA;SELLA GIASSINA
+SZIGN;SERO' DI ZIGNAGO
+SEGOD;SESTA GODANO
+SLEVA;SESTRI LEVANTE
+PSLEV;SESTRI LEVANTE - PONTE
+SLPSS;SESTRI LEVANTE - PONTESS1
+SARAA;SESTRI LEVANTE - SARA
+STAT0;STATALE
+STALE;STATALE
+STBUR;STELLA - BURDONE
+STBE0;STELLA S. BERNARDO
+SSGIU;STELLA S. GIUSTINA
+STMA0;STELLA S. MARTINO
+STELL;STELLANELLO
+TAGG0;TAGGIA
+TAGLT;TAGLIETO
+TANOR;TANADORSO
+TASNI;TASSANI
+TAVRN;TAVARONE
+TAVO0;TAVOLE
+TESTI;TESTICO
+TIGLT;TIGLIETO
+TGLL0;TIGLIOLO
+TORC0;TORCHI
+TORRI;TORRI
+BTOR0;TORRI
+TRRIG;TORRIGLIA
+TOGAR;TORRIGLIA - GARAVENTA
+TRIOR;TRIORA
+URVAS;URBE - VARA SUP.
+VBGOR;VALBREVENNA - GORRA
+ARMA0;VALLE ARMEA
+ARMEA;VALLE ARMEA - PONTE
+VLMUR;VALLE MURIALDO
+VATA0;VALLE TANE
+VREGI;VALLEREGIA
+VALZE;VALZEMOLA
+VALIG;VARESE LIGURE
+XXMIG;VENTIMIGLIA
+VERDE;VERDEGGIA
+VERNA;VERNAZZA
+VERZI;VERZI LOANO
+LOAN0;VERZI LOANO
+VZSA_;VEZZANO LIGURE - IDRO
+VZSAL;VEZZANO LIGURE - SALICETI
+VICOM;VICOMORASSO
+VIGAN;VIGANEGO
+SVIG0;VIGNOLO
+VIGNO;VIGNOLO
+AQUI0;VILLA PONZA
+VOBBI;VOBBIETTA
+`;
+
+const KINDS = ["max", "med", "min"];
+const ROW = /(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})\s*(-?(?:\d+(?:[.,]\d+)?|[.,]\d+))\s*Tutti\s+i\s+dati\s*(Sì|Si|No)/gi;
+const LOCALITA = /Localit[^\s:]*\s*:\s*([\s\S]+?)\s*(?=Parametro\s+meteorologico\s*:)/gi;
+
+const norm = n => n.replace(/[’`]/g, "'").replace(/\s+/g, " ").trim().toUpperCase();
+
+// --- tabella codici ---
+const CODES = new Map(), ALTS = new Map(), NAMES = new Map();
+for (const line of TABELLA.trim().split("\n")) {
+  const i = line.indexOf(";"); if (i < 0) continue;
+  const code = line.slice(0, i).trim(), name = line.slice(i + 1).trim(), key = norm(name);
+  if (CODES.has(key)) { if (!ALTS.has(key)) ALTS.set(key, []); ALTS.get(key).push(code); }
+  else CODES.set(key, code);
+  if (!NAMES.has(code)) NAMES.set(code, name);
+}
+
+function lev(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({length: n + 1}, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++)
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+function closest(key) {
+  let best = null, bs = 0;
+  for (const k of CODES.keys()) {
+    const s = 1 - lev(key, k) / Math.max(key.length, k.length);
+    if (s > bs) { bs = s; best = k; }
+  }
+  return bs >= 0.9 ? best : null;
+}
+
+let LOG = [], warned = new Set();
+const log = s => LOG.push(s);
+
+function codeFor(name) {
+  let key = norm(name), code = CODES.get(key);
+  if (code === undefined) {
+    const c = closest(key);
+    if (!c) { log(`stazione sconosciuta: '${name}' (saltata)`); return null; }
+    log(`'${name}' non trovata, uso '${c}'`);
+    key = c; code = CODES.get(key);
+  }
+  if (ALTS.has(key) && !warned.has(key)) {
+    warned.add(key);
+    log(`nome ambiguo '${key}': uso ${code} (alternative: ${ALTS.get(key).join(", ")})`);
+  }
+  return code;
+}
+
+function kindOf(h) {
+  const u = h.toUpperCase();
+  if (u.includes("PRECIPITAZIONE")) return "rain";
+  if (u.includes("MASSIMA")) return "max";
+  if (u.includes("MINIMA")) return "min";
+  if (u.includes("MEDIA")) return "med";
+  return null;
+}
+
+function toFloat(v) {
+  let s = v.replace(",", ".");
+  if (s.startsWith("-.")) s = "-0" + s.slice(1);
+  else if (s.startsWith(".")) s = "0" + s;
+  return parseFloat(s);
+}
+
+const dk = (y, m, d) => y * 10000 + m * 100 + d;
+const unk = k => [Math.floor(k / 10000), Math.floor(k / 100) % 100, k % 100];
+const pad = n => String(n).padStart(2, "0");
+
+function parse(text) {
+  const stations = new Map();
+  const parts = text.split(LOCALITA);
+  if (parts.length === 1) { log("non trovo 'Località:' seguito da 'Parametro meteorologico:'."); return stations; }
+  for (let i = 1; i < parts.length; i += 2) {
+    const name = parts[i], body = parts[i + 1] || "";
+    const code = codeFor(name); if (!code) continue;
+    if (!stations.has(code)) stations.set(code, {max: new Map(), med: new Map(), min: new Map(), rain: new Map()});
+    const data = stations.get(code);
+    const sections = body.split(/Parametro\s+meteorologico\s*:/i);
+    for (const sec of sections.slice(1)) {
+      const he = sec.toUpperCase().indexOf("INIZIO RILEVAZIONE");
+      const header = he === -1 ? sec.slice(0, 250) : sec.slice(0, he);
+      const kind = kindOf(header);
+      if (!kind) { log(`${code}: parametro non riconosciuto: ${header.slice(0, 100).trim()}`); continue; }
+      for (const m of sec.matchAll(ROW)) {
+        const [, ds, , val, valid] = m;
+        const [d, mo, y] = ds.split("/").map(Number);
+        if (valid.toUpperCase() === "NO") { log(`${code}: salto ${ds} (${kind}): dato non valido`); continue; }
+        data[kind].set(dk(y, mo, d), toFloat(val));
+      }
+    }
+  }
+  return stations;
+}
+
+const meseKey = (y, m) => pad(m) + pad(y % 100);
+
+function stationRows(code, data, src) {
+  const byYear = new Map();
+  const push = (y, r) => { if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(r); };
+  const days = [...new Set([...data.max.keys(), ...data.med.keys(), ...data.min.keys()])].sort((a, b) => a - b);
+  for (const day of days) {
+    const vals = KINDS.map(k => data[k].get(day));
+    const [y, m, d] = unk(day);
+    if (vals.some(v => v === undefined)) {
+      const miss = KINDS.filter((k, i) => vals[i] === undefined);
+      log(`${code}: manca ${miss.join(", ")} per ${pad(d)}/${pad(m)}/${y}: salto il giorno`);
+      continue;
+    }
+    push(y, `('${meseKey(y, m)}', ${d}, '${src}', '${code}', '${vals.map(v => v.toFixed(1)).join(",")}')`);
+  }
+  for (const day of [...data.rain.keys()].sort((a, b) => a - b)) {
+    const [y, m, d] = unk(day);
+    push(y, `('${meseKey(y, m)}', ${d}, 'omirl', '${code}', '${data.rain.get(day).toFixed(1)}')`);
+  }
+  return byYear;
+}
+
+const HEAD = "INSERT OR REPLACE INTO archivio (mese, giorno, src, st, v) VALUES\n";
+
+function build(text, src, UPC, LIM) {
+  LOG = []; warned = new Set();
+  const stations = parse(text);
+  const units = [];
+  for (const [code, data] of stations) {
+    const by = stationRows(code, data, src);
+    if (!by.size) log(`${code}: nessun dato utile`);
+    for (const y of [...by.keys()].sort((a, b) => a - b)) units.push({code, year: y, rows: by.get(y)});
+  }
+  const commands = [];
+  let cur = [], curRows = [], curLen = HEAD.length + 1;
+  for (const u of units) {
+    const add = u.rows.reduce((s, r) => s + r.length + 2, 0);
+    if (cur.length && (cur.length >= UPC || curLen + add > LIM)) {
+      commands.push({members: cur, rows: curRows});
+      cur = []; curRows = []; curLen = HEAD.length + 1;
+    }
+    cur.push(u); curRows.push(...u.rows); curLen += add;
+  }
+  if (cur.length) commands.push({members: cur, rows: curRows});
+  commands.forEach(c => { c.sql = HEAD + c.rows.join(",\n") + ";"; });
+  return {commands, units, nSt: new Set(units.map(u => u.code)).size,
+          total: units.reduce((s, u) => s + u.rows.length, 0)};
+}
+
+// --- UI ---
+const $ = id => document.getElementById(id);
+let current = null;
+
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (_) {}
+    ta.remove(); return ok;
+  }
+}
+
+function describe(members) {
+  // raggruppa per stazione: "ALASSIO (2019, 2020) · ALBENGA (2019)"
+  const g = new Map();
+  for (const m of members) { if (!g.has(m.code)) g.set(m.code, []); g.get(m.code).push(m.year); }
+  return [...g].map(([c, ys]) => `${NAMES.get(c) || c} [${c}] ${ys.join(", ")}`).join("  ·  ");
+}
+
+function render() {
+  const list = $("list"); list.innerHTML = "";
+  current.commands.forEach((c, i) => {
+    const big = c.sql.length > current.LIM;
+    const div = document.createElement("div");
+    div.className = "ch" + (big ? " big" : "");
+    div.innerHTML = `<div class="tag">CH${i + 1}</div>
+      <div class="info">
+        <div class="what"></div>
+        <div class="meta"></div>
+        <details><summary>Anteprima SQL</summary><pre></pre></details>
+      </div><button class="pri">Copia</button>`;
+    div.querySelector(".what").textContent = "Chiama: " + describe(c.members);
+    div.querySelector(".meta").innerHTML =
+      `${c.members.length} stazione-anno · ${c.rows.length} righe · ${c.sql.length.toLocaleString("it-IT")} caratteri` +
+      (big ? ` · <span class="w">supera il limite D1, potrebbe essere rifiutato</span>` : "");
+    div.querySelector("pre").textContent = c.sql.length > 3000 ? c.sql.slice(0, 3000) + "\n…" : c.sql;
+    const btn = div.querySelector("button");
+    btn.onclick = async () => {
+      if (await copyText(c.sql)) { div.classList.add("done"); btn.textContent = "Copiato ✓"; btn.classList.remove("pri"); }
+      else btn.textContent = "Errore";
+    };
+    list.appendChild(div);
+  });
+}
+
+$("go").onclick = () => {
+  const text = $("inp").value;
+  const src = ($("src").value.trim() || "omirl_T").replace(/'/g, "");
+  const UPC = Math.max(1, parseInt($("upc").value) || 5);
+  const LIM = Math.max(1000, parseInt($("lim").value) || 100000);
+  const r = build(text, src, UPC, LIM);
+  r.LIM = LIM; current = r;
+  $("out").style.display = "block";
+  if (!r.commands.length) {
+    $("stats").innerHTML = `<span class="err">Nessun dato riconosciuto. Controlla il testo incollato e i titoli dei parametri.</span>`;
+    $("list").innerHTML = "";
+  } else {
+    $("stats").textContent = `${r.nSt} stazioni · ${r.units.length} stazione-anno · ${r.total} righe · ${r.commands.length} comandi`;
+    render();
+  }
+  $("logcard").style.display = LOG.length ? "block" : "none";
+  $("log").textContent = LOG.map(l => "-- " + l).join("\n");
+};
+$("clr").onclick = () => { $("inp").value = ""; $("out").style.display = "none"; current = null; };
+$("reset").onclick = () => current && render();
+$("copyall").onclick = async e => {
+  if (!current) return;
+  const ok = await copyText(current.commands.map(c => c.sql).join("\n\n"));
+  e.target.textContent = ok ? "Copiati tutti ✓" : "Errore";
+  setTimeout(() => e.target.textContent = "Copia tutti (uniti)", 2000);
+};
+</script>
+</body>
+</html>
