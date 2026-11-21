@@ -2065,7 +2065,9 @@ const archiveState = {
   values: {},   // id stazione -> valore del giorno scelto
     stars: {},
   sums: {},            // somma dei giorni passati per ogni stazione (accumuli)
-  todayArc: {},        // valore di oggi dall'archivio, se già scritto
+  todayArc: {}, 
+    counts: {},          // giorni con dato per ogni stazione (accumuli)
+  needDays: 0,         // giorni minimi richiesti per mostrare la stazione       // valore di oggi dall'archivio, se già scritto
   includesToday: false // il periodo scelto comprende oggi?
 };
 
@@ -2109,14 +2111,18 @@ function getArchiveValue(st) {
   if (isAccMode(archiveState.what)) {
     const base = archiveState.sums[st.id];
     let total = base;
+    let days = archiveState.counts[st.id] ?? 0;
 
     if (archiveState.includesToday) {
       let tv = archiveState.todayArc[st.id];
       if (tv === undefined && st.rainDaily != null && Number.isFinite(Number(st.rainDaily))) {
         tv = Number(st.rainDaily);        // oggi l'archivio non è completo: uso il dato attuale
+        days += 1;                        // e conta come giorno con dato
       }
       if (tv !== undefined) total = (base ?? 0) + tv;
     }
+
+    if (days < archiveState.needDays) return null;   // dati insufficienti: stazione nascosta
 
     return total === undefined ? null : +total.toFixed(1);
   }
@@ -2230,6 +2236,8 @@ function applyOmirlYearRain() {
 if (map.loaded()) loadOmirlYearRain();
 else map.once("load", loadOmirlYearRain);
 setInterval(loadOmirlYearRain, 900000);
+const MIN_ACC_YEAR_DAYS  = 330;   // giorni minimi per l'accumulo annuo
+const MIN_ACC_MONTH_DAYS = 15;    // giorni minimi per l'accumulo mensile
 async function loadArchiveAcc() {
 
   const { day, month, year, what } = archiveState;
@@ -2239,6 +2247,7 @@ async function loadArchiveAcc() {
   archiveState.stars  = {};
   archiveState.sums = {};
   archiveState.todayArc = {};
+    archiveState.counts = {};
   archiveState.includesToday = false;
   arcNote.textContent = "Caricamento…";
   updateLayer();
@@ -2249,7 +2258,13 @@ async function loadArchiveAcc() {
   else if (what === "accM")   { sM = month; sD = 1; eM = month; eD = new Date(year, month, 0).getDate(); }
   else if (what === "accYto") { sM = 1;     sD = 1; eM = month; eD = day; }
   else                        { sM = month; sD = 1; eM = month; eD = day; }   // accMto
+  const periodDays = Math.round((new Date(year, eM - 1, eD) - new Date(year, sM - 1, sD)) / 86400000) + 1;
 
+  archiveState.needDays =
+    what === "accY"   ? MIN_ACC_YEAR_DAYS :
+    what === "accM"   ? MIN_ACC_MONTH_DAYS :
+    what === "accYto" ? Math.ceil(periodDays * MIN_ACC_YEAR_DAYS / 365) :
+                        Math.ceil(periodDays * MIN_ACC_MONTH_DAYS / 30);
   const t = romeToday();
   const yy = String(year).slice(2);
 
@@ -2287,7 +2302,7 @@ async function loadArchiveAcc() {
       for (let d = dFrom; d <= dTo && d <= parts.length; d++) {
         const n = parseFloat((parts[d - 1] ?? "").trim());
         if (!Number.isFinite(n)) continue;
-
+        archiveState.counts[id] = (archiveState.counts[id] ?? 0) + 1;
         if (year === t.y && m === t.m && d === t.d) {   // oggi a parte
           archiveState.todayArc[id] = n;
           continue;
@@ -2301,7 +2316,8 @@ async function loadArchiveAcc() {
   archiveState.includesToday =
     year === t.y && todayKey >= sM * 100 + sD && todayKey <= eM * 100 + eD;
 
-  const n = Object.keys(archiveState.sums).length;
+    const n = Object.keys(archiveState.counts)
+    .filter(id => archiveState.counts[id] >= archiveState.needDays).length;
 
   arcNote.textContent =
     okMonths === 0 ? "Archivio non raggiungibile"
