@@ -3521,7 +3521,855 @@ if (!stationContext.found) {
   setInterval(tickLiveCountdown, 1000);
   setInterval(refreshMetar, METAR_REFRESH_MS);
 }
+(function () {
+"use strict";
 
+// se il blocco è incollato due volte, la seconda copia non fa nulla
+if (window.__medieAnomalieAttivo) return;
+window.__medieAnomalieAttivo = true;
+
+const ARCHIVE_BASE = "https://archivio-eventi.eggittof.workers.dev";
+
+// serie dell'archivio per rete (stesse della pagina Archivio)
+const ARC = {
+    omirl:            { t: ["omirl_T"],                 r: ["omirl"] },
+    ignorete:         { t: ["ignorete_T"],              r: ["ignorete"] },
+    limet:            { t: ["limet1_T", "limet2_T"],    r: ["limet1", "limet2"] },
+    acronet:          { t: ["gepo_T"],                  r: ["gepo"] },
+    comunedigenova:   { t: ["comuneGenova_T"],          r: ["comuneGenova"] },
+    "3r":             { t: ["3r_T"],                    r: [] },
+    dma:              { t: ["dma_T"],                   r: ["dma"] },
+    weatherlink:      { t: ["soluzionimeteo_T"],        r: ["soluzionimeteo"] },
+    parcodiportofino: { t: ["portofino_T"],             r: ["portofino"] }
+};
+
+const EXCLUDED_TEMPS = ["-44.9", "-17.8", "-67.8"];
+const OLD_UNTIL = 1999;       // fino a quest'anno l'archivio ha solo massima e minima
+const COVER = 0.9;            // quota minima di giorni con normale per mostrare mese/anno
+const PAIR_MIN = 0.8;         // quota minima di giorni confrontabili per le anomalie
+const DIM365 = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+const PERIODS = [
+    ["1961-1990", "61/90"], ["1971-2000", "71/00"], ["1981-2010", "81/10"],
+    ["1991-2020", "91/20"], ["2001-2030", "01/30"]
+];
+
+const ROWS = [
+    { id: "TempMax", f: "tmax" },
+    { id: "TempMin", f: "tmin" },
+    { id: "Temp",    f: "tmean" },
+    { id: "Precip",  f: "rain" }
+];
+const COLS = ["Daily", "Monthly", "Yearly"];
+const FIELDS = ["tmax", "tmin", "tmean", "rain"];
+
+const network = stationContext.network;
+const cfg = ARC[network] || null;
+
+let archiveIds = [];
+let currentRaw = null;
+let avgKey  = "1981-2010";
+let anomKey = "1981-2010";
+let actual = null;            // dati reali dell'anno in corso
+
+function dim(y, m) { return new Date(y, m, 0).getDate(); }
+
+
+/* =========================================
+   STILE E MENU DEI PERIODI (nella cella in alto a sinistra)
+========================================= */
+
+(function () {
+    const st = document.createElement("style");
+    st.textContent =
+        ".period-select{font-family:'Work Sans',sans-serif;font-size:11px;font-weight:600;" +
+        "padding:4px 22px 4px 10px;border-radius:100px;border:1px solid #e8a23a;" +
+        "background-color:#e8a23a;color:#0e1420;cursor:pointer;" +
+        "appearance:none;-webkit-appearance:none;" +
+        "background-image:url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%230e1420' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>\");" +
+        "background-repeat:no-repeat;background-position:right 8px center;}" +
+        ".period-select:hover{filter:brightness(1.08);}" +
+        ".period-select option{background:#0e1420;color:#f3ede0;}" +
+        ".link-box{display:block;text-align:center;text-decoration:none;color:#ffffff;" +
+        "font-family:'Work Sans',sans-serif;font-size:15px;font-weight:500;letter-spacing:.04em;" +
+        "padding:13px 16px;margin-top:8px;border-radius:20px;border:1px solid var(--line);" +
+        "background:var(--glass);opacity:.85;transition:opacity .2s ease, background-color .2s ease;}" +
+        ".link-box:hover{opacity:1;background:var(--glass-strong);}";
+    document.head.appendChild(st);
+})();
+
+function makeSelect(prefix, onChange) {
+    const probe = document.getElementById(prefix + "TempMaxDaily");
+    const host = probe && probe.closest(".avg-grid") && probe.closest(".avg-grid").firstElementChild;
+
+    if (!host) return;
+
+    const s = document.createElement("select");
+    s.className = "period-select";
+    s.title = "Periodo di riferimento";
+
+    PERIODS.forEach(function (p) {
+        const o = document.createElement("option");
+        o.value = p[0];
+        o.textContent = p[1];
+        s.appendChild(o);
+    });
+
+    s.value = "1981-2010";
+    s.addEventListener("change", function () { onChange(s.value); });
+
+    host.style.opacity = "1";
+    host.appendChild(s);
+}
+
+
+/* =========================================
+   ARCHIVIO (stessa logica della pagina Archivio)
+========================================= */
+
+async function getJson(url) {
+    const res = await fetch(url);
+
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    return res.json();
+}
+
+function collectArchiveIds(raw) {
+    const list = [];
+    const add = function (v) {
+        if (v === undefined || v === null || v === "") return;
+        const s = String(v).trim();
+        if (s && list.indexOf(s) < 0) list.push(s);
+    };
+
+    if (network === "dma") add(raw.id);
+    add(stationContext.stationId);
+    add(raw.id);
+    add(raw.code);
+    add(raw.shortCode);
+    add(raw.name);
+    add(raw.N);
+
+    archiveIds = list;
+}
+
+let availablePromise = null;
+
+function getAvailable() {
+    if (!availablePromise) {
+        availablePromise = getJson(ARCHIVE_BASE + "/archivio")
+            .then(function (j) {
+                const s = new Set();
+                (j.disponibili || []).forEach(function (r) { s.add(r.mese + "|" + r.src); });
+                return s;
+            })
+            .catch(function () { return null; });
+    }
+
+    return availablePromise;
+}
+
+async function fetchArchiveSeries(srcs, mese) {
+
+    const avail = await getAvailable();
+
+    for (const src of srcs) {
+
+        if (avail && !avail.has(mese + "|" + src)) continue;
+
+        for (const id of archiveIds) {
+            try {
+                const data = await getJson(
+                    ARCHIVE_BASE + "/archivio?src=" + encodeURIComponent(src) +
+                    "&mese=" + mese + "&st=" + encodeURIComponent(id)
+                );
+
+                const str = data.stations && data.stations[id];
+
+                if (str) return { arr: str.split(",").map(function (s) { return s.trim(); }), src: src, id: id };
+            } catch (err) {
+                console.warn("Archivio non disponibile per", src, id, err);
+            }
+        }
+    }
+
+    return null;
+}
+
+async function fetchTodayValues(srcs, fromIso, isTemp) {
+    for (const src of srcs) {
+        try {
+            const data = await getJson(
+                ARCHIVE_BASE + "/export?src=" + encodeURIComponent(src) +
+                "&from=" + encodeURIComponent(fromIso) + "&limit=2000"
+            );
+
+            const ids = data.stations || [];
+            let idx = -1;
+
+            for (const id of archiveIds) {
+                idx = ids.indexOf(id);
+                if (idx >= 0) break;
+            }
+
+            if (idx < 0) continue;
+
+            const values = [];
+            const despike = isTemp && network === "parcodiportofino";
+            let lastV = null, lastM = 0;
+
+            for (const row of data.rows || []) {
+                const v = toNum(String(row[1]).split(",")[idx]);
+
+                if (v === null) continue;
+                if (isTemp && EXCLUDED_TEMPS.indexOf(v.toFixed(1)) >= 0) continue;
+
+                if (despike) {
+                    const rm = Math.floor(Date.parse(row[0]) / 60000);
+
+                    if (lastV !== null && rm - lastM <= 2 && Math.abs(v - lastV) >= 1) continue;
+
+                    lastV = v;
+                    lastM = rm;
+                }
+
+                values.push(v);
+            }
+
+            if (values.length) return values;
+        } catch (err) {
+            console.warn("Export non disponibile per", src, err);
+        }
+    }
+
+    return null;
+}
+
+/* Dati di un mese: per ogni campo un array (indice = giorno - 1) di testi o null */
+async function fetchMonthData(month, year) {
+
+    const days = new Date(year, month, 0).getDate();
+
+    const out = {
+        has:   false,
+        tmax:  new Array(days).fill(null),
+        tmin:  new Array(days).fill(null),
+        tmean: new Array(days).fill(null),
+        rain:  new Array(days).fill(null)
+    };
+
+    if (!cfg || !archiveIds.length) return out;
+
+    // anni vecchi: solo massima e minima
+    if (year <= OLD_UNTIL) {
+        const meseOld = String(month).padStart(2, "0") + String(year - 1000).padStart(3, "0");
+
+        const [mx, mn] = await Promise.all([
+            fetchArchiveSeries(["old_max"], meseOld),
+            fetchArchiveSeries(["old_min"], meseOld)
+        ]);
+
+        out.has = !!(mx || mn);
+
+        [[mx, "tmax"], [mn, "tmin"]].forEach(function (p) {
+            if (!p[0]) return;
+            p[0].arr.forEach(function (v, i) {
+                if (v !== "" && i < days) out[p[1]][i] = v;
+            });
+        });
+
+        return out;
+    }
+
+    const mese = String(month).padStart(2, "0") + String(year).slice(2);
+
+    const [tempRes, rainRes] = await Promise.all([
+        fetchArchiveSeries(cfg.t, mese),
+        fetchArchiveSeries(cfg.r, mese)
+    ]);
+
+    out.has = !!(tempRes || rainRes);
+
+    if (tempRes) {
+        const a = tempRes.arr;
+
+        for (let d = 1; d <= a.length / 3 && d <= days; d++) {
+            const tmax = a[(d - 1) * 3];
+            const tmed = a[(d - 1) * 3 + 1];
+            const tmin = a[(d - 1) * 3 + 2];
+
+            if (tmax) out.tmax[d - 1]  = tmax;
+            if (tmin) out.tmin[d - 1]  = tmin;
+            if (tmed) out.tmean[d - 1] = tmed;
+        }
+    }
+
+    if (rainRes) {
+        rainRes.arr.forEach(function (v, i) {
+            if (v !== "" && i < days) out.rain[i] = v;
+        });
+    }
+
+    // giorno attuale non ancora in archivio: uso i dati al minuto
+    const now = new Date();
+
+    if (now.getFullYear() === year && now.getMonth() + 1 === month) {
+
+        const day = now.getDate();
+
+        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const fromIso = midnight.toISOString().slice(0, 19) + "Z";
+
+        const needTemp = out.tmax[day - 1] === null || out.tmin[day - 1] === null;
+        const needRain = out.rain[day - 1] === null;
+
+        const [tv, rv] = await Promise.all([
+            needTemp ? fetchTodayValues(cfg.t, fromIso, true) : null,
+            needRain && cfg.r.length ? fetchTodayValues(cfg.r, fromIso) : null
+        ]);
+
+        if (tv || (network === "omirl" && currentRaw)) {
+            const okT = function (v) { return v !== null && EXCLUDED_TEMPS.indexOf(v.toFixed(1)) < 0; };
+            const hMax = network === "omirl" && currentRaw ? toNum(currentRaw.tempHigh) : null;
+            const hMin = network === "omirl" && currentRaw ? toNum(currentRaw.tempLow) : null;
+
+            const max  = okT(hMax) ? hMax : (tv ? Math.max.apply(null, tv) : null);
+            const min  = okT(hMin) ? hMin : (tv ? Math.min.apply(null, tv) : null);
+            const mean = tv ? tv.reduce(function (a, b) { return a + b; }, 0) / tv.length : null;
+
+            if (max !== null && out.tmax[day - 1] === null)   out.tmax[day - 1]  = max.toFixed(1);
+            if (min !== null && out.tmin[day - 1] === null)   out.tmin[day - 1]  = min.toFixed(1);
+            if (mean !== null && out.tmean[day - 1] === null) out.tmean[day - 1] = mean.toFixed(1);
+        }
+
+        if (rv) out.rain[day - 1] = rv[rv.length - 1].toFixed(1);
+    }
+
+    return out;
+}
+
+// cache: in memoria e, per i mesi chiusi da almeno 2 mesi, anche nel browser
+const memCache = new Map();
+
+function lsKey(m, y) { return "mm1|" + network + "|" + archiveIds[0] + "|" + m + "-" + y; }
+
+function fetchMonthCached(month, year) {
+
+    const now = new Date();
+    const cy = now.getFullYear(), cm = now.getMonth() + 1;
+
+    if (year === cy && month === cm) return fetchMonthData(month, year);
+
+    const k = month + "-" + year;
+
+    if (!memCache.has(k)) {
+        const old = ((cy - year) * 12 + (cm - month)) >= 2;
+
+        memCache.set(k, (async function () {
+            if (old) {
+                try {
+                    const s = localStorage.getItem(lsKey(month, year));
+                    if (s) return JSON.parse(s);
+                } catch (e) { /* storage non disponibile */ }
+            }
+
+            const md = await fetchMonthData(month, year);
+
+            if (old && md.has) {
+                try { localStorage.setItem(lsKey(month, year), JSON.stringify(md)); } catch (e) { /* pieno o bloccato */ }
+            }
+
+            return md;
+        })());
+    }
+
+    return memCache.get(k);
+}
+
+async function runPool(tasks, limit) {
+    let next = 0;
+
+    async function worker() {
+        while (true) {
+            const i = next++;
+
+            if (i >= tasks.length) return;
+
+            await tasks[i]();
+        }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+}
+
+
+/* =========================================
+   NORMALI: per ogni giorno del calendario somma e numero di anni
+========================================= */
+
+const normals = new Map();   // periodo -> { agg, loaded:Set(mesi) }
+
+function newAgg() {
+    const a = {};
+
+    FIELDS.forEach(function (f) {
+        a[f] = Array.from({ length: 12 }, function () {
+            return Array.from({ length: 31 }, function () { return { s: 0, n: 0 }; });
+        });
+    });
+
+    return a;
+}
+
+function addMonth(agg, m, md) {
+    FIELDS.forEach(function (f) {
+        md[f].forEach(function (s, i) {
+            const v = toNum(s);
+
+            if (v !== null && i < 31) {
+                agg[f][m - 1][i].s += v;
+                agg[f][m - 1][i].n++;
+            }
+        });
+    });
+}
+
+function ensureNormals(key) {
+
+    if (normals.has(key)) return normals.get(key);
+
+    const o = { agg: newAgg(), loaded: new Set() };
+    normals.set(key, o);
+
+    if (!cfg || !archiveIds.length) return o;
+
+    const yy = key.split("-").map(Number);
+    const now = new Date();
+    const cy = now.getFullYear(), cm = now.getMonth() + 1;
+
+    (async function () {
+        // prima il mese corrente (giorno e mese), poi i mesi dell'anno fino a oggi, poi gli altri
+        const order = [cm];
+        for (let m = 1; m < cm; m++) order.push(m);
+        for (let m = cm + 1; m <= 12; m++) order.push(m);
+
+        for (let k = 0; k < 12; k++) {
+            const m = order[k];
+            const tasks = [];
+
+            for (let y = yy[0]; y <= yy[1]; y++) {
+                if (y > cy || (y === cy && m > cm)) continue;   // futuro
+
+                tasks.push(function () {
+                    return fetchMonthCached(m, y).then(function (md) { addMonth(o.agg, m, md); });
+                });
+            }
+
+            await runPool(tasks, 6);
+
+            o.loaded.add(m);
+            renderAvg();
+            renderAnom();
+        }
+    })();
+
+    return o;
+}
+
+function dayNorm(agg, f, m, d) {
+    const c = agg[f][m - 1][d - 1];
+    return c.n ? { v: c.s / c.n, n: c.n } : null;
+}
+
+// media e totale delle normali su un insieme di mesi (con copertura minima)
+function normalOver(agg, f, months, daysOf) {
+    let sum = 0, cnt = 0, tot = 0, nn = 0;
+
+    months.forEach(function (m) {
+        const nd = daysOf(m);
+
+        for (let d = 1; d <= nd; d++) {
+            tot++;
+
+            const c = agg[f][m - 1][d - 1];
+
+            if (c.n) { sum += c.s / c.n; cnt++; nn += c.n; }
+        }
+    });
+
+    if (!tot || cnt < COVER * tot) return null;
+
+    return { mean: sum / cnt, total: sum / cnt * tot, n: nn / cnt };
+}
+
+
+/* =========================================
+   SCRITTURA DEI RIQUADRI
+========================================= */
+
+function getRainAnnualColor(v) {
+    if (v === 0) return "#808080";
+    if (v < 2) return "#f9ae6c";
+    if (v < 5) return "#f9966c";
+    if (v < 10) return "#6ca561";
+    if (v < 20) return "#65d050";
+    if (v < 30) return "#4dc8ff";
+    if (v < 40) return "#3394ee";
+    if (v < 50) return "#0d78dc";
+    if (v < 75) return "#0d54dc";
+    if (v < 100) return "#0d30dc";
+    if (v < 150) return "#0720a0";
+    if (v < 200) return "#5a01ba";
+    if (v < 250) return "#8501ba";
+    if (v < 300) return "#b301ba";
+    if (v < 400) return "#8f1c7a";
+    if (v < 500) return "#5e2052";
+    if (v < 600) return "#31182c";
+    if (v < 700) return "#21171f";
+    if (v < 800) return "#000000";
+    return "#2c278e";
+}
+
+const ANOM_SCALE = {
+    temp: { Daily: 6, Monthly: 3, Yearly: 1.5 },
+    rain: { Daily: 20, Monthly: 100, Yearly: 400 }
+};
+
+// scala delle anomalie di temperatura
+function getAnomTempColor(value) {
+
+    // valori che si leggono come 0.0 restano neutri
+    if (Math.round(value * 10) / 10 === 0) return "#d0d0d0";
+
+    if (value < 0) {
+        if (value > -0.5) return "#abdcff";
+        else if (value > -1) return "#a4d1fd";
+        else if (value > -1.5) return "#abbbff";
+        else if (value > -2) return "#85adff";
+        else if (value > -2.5) return "#618dff";
+        else if (value > -3) return "#4372ff";
+        else if (value > -3.5) return "#065bff";
+        else if (value > -4) return "#014cdd";
+        else if (value > -4.5) return "#3232ff";
+        else if (value > -5) return "#0034e8";
+        else if (value > -6) return "#0033ad";
+        else if (value > -7) return "#00338e";
+        else if (value > -8) return "#001d69";
+        else if (value > -9) return "#00034f";
+        else if (value > -10) return "#683a78";
+        else if (value > -11) return "#584280";
+        else if (value > -12) return "#82667b";
+        else if (value > -13) return "#887179";
+        else if (value > -14) return "#383838";
+        else return "#000000";
+    }
+
+    if (value < 0.5) return "#dabbb2";
+    else if (value < 1) return "#f5bcaa";
+    else if (value < 1.5) return "#ffbea4";
+    else if (value < 2) return "#ffa28f";
+    else if (value < 2.5) return "#ff8989";
+    else if (value < 3) return "#f96262";
+    else if (value < 3.5) return "#dd4c4c";
+    else if (value < 4) return "#df4444";
+    else if (value < 4.5) return "#c04040";
+    else if (value < 5) return "#ab4646";
+    else if (value < 6) return "#974646";
+    else if (value < 7) return "#783333";
+    else if (value < 8) return "#6a3c3c";
+    else if (value < 9) return "#bb5275";
+    else if (value < 10) return "#b55b79";
+    else if (value < 11) return "#a37685";
+    else if (value < 12) return "#796e72";
+    else if (value < 13) return "#515151";
+    else return "#000000";
+}
+
+function anomColor(v, scale, isRain) {
+
+    if (!isRain) return getAnomTempColor(v);
+
+    const t = Math.min(1, Math.abs(v) / scale);
+
+    return v >= 0 ? lerpColor("#808080", "#2c6fd9", t) : lerpColor("#808080", "#e2a03a", t);
+}
+
+function fmt(v, f) {
+    return v.toFixed(1) + (f === "rain" ? " mm" : "°");
+}
+
+function fmtSigned(v, f) {
+    const r = Math.round(v * 10) / 10;
+
+    return (r > 0 ? "+" : r < 0 ? "-" : "") + Math.abs(r).toFixed(1) + (f === "rain" ? " mm" : "°");
+}
+
+function paint(id, text, sub, glow) {
+    const e = document.getElementById(id);
+
+    if (!e) return;
+
+    e.innerHTML = text + (sub ? '<span class="chip-date">' + sub + "</span>" : "");
+
+    if (glow) e.style.setProperty("--card-glow", glow);
+    else e.style.removeProperty("--card-glow");
+}
+
+function blank(prefix) {
+    ROWS.forEach(function (r) {
+        COLS.forEach(function (c) {
+            paint(prefix + r.id + c, r.f === "rain" ? "-- mm" : "--°");
+        });
+    });
+}
+
+function nLabel(n) {
+    return n < 29.5 ? Math.round(n) + "/30 anni" : "";
+}
+
+// normali caricate per tutti i mesi dal 1° gennaio al mese corrente
+function ytdReady(o, cm) {
+    for (let m = 1; m <= cm; m++) if (!o.loaded.has(m)) return false;
+    return true;
+}
+
+function renderAvg() {
+
+    const o = normals.get(avgKey);
+
+    if (!o) return;
+
+    const now = new Date();
+    const cy = now.getFullYear(), cm = now.getMonth() + 1, cd = now.getDate();
+
+    ROWS.forEach(function (r) {
+
+        const isRain = r.f === "rain";
+
+        if (o.loaded.has(cm)) {
+
+            // giorno
+            const dn = dayNorm(o.agg, r.f, cm, cd);
+
+            paint("avg" + r.id + "Daily",
+                  dn ? fmt(dn.v, r.f) : (isRain ? "-- mm" : "--°"),
+                  dn ? nLabel(dn.n) : "",
+                  dn ? (isRain ? getRainScaleColor(dn.v) : getTempColor(dn.v)) : null);
+
+            // mese: temperature dal 1° a oggi, pioggia sul mese intero
+            const mo = normalOver(o.agg, r.f, [cm], function (m) { return isRain ? dim(cy, m) : cd; });
+            const mv = mo ? (isRain ? mo.total : mo.mean) : null;
+
+            paint("avg" + r.id + "Monthly",
+                  mv !== null ? fmt(mv, r.f) : (isRain ? "-- mm" : "--°"),
+                  mo ? nLabel(mo.n) : "",
+                  mv !== null ? (isRain ? getRainScaleColor(mv) : getTempColor(mv)) : null);
+        }
+
+        // anno: temperature dal 1° gennaio a oggi, pioggia sull'anno intero
+        if (isRain ? o.loaded.size === 12 : ytdReady(o, cm)) {
+            const months = [];
+            for (let m = 1; m <= (isRain ? 12 : cm); m++) months.push(m);
+
+            const yo = normalOver(o.agg, r.f, months, function (m) {
+                if (isRain || m < cm) return DIM365[m - 1];
+                return Math.min(cd, DIM365[m - 1]);
+            });
+            const yv = yo ? (isRain ? yo.total : yo.mean) : null;
+
+            paint("avg" + r.id + "Yearly",
+                  yv !== null ? fmt(yv, r.f) : (isRain ? "-- mm" : "--°"),
+                  yo ? nLabel(yo.n) : "",
+                  yv !== null ? (isRain ? getRainAnnualColor(yv) : getTempColor(yv)) : null);
+        }
+    });
+}
+
+
+/* =========================================
+   ANOMALIE: valore reale - normale, sugli stessi giorni
+========================================= */
+
+// mese o anno "fino a oggi": confronta solo i giorni che hanno sia il reale sia la normale
+function pairedAnomaly(agg, f, scope) {
+
+    const cy = actual.cy, cm = actual.cm, cd = actual.cd;
+    const isRain = f === "rain";
+
+    let sumDiff = 0, sumNorm = 0, pairs = 0, expected = 0;
+
+    for (let m = (scope === "month" ? cm : 1); m <= cm; m++) {
+
+        const md = actual.months[m - 1];
+        const nd = m < cm ? dim(cy, m) : cd;
+
+        for (let d = 1; d <= nd; d++) {
+
+            if (m === 2 && d === 29) continue;
+
+            expected++;
+
+            const a = md ? toNum(md[f][d - 1]) : null;
+            const c = agg[f][m - 1][d - 1];
+
+            if (a === null || !c.n) continue;
+
+            const nv = c.s / c.n;
+
+            sumDiff += a - nv;
+            sumNorm += nv;
+            pairs++;
+        }
+    }
+
+    if (!pairs || pairs < PAIR_MIN * expected) return null;
+
+    if (isRain) {
+        const k = expected / pairs;
+        return { diff: sumDiff * k, norm: sumNorm * k };
+    }
+
+    return { diff: sumDiff / pairs, norm: sumNorm / pairs };
+}
+
+function renderAnom() {
+
+    const o = normals.get(anomKey);
+
+    if (!o || !actual) return;
+
+    const cm = actual.cm, cd = actual.cd;
+
+    ROWS.forEach(function (r) {
+
+        const isRain = r.f === "rain";
+        const sc = ANOM_SCALE[isRain ? "rain" : "temp"];
+
+        const put = function (col, res) {
+            if (!res) {
+                paint("anom" + r.id + col, isRain ? "-- mm" : "--°");
+                return;
+            }
+
+            paint("anom" + r.id + col, fmtSigned(res.diff, r.f), "norm. " + fmt(res.norm, r.f),
+                  anomColor(res.diff, sc[col], isRain));
+        };
+
+        if (o.loaded.has(cm)) {
+
+            // giorno
+            const md = actual.months[cm - 1];
+            const a = md ? toNum(md[r.f][cd - 1]) : null;
+            const dn = dayNorm(o.agg, r.f, cm, cd);
+
+            put("Daily", (a !== null && dn) ? { diff: a - dn.v, norm: dn.v } : null);
+
+            // mese fino a oggi
+            put("Monthly", pairedAnomaly(o.agg, r.f, "month"));
+        }
+
+        // anno fino a oggi (servono le normali di tutti i mesi)
+        if (ytdReady(o, cm)) put("Yearly", pairedAnomaly(o.agg, r.f, "year"));
+    });
+}
+
+// dati reali dell'anno in corso: mesi passati dalla cache, mese attuale sempre aggiornato
+async function loadActual() {
+
+    if (!cfg || !archiveIds.length) return;
+
+    const now = new Date();
+    const cy = now.getFullYear(), cm = now.getMonth() + 1, cd = now.getDate();
+
+    const list = [];
+
+    for (let m = 1; m <= cm; m++) list.push(fetchMonthCached(m, cy));
+
+    const months = await Promise.all(list);
+
+    actual = { cy: cy, cm: cm, cd: cd, months: months };
+
+    renderAnom();
+}
+
+
+/* =========================================
+   AVVIO
+========================================= */
+
+/* =========================================
+   COLLEGAMENTI: "Vai all'archivio" sopra Medie e Anomalie,
+   sotto ognuno un riquadro più basso che porta alla sua sezione
+========================================= */
+
+(function () {
+    const probe = document.getElementById("avgTempMaxDaily");
+    const twoCol = probe && probe.closest(".two-col-section");
+
+    if (!twoCol) return;
+
+    // "Vai all'archivio" sopra i due riquadri
+    const archive = document.getElementById("archiveLink");
+
+    if (archive) twoCol.parentNode.insertBefore(archive, twoCol);
+
+    // due riquadri bassi sotto: stessa griglia a due colonne
+    const row = document.createElement("div");
+    row.className = "two-col-section";
+
+    [["-----> Vai alla sezione medie", "medie.html"], ["-----> Vai alla sezione anomalie", "anomalie.html"]].forEach(function (l) {
+        const col = document.createElement("div");
+        col.className = "col";
+
+        const a = document.createElement("a");
+        a.className = "link-box";
+        a.href = l[1] + window.location.search;
+        a.textContent = l[0];
+
+        col.appendChild(a);
+        row.appendChild(col);
+    });
+
+    twoCol.parentNode.insertBefore(row, twoCol.nextSibling);
+})();
+
+makeSelect("avg", function (key) {
+    avgKey = key;
+    blank("avg");
+    ensureNormals(key);
+    renderAvg();
+});
+
+makeSelect("anom", function (key) {
+    anomKey = key;
+    blank("anom");
+    ensureNormals(key);
+    renderAnom();
+});
+
+let started = false;
+
+document.addEventListener("station-data", function (e) {
+
+    currentRaw = (e.detail && e.detail.raw) || null;
+
+    if (started || !currentRaw) return;
+
+    started = true;
+
+    collectArchiveIds(currentRaw);
+
+    if (!cfg || !archiveIds.length) return;
+
+    ensureNormals(avgKey);
+    ensureNormals(anomKey);
+
+    loadActual();
+    setInterval(loadActual, 5 * 60 * 1000);
+});
+
+})();
 </script>
 </body>
 </html>

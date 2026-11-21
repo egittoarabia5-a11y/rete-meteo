@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e1420;
+    --page-bg:#0e1420;
+    --paper:#f3ede0;
+    --brass:#c99a4b;
+    --glass: rgba(243,237,224,0.07);
+    --glass-strong: rgba(243,237,224,0.13);
+    --line: rgba(243,237,224,0.16);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Work Sans', sans-serif;
+    background-color: var(--page-bg);
+    color: var(--paper);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  .page{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 22px 60px;
+  }
+
+  /* ---------- intestazione: nome | dati attuali | orario ---------- */
+  .head{
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items:center;
+    gap:16px;
+    padding: 4px 2px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .head-name{ font-weight:500; font-size:22px; }
+  .head-data{ font-size:18px; font-weight:500; text-align:center; }
+  .head-time{ font-size:13px; opacity:.75; text-align:right; }
+  .head-time b{ font-weight:500; opacity:1; }
+
+  .back{
+    display:inline-block;
+    margin: 14px 2px 0;
+    color:#ffffff;
+    font-size:16px;
+    font-weight:500;
+    letter-spacing:.04em;
+    text-decoration:none;
+    opacity:.85;
+  }
+  .back:hover{ opacity:1; }
+
+  /* ---------- menu a discesa ---------- */
+  .pickers{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin: 26px 2px 0;
+    flex-wrap:wrap;
+  }
+  .picker{
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    font-weight:600;
+    padding:10px 38px 10px 18px;
+    border-radius:100px;
+    border:1px solid #e8a23a;
+    background-color: #e8a23a;
+    color: var(--ink);
+    cursor:pointer;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%230e1420' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position: right 16px center;
+  }
+  .picker:hover{ filter:brightness(1.08); }
+  .picker option{ background:#0e1420; color:#f3ede0; }
+
+  #content{ margin-top:8px; }
+
+  .section-h{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color: var(--brass);
+    opacity:.85;
+    margin: 34px 2px 12px;
+  }
+
+  /* ---------- tabelle (stesso stile del riquadro Medie) ---------- */
+  .averages-panel{
+    background: var(--glass);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:18px 20px 20px;
+    isolation:isolate;
+  }
+  .averages-panel + .averages-panel{ margin-top:18px; }
+
+  .panel-title{
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.04em;
+    opacity:.85;
+    margin-bottom:14px;
+  }
+
+  .avg-grid{
+    display:grid;
+    grid-template-columns: 1fr repeat(4, 1.2fr);
+    gap:8px 10px;
+    align-items:center;
+  }
+  .avg-head{
+    font-size:11px;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+    opacity:.5;
+    text-align:center;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .avg-head.first{ text-align:left; }
+  .avg-row-label{ font-size:13px; font-weight:500; opacity:.85; }
+  .avg-chip{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 6px;
+    border-radius:10px;
+    font-weight:500;
+    font-size:14px;
+    background-color: rgba(14,20,32,0.5);
+    border:1px solid var(--line);
+    color: var(--paper);
+    overflow:visible;
+  }
+  .avg-chip::before{
+    content:"";
+    position:absolute;
+    inset:-4px;
+    border-radius:16px;
+    background-color: var(--card-glow, transparent);
+    filter: blur(9px);
+    opacity:.5;
+    z-index:-1;
+    pointer-events:none;
+  }
+  .avg-chip.empty{ opacity:.45; }
+  .avg-chip.empty::before{ display:none; }
+  .avg-gap{
+    grid-column:1 / -1;
+    height:12px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:6px;
+  }
+  .avg-row-label.sum{ font-weight:600; opacity:1; }
+  .avg-chip.sum{
+    flex-direction:column;
+    gap:2px;
+    padding:9px 6px;
+    text-align:center;
+  }
+  .avg-chip.sum small{
+    font-size:10.5px;
+    font-weight:400;
+    opacity:.65;
+    letter-spacing:.02em;
+    line-height:1.35;
+  }
+
+  .note{
+    margin-top:14px;
+    font-size:12px;
+    opacity:.55;
+    text-align:center;
+  }
+
+  /* ---------- grafici ---------- */
+  .charts-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:18px;
+    margin-top:18px;
+  }
+  .charts-grid .averages-panel{ margin:0; min-width:0; }
+  .charts-grid .averages-panel + .averages-panel{ margin-top:0; }
+
+  .chart-legend{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin:-6px 0 10px; font-size:12px; opacity:.8;
+  }
+  .chart-legend i{
+    display:inline-block; width:22px; height:0;
+    border-top:2px solid var(--paper);
+    margin-right:6px; vertical-align:middle;
+  }
+  .chart-legend i.dash{ border-top-style:dashed; }
+  .chart-legend i.dot{ border-top-style:dotted; }
+  .chart-wrap{ position:relative; width:100%; }
+  .chart-wrap svg{
+    display:block; width:100%;
+    cursor:crosshair; touch-action:pan-y;
+  }
+  .chart-tooltip{
+    position:absolute; top:0; left:0;
+    pointer-events:none; opacity:0;
+    background: rgba(243,237,224,0.96);
+    color:#12202b;
+    padding:6px 10px; border-radius:8px;
+    font-size:12px; line-height:1.45; white-space:nowrap;
+    box-shadow:0 4px 15px rgba(0,0,0,0.25);
+    transition: opacity .1s ease;
+  }
+  .chart-tooltip.visible{ opacity:1; }
+  .chart-tooltip .chip{
+    display:inline-block; width:9px; height:9px;
+    border-radius:50%; margin-right:5px;
+  }
+  .cg-line{ stroke: rgba(243,237,224,0.13); stroke-width:1; }
+  .cg-line.v{ stroke: rgba(243,237,224,0.09); }
+  .cg-label{ font-family:'Work Sans', sans-serif; font-size:11px; fill: rgba(243,237,224,0.5); }
+  .cg-empty{ font-family:'Work Sans', sans-serif; font-size:14px; fill: rgba(243,237,224,0.5); }
+
+  @media (max-width: 900px){
+    .charts-grid{ grid-template-columns: 1fr; }
+  }
+  @media (max-width: 760px){
+    .page{ padding:16px 14px 44px; }
+    .head{ grid-template-columns: 1fr; text-align:center; gap:8px; }
+    .head-time{ text-align:center; }
+    .averages-panel{ padding:14px 12px 16px; }
+    .avg-grid{ gap:6px 6px; }
+    .avg-chip{ font-size:12px; padding:6px 3px; }
+    .avg-chip.sum{ padding:7px 3px; }
+    .avg-chip.sum small{ font-size:9.5px; }
+    .avg-row-label{ font-size:11.5px; }
+    .avg-head{ font-size:10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="head">
+    <div class="head-name" id="headName">Caricamento…</div>
+    <div class="head-data" id="headData">--</div>
+    <div class="head-time"><b id="headTime">--:--:-- --/--/----</b></div>
+  </div>
+
+  <a class="back" id="backLink" href="gauges.html">&larr; Torna ai gauges</a>
+
+  <div class="pickers">
+    <select class="picker" id="periodPicker"></select>
+  </div>
+
+  <div id="content"></div>
+  <div class="note" id="note"></div>
+
+</div>
+
+<script>
+/* =========================================
+   STAZIONE DAL LINK (stessi parametri dei gauges)
+   ?station=...&source=...&name=...
+========================================= */
+
+function normalizeSource(s) {
+    return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const params    = new URLSearchParams(window.location.search);
+const stationId = params.get("station");
+const network   = normalizeSource(params.get("source"));
+const nameParam = params.get("name");
+
+document.getElementById("backLink").href = "gauges.html" + window.location.search;
+
+
+/* =========================================
+   CONFIGURAZIONE PER RETE (come nella pagina Archivio)
+========================================= */
+
+const BASE = "https://api-stazioni-meteo.eggittof.workers.dev/";
+const ARCHIVE_BASE = "https://archivio-eventi.eggittof.workers.dev";
+
+const CFG = {
+    omirl: {
+        urls: [BASE + "omirl.json"],
+        match: s => s.id,
+        f: { t: ["temp"], h: ["hum"], w: ["windValue", "wind"], d: ["windDir"], r: ["rainDaily"] },
+        arc: { t: ["omirl_T"], r: ["omirl"] }
+    },
+    ignorete: {
+        urls: [BASE + "ignorete.json"],
+        match: s => s.id ?? s.name ?? s.N,
+        f: { t: ["T", "temp"], h: ["H", "hum"], w: ["V", "windValue", "wind"], d: ["windDir", "VD"], r: ["R", "rainDaily"] },
+        arc: { t: ["ignorete_T"], r: ["ignorete"] }
+    },
+    limet: {
+        urls: [BASE + "limet.json", BASE + "limet2.json"],
+        match: s => s.N,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
+        arc: { t: ["limet1_T", "limet2_T"], r: ["limet1", "limet2"] }
+    },
+    acronet: {
+        urls: [BASE + "gepo.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD"], r: ["R"] },
+        arc: { t: ["gepo_T"], r: ["gepo"] }
+    },
+    comunedigenova: {
+        urls: [BASE + "comuneGenova.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["W"], d: ["WD"], r: ["R"] },
+        arc: { t: ["comuneGenova_T"], r: ["comuneGenova"] }
+    },
+    "3r": {
+        urls: [BASE + "meteo3rpiemonte.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD", "WD"], r: ["R"] },
+        arc: { t: ["3r_T"], r: [] }
+    },
+    dma: {
+        urls: [BASE + "asti-test.json"],
+        match: s => s.name,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
+        arc: { t: ["dma_T"], r: ["dma"] }
+    },
+    weatherlink: {
+        urls: [BASE + "SoluzioniMeteo.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: [], r: ["R"] },
+        arc: { t: ["soluzionimeteo_T"], r: ["soluzionimeteo"] }
+    },
+    parcodiportofino: {
+        urls: [BASE + "portofino.json"],
+        match: s => s.id,
+        f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD"], r: ["R"] },
+        arc: { t: ["portofino_T"], r: ["portofino"] }
+    }
+};
+
+function toNum(v) {
+    if (v === null || v === undefined || v === "") return null;
+    const n = parseFloat(String(v).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+}
+
+function pick(raw, keys) {
+    for (const k of keys) {
+        if (raw[k] !== undefined && raw[k] !== null && raw[k] !== "") return toNum(raw[k]);
+    }
+    return null;
+}
+
+const DIRS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+
+function dirLabel(deg) {
+    return DIRS[Math.round(deg / 45) % 8];
+}
+
+let currentName = nameParam || stationId || "Stazione non trovata";
+let archiveIds = stationId ? [String(stationId).trim()] : [];
+
+function collectArchiveIds(raw) {
+    const list = [];
+    const add = v => {
+        if (v === undefined || v === null || v === "") return;
+        const s = String(v).trim();
+        if (s && !list.includes(s)) list.push(s);
+    };
+
+    if (network === "dma") add(raw.id);
+    add(stationId);
+    add(raw.id);
+    add(raw.code);
+    add(raw.shortCode);
+    add(raw.name);
+    add(raw.N);
+
+    archiveIds = list;
+}
+
+
+/* =========================================
+   INTESTAZIONE: dati attuali e orologio
+========================================= */
+
+async function loadCurrent() {
+
+    const cfg = CFG[network];
+
+    if (!stationId || !cfg) {
+        document.getElementById("headName").textContent = currentName;
+        document.getElementById("headData").textContent = "--";
+        return;
+    }
+
+    const wanted = String(stationId).trim().toLowerCase();
+
+    try {
+
+        let raw = null;
+
+        for (const url of cfg.urls) {
+
+            const res = await fetch(url + "?_=" + Date.now());
+            if (!res.ok) continue;
+
+            const json = await res.json();
+            const list = Array.isArray(json) ? json : (json.stations || []);
+
+            const matches = list.filter(s => s && String(cfg.match(s) ?? "").trim().toLowerCase() === wanted);
+
+            raw = matches.find(s => pick(s, cfg.f.t) !== null) || matches[0] || null;
+
+            if (raw) break;
+        }
+
+        if (!raw) throw new Error("stazione non trovata");
+
+        collectArchiveIds(raw);
+
+        if (network === "dma" && raw.name) currentName = raw.name;
+
+        const t = pick(raw, cfg.f.t);
+        const h = pick(raw, cfg.f.h);
+        const w = pick(raw, cfg.f.w);
+        const d = pick(raw, cfg.f.d);
+        const r = pick(raw, cfg.f.r);
+
+        const parts = [];
+
+        if (t !== null) parts.push(t.toFixed(1) + "°c");
+        if (h !== null) parts.push(Math.round(h) + "%");
+        if (w !== null) parts.push(w.toFixed(1) + " km/h" + (d !== null ? " " + dirLabel(d) : ""));
+        if (r !== null) parts.push(r.toFixed(1) + " mm");
+
+        document.getElementById("headData").textContent = parts.length ? parts.join(" - ") : "--";
+
+    } catch (err) {
+        console.error("Dati attuali non disponibili:", err);
+        document.getElementById("headData").textContent = "--";
+    }
+
+    document.getElementById("headName").textContent = currentName;
+    document.title = currentName + " · Medie";
+}
+
+function tickClock() {
+    const now = new Date();
+    document.getElementById("headTime").textContent =
+        now.toLocaleTimeString("it-IT") + " " +
+        now.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+
+/* =========================================
+   COSTANTI E COLORI (stesse scale dei gauges)
+========================================= */
+
+const MONTHS = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+                "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+const SHORT = MONTHS.map(m => m.slice(0, 3));
+
+const SEASONS = [
+    { name: "Inverno (dic-feb)",   short: "Inverno",   ms: [12, 1, 2] },
+    { name: "Primavera (mar-mag)", short: "Primavera", ms: [3, 4, 5] },
+    { name: "Estate (giu-ago)",    short: "Estate",    ms: [6, 7, 8] },
+    { name: "Autunno (set-nov)",   short: "Autunno",   ms: [9, 10, 11] }
+];
+
+const FIELDS = ["tmax", "tmin", "tmean", "rain"];
+const FNAME  = { tmax: "Temp. massima", tmin: "Temp. minima", tmean: "Temp. media", rain: "Pioggia" };
+const CTITLE = { tmax: "Temperatura massima", tmin: "Temperatura minima", tmean: "Temperatura media", rain: "Precipitazioni" };
+
+const TOTAL_FROM = 1960;   // primo anno cercato
+const OLD_UNTIL  = 1999;   // fino a quest'anno l'archivio ha solo massima e minima
+const COVER_T    = 0.8;    // quota minima di giorni con dato (temperature) per contare un mese
+const COVER_R    = 0.9;    // idem per la pioggia (è un accumulo)
+const YEAR_DAYS_T = 310;   // giorni minimi con dato per contare un anno (temperature)
+const YEAR_DAYS_R = 340;   // idem per la pioggia
+const MIN_PCT     = 5;     // campioni minimi per mostrare 10° e 90° percentile
+
+const now0 = new Date();
+const cy = now0.getFullYear();
+const cm = now0.getMonth() + 1;
+
+function getTempColor(value){
+  if (value < -15) return "#f54dff";
+  if (value < -10) return "#c65bff";
+  if (value < -8) return "#9650ff";
+  if (value < -6) return "#775ae9";
+  if (value < -4) return "#4d54ff";
+  if (value < -2) return "#1f7eb9";
+  if (value <= 0) return "#539eb0";
+  if (value < 2) return "#67bac8";
+  if (value < 4) return "#5ac5ba";
+  if (value < 6) return "#489c7e";
+  if (value < 8) return "#3b9459";
+  if (value < 10) return "#378537";
+  if (value < 12) return "#51a31b";
+  if (value < 14) return "#6fbf32";
+  if (value < 16) return "#98cc4a";
+  if (value < 18) return "#dec800";
+  if (value < 20) return "#f5be40";
+  if (value < 22) return "#fa9d40";
+  if (value < 24) return "#f0752f";
+  if (value < 26) return "#d4582f";
+  if (value < 28) return "#d14f4f";
+  if (value < 30) return "#b05151";
+  if (value < 32) return "#994848";
+  if (value < 34) return "#743e3e";
+  if (value < 36) return "#b874ac";
+  if (value < 38) return "#ea7bea";
+  if (value < 40) return "#725872";
+  if (value < 42) return "#747474";
+  if (value < 44) return "#5a433e";
+  if (value < 46) return "#785c55";
+  if (value > 46) return "#9b8987";
+  return "#ff5c5c";
+}
+
+// scala per gli accumuli (mese, stagione, anno)
+function getRainAnnualColor(value){
+  if (value === 0) return "#808080";
+  else if (value < 2) return "#f9ae6c";
+  else if (value < 5) return "#f9966c";
+  else if (value < 10) return "#6ca561";
+  else if (value < 20) return "#65d050";
+  else if (value < 30) return "#4dc8ff";
+  else if (value < 40) return "#3394ee";
+  else if (value < 50) return "#0d78dc";
+  else if (value < 75) return "#0d54dc";
+  else if (value < 100) return "#0d30dc";
+  else if (value < 150) return "#0720a0";
+  else if (value < 200) return "#5a01ba";
+  else if (value < 250) return "#8501ba";
+  else if (value < 300) return "#b301ba";
+  else if (value < 400) return "#8f1c7a";
+  else if (value < 500) return "#5e2052";
+  else if (value < 600) return "#31182c";
+  else if (value < 700) return "#21171f";
+  else if (value < 800) return "#000000";
+  return "#2c278e";
+}
+
+
+/* =========================================
+   ARCHIVIO: dati da archivio-eventi (stessa logica dell'Archivio)
+   Solo mesi chiusi: il mese in corso non entra nelle medie.
+========================================= */
+
+async function getJson(url) {
+    const res = await fetch(url);
+
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    return res.json();
+}
+
+let availablePromise = null;
+
+function getAvailable() {
+    if (!availablePromise) {
+        availablePromise = getJson(ARCHIVE_BASE + "/archivio")
+            .then(function (j) {
+                const s = new Set();
+                (j.disponibili || []).forEach(function (r) { s.add(r.mese + "|" + r.src); });
+                return s;
+            })
+            .catch(function () { return null; });
+    }
+
+    return availablePromise;
+}
+
+async function fetchArchiveSeries(srcs, mese) {
+
+    const avail = await getAvailable();
+
+    for (const src of srcs) {
+
+        if (avail && !avail.has(mese + "|" + src)) continue;
+
+        for (const id of archiveIds) {
+            try {
+                const data = await getJson(
+                    ARCHIVE_BASE + "/archivio?src=" + encodeURIComponent(src) +
+                    "&mese=" + mese + "&st=" + encodeURIComponent(id)
+                );
+
+                const str = data.stations && data.stations[id];
+
+                if (str) return { arr: str.split(",").map(function (s) { return s.trim(); }), src: src, id: id };
+            } catch (err) {
+                console.warn("Archivio non disponibile per", src, id, err);
+            }
+        }
+    }
+
+    return null;
+}
+
+/* Dati di un mese: per ogni campo un array (indice = giorno - 1) di testi o null */
+async function fetchMonthData(month, year) {
+
+    const cfg  = CFG[network];
+    const days = new Date(year, month, 0).getDate();
+
+    const out = {
+        has:   false,
+        tmax:  new Array(days).fill(null),
+        tmin:  new Array(days).fill(null),
+        tmean: new Array(days).fill(null),
+        rain:  new Array(days).fill(null)
+    };
+
+    if (!cfg || !archiveIds.length) return out;
+
+    // anni vecchi: solo massima e minima
+    if (year <= OLD_UNTIL) {
+        const meseOld = String(month).padStart(2, "0") + String(year - 1000).padStart(3, "0");
+
+        const [mx, mn] = await Promise.all([
+            fetchArchiveSeries(["old_max"], meseOld),
+            fetchArchiveSeries(["old_min"], meseOld)
+        ]);
+
+        out.has = !!(mx || mn);
+
+        [[mx, "tmax"], [mn, "tmin"]].forEach(function (p) {
+            if (!p[0]) return;
+            p[0].arr.forEach(function (v, i) {
+                if (v !== "" && i < days) out[p[1]][i] = v;
+            });
+        });
+
+        return out;
+    }
+
+    const mese = String(month).padStart(2, "0") + String(year).slice(2);
+
+    const [tempRes, rainRes] = await Promise.all([
+        fetchArchiveSeries(cfg.arc.t, mese),
+        fetchArchiveSeries(cfg.arc.r, mese)
+    ]);
+
+    out.has = !!(tempRes || rainRes);
+
+    // temperatura: 3 valori per giorno (TMAX, TMED, TMIN)
+    if (tempRes) {
+        const a = tempRes.arr;
+
+        for (let d = 1; d <= a.length / 3 && d <= days; d++) {
+            const tmax = a[(d - 1) * 3];
+            const tmed = a[(d - 1) * 3 + 1];
+            const tmin = a[(d - 1) * 3 + 2];
+
+            if (tmax) out.tmax[d - 1]  = tmax;
+            if (tmin) out.tmin[d - 1]  = tmin;
+            if (tmed) out.tmean[d - 1] = tmed;
+        }
+    }
+
+    // pioggia: 1 valore per giorno
+    if (rainRes) {
+        rainRes.arr.forEach(function (v, i) {
+            if (v !== "" && i < days) out.rain[i] = v;
+        });
+    }
+
+    return out;
+}
+
+// cache: in memoria e, per i mesi chiusi da almeno 2 mesi, nel browser
+// (stessa chiave della pagina gauges: i mesi già scaricati là non si riscaricano)
+const memCache = new Map();
+
+function lsKey(m, y) { return "mm1|" + network + "|" + archiveIds[0] + "|" + m + "-" + y; }
+
+function fetchMonthCached(month, year) {
+
+    const k = month + "-" + year;
+
+    if (!memCache.has(k)) {
+        const old = ((cy - year) * 12 + (cm - month)) >= 2;
+
+        memCache.set(k, (async function () {
+            if (old) {
+                try {
+                    const s = localStorage.getItem(lsKey(month, year));
+                    if (s) return JSON.parse(s);
+                } catch (e) { /* storage non disponibile */ }
+            }
+
+            const md = await fetchMonthData(month, year);
+
+            if (old && md.has) {
+                try { localStorage.setItem(lsKey(month, year), JSON.stringify(md)); } catch (e) { /* pieno o bloccato */ }
+            }
+
+            return md;
+        })());
+    }
+
+    return memCache.get(k);
+}
+
+// esegue le richieste a gruppi, per non sommergere il server
+async function runPool(tasks, limit) {
+    let next = 0;
+
+    async function worker() {
+        while (true) {
+            const i = next++;
+
+            if (i >= tasks.length) return;
+
+            await tasks[i]();
+        }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+}
+
+
+/* =========================================
+   DATI AGGREGATI
+   YM[campo][anno][mese-1] = { s: somma dei giorni, n: giorni con dato, days: giorni del mese }
+========================================= */
+
+const YM = { tmax: {}, tmin: {}, tmean: {}, rain: {} };
+let loaded = false;
+
+function addYM(year, month, md) {
+    FIELDS.forEach(function (f) {
+
+        let s = 0, n = 0;
+
+        md[f].forEach(function (v) {
+            const x = toNum(v);
+
+            if (x !== null) { s += x; n++; }
+        });
+
+        if (!n) return;
+
+        if (!YM[f][year]) YM[f][year] = new Array(12).fill(null);
+
+        YM[f][year][month - 1] = { s: s, n: n, days: md[f].length };
+    });
+}
+
+function daysIn(y, m) { return new Date(y, m, 0).getDate(); }
+
+// solo i mesi già chiusi
+function isComplete(y, m) { return y < cy || (y === cy && m < cm); }
+
+function cover(f) { return f === "rain" ? COVER_R : COVER_T; }
+
+// valore di un mese (media giornaliera per le temperature, accumulo per la pioggia)
+function monthVal(f, y, m) {
+
+    if (!isComplete(y, m)) return null;
+
+    const c = YM[f][y] && YM[f][y][m - 1];
+
+    if (!c || c.n < cover(f) * c.days) return null;
+
+    return f === "rain" ? c.s : c.s / c.n;
+}
+
+// stagione: l'inverno dell'anno Y è dic (Y-1) + gen + feb (Y)
+function seasonVal(f, y, season) {
+
+    let sum = 0, n = 0, days = 0;
+
+    for (const m of season.ms) {
+
+        const yy = (m === 12) ? y - 1 : y;
+
+        if (!isComplete(yy, m)) return null;
+
+        days += daysIn(yy, m);
+
+        const c = YM[f][yy] && YM[f][yy][m - 1];
+
+        if (c) { sum += c.s; n += c.n; }
+    }
+
+    if (!days || n < cover(f) * days) return null;
+
+    return f === "rain" ? sum : sum / n;
+}
+
+// anno intero (solo anni conclusi)
+function annualVal(f, y) {
+
+    if (y >= cy) return null;
+
+    const arr = YM[f][y];
+
+    if (!arr) return null;
+
+    let sum = 0, n = 0;
+
+    arr.forEach(function (c) { if (c) { sum += c.s; n += c.n; } });
+
+    if (n < (f === "rain" ? YEAR_DAYS_R : YEAR_DAYS_T)) return null;
+
+    return f === "rain" ? sum : sum / n;
+}
+
+function pct(sorted, p) {
+    const i = (sorted.length - 1) * p;
+    const lo = Math.floor(i), hi = Math.ceil(i);
+
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+
+// media, 10° e 90° percentile (tra gli anni) di una lista di valori
+function stats(a) {
+
+    if (!a.length) return null;
+
+    const s = a.slice().sort(function (x, y) { return x - y; });
+    const mean = s.reduce(function (u, v) { return u + v; }, 0) / s.length;
+
+    return {
+        mean: mean,
+        n: s.length,
+        p10: s.length >= MIN_PCT ? pct(s, 0.1) : null,
+        p90: s.length >= MIN_PCT ? pct(s, 0.9) : null
+    };
+}
+
+function collect(y0, y1, fn) {
+    const a = [];
+
+    for (let y = y0; y <= y1; y++) {
+        const v = fn(y);
+
+        if (v !== null) a.push(v);
+    }
+
+    return a;
+}
+
+function statsFor(fn) {
+    const o = {};
+
+    FIELDS.forEach(function (f) { o[f] = fn(f); });
+
+    return o;
+}
+
+
+/* =========================================
+   PERIODO DI RIFERIMENTO (mesi, stagioni e riga "Anno")
+========================================= */
+
+const PERIODS = [
+    ["1981-2010", "1981–2010"], ["1961-1990", "1961–1990"], ["1971-2000", "1971–2000"],
+    ["1991-2020", "1991–2020"], ["2001-2030", "2001–2030"], ["all", "Tutti gli anni"]
+];
+
+const periodPicker = document.getElementById("periodPicker");
+
+PERIODS.forEach(function (p) {
+    const o = document.createElement("option");
+    o.value = p[0];
+    o.textContent = p[1];
+    periodPicker.appendChild(o);
+});
+
+periodPicker.value = "1981-2010";
+
+function range() {
+    const v = periodPicker.value;
+
+    if (v === "all") return [TOTAL_FROM, cy];
+
+    const p = v.split("-").map(Number);
+
+    return [p[0], Math.min(p[1], cy)];
+}
+
+function periodLabel() {
+    const o = periodPicker.options[periodPicker.selectedIndex];
+
+    return o ? o.textContent : "";
+}
+
+
+/* =========================================
+   TABELLE
+========================================= */
+
+function chip(st, f) {
+
+    if (!st) return '<span class="avg-chip sum empty">' + (f === "rain" ? "-- mm" : "--°") + "</span>";
+
+    const isRain = f === "rain";
+    const glow = isRain ? getRainAnnualColor(st.mean) : getTempColor(st.mean);
+
+    let sub = "";
+
+    if (st.p10 !== null) sub += "10%: " + st.p10.toFixed(1) + " · 90%: " + st.p90.toFixed(1) + "<br>";
+
+    sub += st.n + (st.n === 1 ? " anno" : " anni");
+
+    return '<span class="avg-chip sum" style="--card-glow:' + glow + '">' +
+           st.mean.toFixed(1) + (isRain ? " mm" : "°") +
+           "<small>" + sub + "</small></span>";
+}
+
+function tableHtml(title, head, rows) {
+
+    let h = '<div class="averages-panel"><div class="panel-title">' + title + '</div><div class="avg-grid">' +
+            '<span class="avg-head first">' + head + "</span>" +
+            FIELDS.map(function (f) { return '<span class="avg-head">' + FNAME[f] + "</span>"; }).join("");
+
+    rows.forEach(function (r) {
+
+        if (r.total) h += '<div class="avg-gap"></div>';
+
+        h += '<span class="avg-row-label' + (r.total ? " sum" : "") + '">' + r.label + "</span>";
+
+        FIELDS.forEach(function (f) { h += chip(r.st[f], f); });
+    });
+
+    return h + "</div></div>";
+}
+
+
+/* =========================================
+   GRAFICI: media (continua) + 10° e 90° percentile (tratteggiati) con fascia
+========================================= */
+
+let chartsState = [];
+
+function niceStep(range, maxTicks) {
+    const raw = range / maxTicks;
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / pow;
+    const m = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+
+    return m * pow;
+}
+
+function fmtAx(v) {
+    return String(Math.round(v * 10) / 10);
+}
+
+function legendHtml() {
+    return '<div class="chart-legend">' +
+        '<span><i></i>Media</span>' +
+        '<span><i class="dash"></i>10° percentile</span>' +
+        '<span><i class="dot"></i>90° percentile</span>' +
+        "</div>";
+}
+
+function drawChart(wrap, cfg) {
+
+    const W = Math.max(280, wrap.clientWidth || 600);
+    const H = window.innerWidth <= 700 ? 280 : 340;
+
+    const padL = 46, padR = 22, padT = 18, padB = 30;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    const n = cfg.n;
+
+    const xFor = function (i) {
+        return n <= 1 ? padL + plotW / 2 : padL + i / (n - 1) * plotW;
+    };
+
+    const all = [];
+
+    cfg.series.forEach(function (s) {
+        s.vals.forEach(function (v) { if (v !== null) all.push(v); });
+    });
+
+    if (!all.length) {
+        wrap.innerHTML =
+            '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '">' +
+            '<text class="cg-empty" x="' + (W / 2) + '" y="' + (H / 2) + '" text-anchor="middle">Nessun dato disponibile</text></svg>';
+        return;
+    }
+
+    // ----- scala verticale
+    let lMin = Math.min.apply(null, all), lMax = Math.max.apply(null, all);
+
+    if (cfg.minZero) lMin = Math.min(0, lMin);
+    if (lMax - lMin < 1) lMax = lMin + 1;
+
+    const lStep = niceStep(lMax - lMin, 6);
+    const gMin = Math.floor(lMin / lStep) * lStep;
+
+    let gMax = Math.ceil(lMax / lStep) * lStep;
+    if (gMax <= gMin) gMax = gMin + lStep;
+
+    const divs = Math.max(1, Math.round((gMax - gMin) / lStep));
+
+    const yFor = function (v) {
+        return padT + (1 - (v - gMin) / (gMax - gMin)) * plotH;
+    };
+
+    // ----- punti di ogni serie
+    const pts = cfg.series.map(function (s) {
+        const list = [];
+
+        s.vals.forEach(function (v, i) {
+            if (v !== null) list.push({ i: i, v: v, x: xFor(i), y: yFor(v) });
+        });
+
+        return list;
+    });
+
+    // ----- tacche dell'asse orizzontale
+    const ticks = [];
+    const minGap = cfg.minGap || 44;
+    const stepD = Math.max(1, Math.ceil(minGap / (n > 1 ? plotW / (n - 1) : minGap)));
+
+    for (let i = 0; i < n; i += stepD) ticks.push({ i: i, label: cfg.tickLabels[i] });
+
+    // ----- svg
+    let svg = "<defs>" +
+        '<filter id="ab' + cfg.id + '" filterUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '">' +
+        '<feGaussianBlur stdDeviation="8"/></filter>';
+
+    cfg.series.forEach(function (s, k) {
+        if (pts[k].length < 2) return;
+
+        let stops = "";
+
+        pts[k].forEach(function (p) {
+            stops += '<stop offset="' + ((p.x - padL) / plotW * 100).toFixed(2) + '%" stop-color="' + s.colorFn(p.v) + '"/>';
+        });
+
+        svg += '<linearGradient id="ag' + cfg.id + k + '" gradientUnits="userSpaceOnUse" x1="' + padL + '" y1="0" x2="' + (W - padR) + '" y2="0">' + stops + "</linearGradient>";
+    });
+
+    svg += "</defs>";
+
+    // griglia orizzontale e scala
+    for (let k = 0; k <= divs; k++) {
+        const y = padT + (1 - k / divs) * plotH;
+
+        svg += '<line class="cg-line" x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '"/>';
+        svg += '<text class="cg-label" x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + fmtAx(gMin + k * lStep) + "</text>";
+    }
+
+    // griglia verticale
+    ticks.forEach(function (t) {
+        const x = xFor(t.i).toFixed(1);
+
+        svg += '<line class="cg-line v" x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (H - padB) + '"/>';
+        svg += '<text class="cg-label" x="' + x + '" y="' + (H - 8) + '" text-anchor="middle">' + t.label + "</text>";
+    });
+
+    svg += '<text class="cg-label" x="' + (padL - 8) + '" y="12" text-anchor="end" style="font-weight:600">' + cfg.unitL + "</text>";
+
+    // fascia tra 10° e 90° percentile
+    if (cfg.band) {
+
+        const lo = {}, hi = {};
+
+        pts[cfg.band[0]].forEach(function (p) { lo[p.i] = p; });
+        pts[cfg.band[1]].forEach(function (p) { hi[p.i] = p; });
+
+        let run = [];
+
+        const flush = function () {
+            if (run.length > 1) {
+                const up = run.map(function (i) { return hi[i].x.toFixed(1) + "," + hi[i].y.toFixed(1); });
+                const dn = run.slice().reverse().map(function (i) { return lo[i].x.toFixed(1) + "," + lo[i].y.toFixed(1); });
+
+                svg += '<polygon points="' + up.concat(dn).join(" ") + '" fill="rgba(243,237,224,0.10)"/>';
+            }
+
+            run = [];
+        };
+
+        for (let i = 0; i < n; i++) {
+            if (lo[i] && hi[i]) run.push(i);
+            else flush();
+        }
+
+        flush();
+    }
+
+    // linee: alone colorato sfocato (solo la media) + linea chiara
+    cfg.series.forEach(function (s, k) {
+
+        const segs = [];
+        let cur = [];
+
+        pts[k].forEach(function (p) {
+            if (cur.length && p.i - cur[cur.length - 1].i > 1) { segs.push(cur); cur = []; }
+            cur.push(p);
+        });
+
+        if (cur.length) segs.push(cur);
+
+        segs.forEach(function (seg) {
+
+            if (seg.length === 1) {
+                svg += '<circle cx="' + seg[0].x.toFixed(1) + '" cy="' + seg[0].y.toFixed(1) + '" r="3" fill="' + s.colorFn(seg[0].v) + '"/>';
+                return;
+            }
+
+            const line = seg.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
+
+            if (!s.thin) {
+                svg += '<polyline points="' + line + '" fill="none" stroke="url(#ag' + cfg.id + k + ')" stroke-width="10" filter="url(#ab' + cfg.id + ')" opacity="0.65" stroke-linecap="round" stroke-linejoin="round"/>';
+            }
+
+            svg += '<polyline points="' + line + '" fill="none" stroke="#f3ede0" stroke-width="' + (s.thin ? 1.5 : 2.2) + '" opacity="' + (s.thin ? 0.8 : 0.95) + '" stroke-linecap="round" stroke-linejoin="round"' + (s.dash ? ' stroke-dasharray="' + s.dash + '"' : "") + "/>";
+        });
+    });
+
+    // elementi dell'interazione
+    svg += '<line class="x-cross" x1="0" y1="' + padT + '" x2="0" y2="' + (H - padB) + '" stroke="rgba(243,237,224,.7)" stroke-width="1" style="display:none"/>';
+
+    cfg.series.forEach(function (s, k) {
+        svg += '<circle class="x-dot x-dot-' + k + '" r="5" cx="0" cy="0" stroke="#f3ede0" stroke-width="2" style="display:none"/>';
+    });
+
+    wrap.innerHTML =
+        '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '">' + svg + "</svg>" +
+        '<div class="chart-tooltip"></div>';
+
+    // ----- interazione (mouse e touch)
+    const svgEl = wrap.querySelector("svg");
+    const tip   = wrap.querySelector(".chart-tooltip");
+    const cross = svgEl.querySelector(".x-cross");
+
+    const hide = function () {
+        tip.classList.remove("visible");
+        cross.style.display = "none";
+
+        cfg.series.forEach(function (s, k) {
+            svgEl.querySelector(".x-dot-" + k).style.display = "none";
+        });
+    };
+
+    const onMove = function (e) {
+
+        const x = e.clientX - svgEl.getBoundingClientRect().left;
+
+        if (x < padL - 6 || x > W - padR + 6) { hide(); return; }
+
+        let i = n <= 1 ? 0 : Math.round((x - padL) / plotW * (n - 1));
+        i = Math.max(0, Math.min(n - 1, i));
+
+        const cx = xFor(i);
+
+        cross.setAttribute("x1", cx);
+        cross.setAttribute("x2", cx);
+        cross.style.display = "";
+
+        let html = "<b>" + cfg.labels[i] + "</b>";
+
+        cfg.series.forEach(function (s, k) {
+
+            const v = s.vals[i];
+            const dot = svgEl.querySelector(".x-dot-" + k);
+
+            if (v === null) {
+                dot.style.display = "none";
+                html += '<br><span class="chip" style="background:#999"></span>' + s.name + ": --";
+                return;
+            }
+
+            const col = s.colorFn(v);
+
+            dot.setAttribute("cx", cx);
+            dot.setAttribute("cy", yFor(v));
+            dot.setAttribute("fill", col);
+            dot.style.display = "";
+
+            html += '<br><span class="chip" style="background:' + col + '"></span>' + s.name + ": " + v.toFixed(cfg.decimals) + (s.unit || "");
+        });
+
+        tip.innerHTML = html;
+        tip.classList.add("visible");
+
+        let left = cx + 14;
+
+        if (left + tip.offsetWidth > W) left = cx - 14 - tip.offsetWidth;
+
+        tip.style.left = Math.max(2, left) + "px";
+        tip.style.top = (padT + 6) + "px";
+    };
+
+    svgEl.addEventListener("pointermove", onMove);
+    svgEl.addEventListener("pointerdown", onMove);
+    svgEl.addEventListener("pointerleave", hide);
+}
+
+// ridisegno al cambio di larghezza della pagina
+if (window.ResizeObserver) {
+    let lastW = 0;
+
+    new ResizeObserver(function (entries) {
+        const w = Math.round(entries[0].contentRect.width);
+
+        if (w === lastW) return;
+
+        lastW = w;
+        chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
+    }).observe(document.getElementById("content"));
+}
+
+
+/* =========================================
+   COSTRUZIONE DELLA PAGINA
+========================================= */
+
+function chartsHtml(prefix, sub) {
+
+    let h = '<div class="charts-grid">';
+
+    FIELDS.forEach(function (f) {
+        h += '<div class="averages-panel"><div class="panel-title">' + CTITLE[f] + " · " + sub + "</div>" +
+             legendHtml() +
+             '<div class="chart-wrap" id="ch-' + prefix + "-" + f + '"></div></div>';
+    });
+
+    return h + "</div>";
+}
+
+function render() {
+
+    if (!loaded) return;
+
+    const r = range();
+    const y0 = r[0], y1 = r[1];
+    const pl = periodLabel();
+
+    // ----- mesi
+    const mRows = MONTHS.map(function (name, i) {
+        return {
+            label: name,
+            st: statsFor(function (f) { return stats(collect(y0, y1, function (y) { return monthVal(f, y, i + 1); })); })
+        };
+    });
+
+    mRows.push({
+        label: "Anno", total: true,
+        st: statsFor(function (f) { return stats(collect(y0, y1, function (y) { return annualVal(f, y); })); })
+    });
+
+    // ----- stagioni
+    const sRows = SEASONS.map(function (s) {
+        return {
+            label: s.name,
+            st: statsFor(function (f) { return stats(collect(y0, y1, function (y) { return seasonVal(f, y, s); })); })
+        };
+    });
+
+    // ----- decadi (indipendenti dal periodo scelto)
+    const dRows = [];
+
+    for (let d = Math.floor(TOTAL_FROM / 10) * 10; d <= cy; d += 10) {
+
+        const ye = Math.min(d + 9, cy);
+
+        const st = statsFor(function (f) { return stats(collect(d, ye, function (y) { return annualVal(f, y); })); });
+
+        if (FIELDS.some(function (f) { return st[f]; })) dRows.push({ label: d + "–" + ye, d: d, ye: ye, st: st });
+    }
+
+    const dTable = dRows.slice();
+
+    dTable.push({
+        label: "Tutti gli anni", total: true,
+        st: statsFor(function (f) { return stats(collect(TOTAL_FROM, cy, function (y) { return annualVal(f, y); })); })
+    });
+
+    // ----- html
+    const html =
+        '<div class="section-h">Mesi · ' + pl + "</div>" +
+        tableHtml("Medie mensili · " + pl, "Mese", mRows) +
+        chartsHtml("m", "medie mensili") +
+
+        '<div class="section-h">Stagioni · ' + pl + "</div>" +
+        tableHtml("Medie stagionali · " + pl, "Stagione", sRows) +
+        chartsHtml("s", "medie stagionali") +
+
+        '<div class="section-h">Decadi</div>' +
+        tableHtml("Medie per decade", "Decade", dTable) +
+        chartsHtml("d", "medie per decade");
+
+    document.getElementById("content").innerHTML = html;
+
+    // ----- grafici
+    const groups = [
+        {
+            prefix: "m",
+            xs: mRows.slice(0, 12).map(function (x) { return x.st; }),
+            labels: MONTHS, ticks: SHORT, minGap: 28
+        },
+        {
+            prefix: "s",
+            xs: sRows.map(function (x) { return x.st; }),
+            labels: SEASONS.map(function (s) { return s.name; }),
+            ticks: SEASONS.map(function (s) { return s.short; }), minGap: 60
+        },
+        {
+            prefix: "d",
+            xs: dRows.map(function (x) { return x.st; }),
+            labels: dRows.map(function (x) { return x.label; }),
+            ticks: dRows.map(function (x) { return x.d + "s"; }), minGap: 44
+        }
+    ];
+
+    chartsState = [];
+
+    const r1 = function (v) { return (v === null || v === undefined) ? null : Math.round(v * 10) / 10; };
+
+    groups.forEach(function (g) {
+        FIELDS.forEach(function (f) {
+
+            const isRain = f === "rain";
+            const color  = isRain ? getRainAnnualColor : getTempColor;
+            const unit   = isRain ? " mm" : "°";
+
+            const col = function (key) {
+                return g.xs.map(function (s) { return s[f] ? r1(s[f][key]) : null; });
+            };
+
+            chartsState.push({
+                wrap: document.getElementById("ch-" + g.prefix + "-" + f),
+                cfg: {
+                    id: g.prefix + f, n: g.labels.length, labels: g.labels, tickLabels: g.ticks, minGap: g.minGap,
+                    decimals: 1, unitL: isRain ? "mm" : "°C", minZero: isRain, band: [1, 2],
+                    series: [
+                        { name: "Media",          vals: col("mean"), colorFn: color, unit: unit },
+                        { name: "10° percentile", vals: col("p10"),  colorFn: color, unit: unit, dash: "7 4", thin: true },
+                        { name: "90° percentile", vals: col("p90"),  colorFn: color, unit: unit, dash: "2 4", thin: true }
+                    ]
+                }
+            });
+        });
+    });
+
+    chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
+
+    document.getElementById("note").textContent =
+        "10% e 90% = 10° e 90° percentile tra gli anni (mostrati con almeno " + MIN_PCT + " anni). " +
+        "Esclusi: mese in corso, anni incompleti (mese sotto l'80% dei giorni, pioggia sotto il 90%; anno sotto i 310 giorni, pioggia 340). " +
+        "Fino al 1999 l'archivio ha solo massima e minima.";
+}
+
+
+/* =========================================
+   CARICAMENTO: tutti i mesi chiusi dal 1960
+========================================= */
+
+async function loadAll() {
+
+    const note = document.getElementById("note");
+    const cfg  = CFG[network];
+
+    if (!cfg || !archiveIds.length) {
+        note.textContent = "Stazione non trovata o rete non collegata.";
+        return;
+    }
+
+    const jobs = [];
+
+    for (let y = TOTAL_FROM; y <= cy; y++) {
+        for (let m = 1; m <= 12; m++) {
+            if (y === cy && m >= cm) continue;   // mese in corso e futuri
+            jobs.push({ y: y, m: m });
+        }
+    }
+
+    let done = 0;
+
+    note.textContent = "Caricamento… 0%";
+
+    await runPool(jobs.map(function (j) {
+        return async function () {
+            const md = await fetchMonthCached(j.m, j.y);
+
+            addYM(j.y, j.m, md);
+
+            done++;
+
+            if (done % 12 === 0 || done === jobs.length) {
+                note.textContent = "Caricamento… " + Math.round(done / jobs.length * 100) + "%";
+            }
+        };
+    }), 6);
+
+    note.textContent = "";
+    loaded = true;
+
+    render();
+
+    if (!FIELDS.some(function (f) { return Object.keys(YM[f]).length; })) {
+        note.textContent = "Nessun dato in archivio per questa stazione.";
+    }
+}
+
+periodPicker.addEventListener("change", render);
+
+
+/* =========================================
+   AVVIO
+========================================= */
+
+tickClock();
+setInterval(tickClock, 1000);
+
+// prima i dati attuali (servono gli id della stazione), poi l'archivio
+loadCurrent().then(loadAll);
+setInterval(loadCurrent, 10 * 1000);
+</script>
+</body>
+</html>
