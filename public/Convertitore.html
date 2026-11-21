@@ -36,6 +36,8 @@
   pre{margin:6px 0 0;max-height:180px;overflow:auto;background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
   .log{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:8px;max-height:160px;overflow:auto;white-space:pre-wrap}
   .err{color:var(--err);font-weight:600}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  select{padding:7px 9px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
   @media(max-width:560px){.ch{flex-direction:column}}
 </style>
 </head>
@@ -44,6 +46,12 @@
   <h1>Convertitore OMIRL → SQL (D1)</h1>
   <p class="sub">Incolla i dati di tutte le stazioni e di tutti gli anni, premi <b>Genera</b>: ottieni una lista di comandi CH1, CH2… da copiare uno alla volta nella console D1.</p>
 
+  <div class="tabs">
+    <button id="tabN" class="pri">N — Nuovi dati (OMIRL)</button>
+    <button id="tabV">V — Vecchi dati</button>
+  </div>
+
+  <div id="pN">
   <div class="card">
     <div class="row">
       <div><label for="src">Serie temperature (src)</label><input type="text" id="src" value="omirl_T"></div>
@@ -67,6 +75,36 @@
     <div class="card" id="logcard" style="display:none">
       <label>Avvisi</label>
       <div class="log" id="log"></div>
+    </div>
+  </div>
+  </div>
+
+  <div id="pV" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div><label for="vcode">Codice stazione</label><input type="text" id="vcode" placeholder="es. MTECA"></div>
+        <div><label for="vkind">Tipo dati</label>
+          <select id="vkind"><option value="max">Massima (TX)</option><option value="min">Minima (TN)</option></select></div>
+        <div><label for="vsrc">src</label><input type="text" id="vsrc" value="old_max"></div>
+        <div><label for="vupc">Max anni per comando</label><input type="number" id="vupc" value="5" min="1" max="50"></div>
+        <div><label for="vlim">Limite caratteri D1</label><input type="number" id="vlim" value="100000" min="1000"></div>
+      </div>
+      <label for="vinp">Vecchi dati incollati (una riga per giorno)</label>
+      <textarea id="vinp" placeholder=" LI0160 TX 19601201       6.0  0"></textarea>
+      <div class="row" style="margin:10px 0 0">
+        <button class="pri" id="vgo">Genera comandi SQL</button>
+        <button id="vclr">Svuota</button>
+      </div>
+    </div>
+    <div id="vout" style="display:none">
+      <div class="card">
+        <div class="stats" id="vstats"></div>
+        <div id="vlist"></div>
+      </div>
+      <div class="card" id="vlogcard" style="display:none">
+        <label>Avvisi</label>
+        <div class="log" id="vlog"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -595,10 +633,10 @@ function describe(members) {
   return [...g].map(([c, ys]) => `${NAMES.get(c) || c} [${c}] ${ys.join(", ")}`).join("  ·  ");
 }
 
-function render() {
-  const list = $("list"); list.innerHTML = "";
-  current.commands.forEach((c, i) => {
-    const big = c.sql.length > current.LIM;
+function renderInto(res, list) {
+  list.innerHTML = "";
+  res.commands.forEach((c, i) => {
+    const big = c.sql.length > res.LIM;
     const div = document.createElement("div");
     div.className = "ch" + (big ? " big" : "");
     div.innerHTML = `<div class="tag">CH${i + 1}</div>
@@ -634,13 +672,86 @@ $("go").onclick = () => {
     $("list").innerHTML = "";
   } else {
     $("stats").textContent = `${r.nSt} stazioni · ${r.units.length} stazione-anno · ${r.total} righe · ${r.commands.length} comandi`;
-    render();
+    renderInto(r, $("list"));
   }
   $("logcard").style.display = LOG.length ? "block" : "none";
   $("log").textContent = LOG.map(l => "-- " + l).join("\n");
 };
 $("clr").onclick = () => { $("inp").value = ""; $("out").style.display = "none"; current = null; };
-$("reset").onclick = () => current && render();
+$("reset").onclick = () => current && renderInto(current, $("list"));
+
+// ---------- V: vecchi dati ----------
+function buildOld(text, code, kind, src, UPC, LIM) {
+  LOG = [];
+  const byYear = new Map();
+  let bad = 0, flags = 0, mism = 0, missing = 0;
+  const tag = kind === "max" ? "TX" : "TN";
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const m = line.match(/^\s*(\S+)\s+(\S+)\s+(\d{4})(\d{2})(\d{2})\s+(-?\d+(?:[.,]\d+)?)(?:\s+(\S+))?\s*$/);
+    if (!m) { bad++; if (bad <= 10) log(`riga non riconosciuta: ${line.trim().slice(0, 70)}`); continue; }
+    const y = +m[3], mo = +m[4], d = +m[5], v = toFloat(m[6]);
+    if (m[2].toUpperCase() !== tag) mism++;
+    if (v <= -90) { missing++; continue; }
+    if (m[7] && m[7] !== "0") flags++;
+    if (!byYear.has(y)) byYear.set(y, new Map());
+    byYear.get(y).set(mo * 100 + d,
+      `('${pad(mo)}${String(y - 1000).padStart(3, "0")}', ${d}, '${src}', '${code}', '${v.toFixed(1)}')`);
+  }
+  if (bad > 10) log(`… altre ${bad - 10} righe non riconosciute`);
+  if (mism) log(`${mism} righe hanno un tipo diverso da ${tag} (usate comunque come ${kind})`);
+  if (missing) log(`${missing} valori mancanti (≤ -90) saltati`);
+  if (flags) log(`${flags} righe con ultima colonna diversa da 0 (incluse comunque)`);
+  const units = [...byYear.keys()].sort((a, b) => a - b).map(y => ({
+    code, year: y, rows: [...byYear.get(y).entries()].sort((a, b) => a[0] - b[0]).map(e => e[1])
+  }));
+  const commands = [];
+  let cur = [], curRows = [], curLen = HEAD.length + 1;
+  for (const u of units) {
+    const add = u.rows.reduce((s, r) => s + r.length + 2, 0);
+    if (cur.length && (cur.length >= UPC || curLen + add > LIM)) {
+      commands.push({members: cur, rows: curRows});
+      cur = []; curRows = []; curLen = HEAD.length + 1;
+    }
+    cur.push(u); curRows.push(...u.rows); curLen += add;
+  }
+  if (cur.length) commands.push({members: cur, rows: curRows});
+  commands.forEach(c => { c.sql = HEAD + c.rows.join(",\n") + ";"; });
+  return {commands, units, total: units.reduce((s, u) => s + u.rows.length, 0), LIM};
+}
+
+$("vgo").onclick = () => {
+  const code = $("vcode").value.trim().toUpperCase().replace(/'/g, "");
+  const kind = $("vkind").value;
+  const src = ($("vsrc").value.trim() || "old_" + kind).replace(/'/g, "");
+  const UPC = Math.max(1, parseInt($("vupc").value) || 5);
+  const LIM = Math.max(1000, parseInt($("vlim").value) || 100000);
+  $("vout").style.display = "block";
+  if (!code) { $("vstats").innerHTML = `<span class="err">Scrivi il codice della stazione.</span>`; $("vlist").innerHTML = ""; return; }
+  const r = buildOld($("vinp").value, code, kind, src, UPC, LIM);
+  if (!r.commands.length) {
+    $("vstats").innerHTML = `<span class="err">Nessun dato riconosciuto.</span>`;
+    $("vlist").innerHTML = "";
+  } else {
+    $("vstats").textContent = `${code} (${kind}) · ${r.units.length} anni · ${r.total} righe · ${r.commands.length} comandi`;
+    renderInto(r, $("vlist"));
+  }
+  $("vlogcard").style.display = LOG.length ? "block" : "none";
+  $("vlog").textContent = LOG.map(l => "-- " + l).join("\n");
+};
+$("vclr").onclick = () => { $("vinp").value = ""; $("vout").style.display = "none"; };
+$("vkind").onchange = () => {
+  const s = $("vsrc").value;
+  if (s === "old_max" || s === "old_min") $("vsrc").value = "old_" + $("vkind").value;
+};
+function showTab(v) {
+  $("pN").style.display = v ? "none" : "block";
+  $("pV").style.display = v ? "block" : "none";
+  $("tabN").className = v ? "" : "pri";
+  $("tabV").className = v ? "pri" : "";
+}
+$("tabN").onclick = () => showTab(false);
+$("tabV").onclick = () => showTab(true);
 $("copyall").onclick = async e => {
   if (!current) return;
   const ok = await copyText(current.commands.map(c => c.sql).join("\n\n"));

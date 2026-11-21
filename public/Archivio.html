@@ -523,12 +523,13 @@ MONTHS.forEach(function (m, i) {
     yearPicker.appendChild(o);
 })();
 
-const TOTAL_FROM = 2002;   // primo anno cercato nella vista Totale
+const TOTAL_FROM = 1960;   // primo anno cercato nella vista Totale
+const OLD_UNTIL  = 1999;   // fino a quest'anno i dati sono nel formato "vecchi" // primo anno cercato nella vista Totale
 
 function isTotalMode() {
     return yearPicker.value === "T";
 }
-for (let y = Math.max(2026, today.getFullYear()); y >= 2002; y--) {
+for (let y = Math.max(2026, today.getFullYear()); y >= 1960; y--) {
     const o = document.createElement("option");
     o.value = String(y);
     o.textContent = String(y);
@@ -798,7 +799,25 @@ async function fetchMonthData(month, year) {
     };
 
     if (!cfg || !archiveIds.length) return out;
+    if (year <= OLD_UNTIL) {
+        const meseOld = String(month).padStart(2, "0") + String(year - 1000).padStart(3, "0");
 
+        const [mx, mn] = await Promise.all([
+            fetchArchiveSeries(["old_max"], meseOld),
+            fetchArchiveSeries(["old_min"], meseOld)
+        ]);
+
+        out.has = !!(mx || mn);
+
+        [[mx, "tmax"], [mn, "tmin"]].forEach(function (p) {
+            if (!p[0]) return;
+            p[0].arr.forEach(function (v, i) {
+                if (v !== "" && i < days) out[p[1]][i] = v;
+            });
+        });
+
+        return out;
+    }
     const mese = String(month).padStart(2, "0") + String(year).slice(2);
 
     const [tempRes, rainRes] = await Promise.all([
