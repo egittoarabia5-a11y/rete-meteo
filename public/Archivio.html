@@ -524,7 +524,8 @@ MONTHS.forEach(function (m, i) {
 })();
 
 const TOTAL_FROM = 1960;   // primo anno cercato nella vista Totale
-const OLD_UNTIL  = 1999;   // fino a quest'anno i dati sono nel formato "vecchi" // primo anno cercato nella vista Totale
+const OLD_UNTIL  = 2000;
+const OLD_MAX = 2010;   // fino a quest'anno i dati sono nel formato "vecchi" // primo anno cercato nella vista Totale
 
 function isTotalMode() {
     return yearPicker.value === "T";
@@ -782,6 +783,95 @@ async function fetchTodayValues(srcs, fromIso, isTemp) {
     return null;
 }
 
+/* =====================================================================
+   Archivio.html: sostituisci la funzione fetchMonthData(...) con questo blocco
+   (il commento che la precede, "Dati di un mese: ...", si può togliere).
+
+   In più, vicino a OLD_UNTIL aggiungi questa riga:
+       const OLD_MAX = 2010;   // l'archivio vecchio arriva al 2010
+
+   Regola:
+   - fino a OLD_UNTIL (2000 nel tuo file): solo archivio vecchio
+   - dopo: prima il moderno; se non ha il mese e l'anno è <= OLD_MAX,
+     si cerca nel vecchio
+   ===================================================================== */
+
+/* Archivio vecchio (1960-2010): solo massima e minima. Riempie "out" e lo restituisce. */
+/* Archivio vecchio (1960-2010): UNA richiesta per serie con tutti gli anni.
+   OLD_DATA[src][anno] = array di 12 mesi, ognuno con i valori dei giorni. */
+let oldPromise = null;
+
+function loadOldAll() {
+
+    if (!oldPromise) {
+        oldPromise = (async function () {
+
+            const res = { old_max: {}, old_min: {} };
+
+            for (const src of ["old_max", "old_min"]) {
+
+                for (const id of archiveIds) {
+
+                    try {
+                        const d = await getJson(
+                            ARCHIVE_BASE + "/archivio?src=" + src +
+                            "&anno=" + TOTAL_FROM + "-" + OLD_MAX +
+                            "&st=" + encodeURIComponent(id)
+                        );
+
+                        const ys = d.stations && d.stations[id];
+
+                        if (!ys) continue;
+
+                        Object.keys(ys).forEach(function (y) {
+
+                            const vals = ys[y].split(",").map(function (s) { return s.trim(); });
+                            const months = [];
+                            let off = 0;
+
+                            for (let m = 1; m <= 12; m++) {
+                                const dim = daysIn(Number(y), m);
+                                months.push(vals.slice(off, off + dim));
+                                off += dim;
+                            }
+
+                            res[src][y] = months;
+                        });
+
+                        break;   // stazione trovata con questo id
+                    } catch (err) {
+                        console.warn("Archivio vecchio non disponibile per", src, id, err);
+                    }
+                }
+            }
+
+            return res;
+        })();
+    }
+
+    return oldPromise;
+}
+
+async function fetchOldMonth(month, year, out, days) {
+
+    const old = await loadOldAll();
+
+    [["old_max", "tmax"], ["old_min", "tmin"]].forEach(function (p) {
+
+        const ym = old[p[0]][year];
+
+        if (!ym) return;
+
+        ym[month - 1].forEach(function (v, i) {
+            if (v !== "" && i < days) {
+                out[p[1]][i] = v;
+                out.has = true;
+            }
+        });
+    });
+
+    return out;
+}
 /* Dati di un mese: per ogni campo un array (indice = giorno - 1) di testi
    (es. "12.3", la media può avere l'asterisco) oppure null se manca.
    Per il mese in corso il giorno di oggi viene completato dai dati al minuto. */
@@ -799,25 +889,10 @@ async function fetchMonthData(month, year) {
     };
 
     if (!cfg || !archiveIds.length) return out;
-    if (year <= OLD_UNTIL) {
-        const meseOld = String(month).padStart(2, "0") + String(year - 1000).padStart(3, "0");
 
-        const [mx, mn] = await Promise.all([
-            fetchArchiveSeries(["old_max"], meseOld),
-            fetchArchiveSeries(["old_min"], meseOld)
-        ]);
+    // anni vecchi: solo archivio vecchio
+    if (year <= OLD_UNTIL) return fetchOldMonth(month, year, out, days);
 
-        out.has = !!(mx || mn);
-
-        [[mx, "tmax"], [mn, "tmin"]].forEach(function (p) {
-            if (!p[0]) return;
-            p[0].arr.forEach(function (v, i) {
-                if (v !== "" && i < days) out[p[1]][i] = v;
-            });
-        });
-
-        return out;
-    }
     const mese = String(month).padStart(2, "0") + String(year).slice(2);
 
     const [tempRes, rainRes] = await Promise.all([
@@ -848,6 +923,9 @@ async function fetchMonthData(month, year) {
             if (v !== "" && i < days) out.rain[i] = v;
         });
     }
+
+    // il moderno non ha questo mese: fino a OLD_MAX si cerca nel vecchio
+    if (!out.has && year <= OLD_MAX) return fetchOldMonth(month, year, out, days);
 
     // giorno attuale ancora vuoto: uso i dati correnti di archivio-eventi
     const now = new Date();
@@ -882,15 +960,14 @@ async function fetchMonthData(month, year) {
             if (mean !== null && out.tmean[day - 1] === null) out.tmean[day - 1] = mean.toFixed(1);
         }
 
-if (rv) {
-    // ultimo valore del giorno, mai il massimo
-    out.rain[day - 1] = rv[rv.length - 1].toFixed(1);
-}
+        if (rv) {
+            // ultimo valore del giorno, mai il massimo
+            out.rain[day - 1] = rv[rv.length - 1].toFixed(1);
+        }
     }
 
     return out;
 }
-
 
 /* =========================================
    FUNZIONI COMUNI PER I RIEPILOGHI

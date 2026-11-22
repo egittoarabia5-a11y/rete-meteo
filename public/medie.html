@@ -132,6 +132,7 @@
   }
   .avg-head.first{ text-align:left; }
   .avg-row-label{ font-size:13px; font-weight:500; opacity:.85; }
+  .avg-row-label small{ display:block; font-size:10.5px; font-weight:400; opacity:.65; }
   .avg-chip{
     position:relative;
     display:flex;
@@ -487,12 +488,40 @@ const FIELDS = ["tmax", "tmin", "tmean", "rain"];
 const FNAME  = { tmax: "Temp. massima", tmin: "Temp. minima", tmean: "Temp. media", rain: "Pioggia" };
 const CTITLE = { tmax: "Temperatura massima", tmin: "Temperatura minima", tmean: "Temperatura media", rain: "Precipitazioni" };
 
+// 29/02 compreso: la posizione di ogni giorno è la stessa in tutti gli anni
+const LEAP_OFFSET = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+const COLD_START  = 182;   // 1° luglio: da qui si cerca la prima gelata, galaverna, gelo
+
+// fenomeni di temperatura (conteggio dei giorni in un anno + primo giorno)
+const EVENTS = [
+    { k: "torridi",   name: "Giorni torridi",         sub: "max > 35°", f: "tmax", test: v => v > 35, cold: false, color: "#b05151" },
+    { k: "tropicali", name: "Giorni tropicali",       sub: "max > 30°", f: "tmax", test: v => v > 30, cold: false, color: "#f0752f" },
+    { k: "extratrop", name: "Notti extra-tropicali",  sub: "min > 25°", f: "tmin", test: v => v > 25, cold: false, color: "#ea7bea" },
+    { k: "nottitrop", name: "Notti tropicali",        sub: "min > 20°", f: "tmin", test: v => v > 20, cold: false, color: "#fa9d40" },
+    { k: "gelate",    name: "Gelate",                 sub: "min < 0°",  f: "tmin", test: v => v < 0,  cold: true,  color: "#4da9ff" },
+    { k: "galaverna", name: "Giorni di galaverna",    sub: "min < -5°", f: "tmin", test: v => v < -5, cold: true,  color: "#4d54ff" },
+    { k: "gelo",      name: "Giorni di gelo",         sub: "max < 0°",  f: "tmax", test: v => v < 0,  cold: true,  color: "#9650ff" }
+];
+
+// fenomeni di pioggia (conteggio dei giorni in un anno) e intensità media
+const RAIN_DAY_MM = 1.0;   // giorno di pioggia: almeno 1.0 mm
+
+const RAINS = [
+    { k: "pioggia", name: "Giorni di pioggia",          sub: "≥ 1 mm",   unit: "gg" },
+    { k: "r20",     name: "Giorni di pioggia > 20 mm",  sub: "> 20 mm",  unit: "gg" },
+    { k: "r50",     name: "Giorni di pioggia > 50 mm",  sub: "> 50 mm",  unit: "gg" },
+    { k: "r100",    name: "Giorni di pioggia > 100 mm", sub: "> 100 mm", unit: "gg" },
+    { k: "mmday",   name: "Media mm per giorno di pioggia", sub: "mm / giorno di pioggia", unit: "mm" }
+];
+
 const TOTAL_FROM = 1960;   // primo anno cercato
-const OLD_UNTIL  = 1999;   // fino a quest'anno l'archivio ha solo massima e minima
-const COVER_T    = 0.8;    // quota minima di giorni con dato (temperature) per contare un mese
+const OLD_UNTIL  = 1999;   // fino a quest'anno si usa solo l'archivio vecchio (massima e minima)
+const OLD_MAX    = 2010;   // l'archivio vecchio arriva al 2010: dal 2000 si usa se il moderno non ha il mese
+const COVER_T    = 0.8;    // quota minima di giorni con dato (temperature) per contare un mese/decade
 const COVER_R    = 0.9;    // idem per la pioggia (è un accumulo)
 const YEAR_DAYS_T = 310;   // giorni minimi con dato per contare un anno (temperature)
 const YEAR_DAYS_R = 340;   // idem per la pioggia
+const COUNT_DAYS  = 330;   // giorni minimi con dato per contare i giorni di un fenomeno in un anno
 const MIN_PCT     = 5;     // campioni minimi per mostrare 10° e 90° percentile
 
 const now0 = new Date();
@@ -534,7 +563,18 @@ function getTempColor(value){
   return "#ff5c5c";
 }
 
-// scala per gli accumuli (mese, stagione, anno)
+function getRainScaleColor(v){
+  if (v === 0) return "#808080";
+  if (v < 2) return "#f9ae6c";
+  if (v < 5) return "#f9966c";
+  if (v < 10) return "#6ca561";
+  if (v < 20) return "#65d050";
+  if (v < 30) return "#4dc8ff";
+  if (v < 50) return "#4da9ff";
+  return "#2c278e";
+}
+
+// scala per gli accumuli (decade, mese, stagione, anno)
 function getRainAnnualColor(value){
   if (value === 0) return "#808080";
   else if (value < 2) return "#f9ae6c";
@@ -615,7 +655,31 @@ async function fetchArchiveSeries(srcs, mese) {
     return null;
 }
 
-/* Dati di un mese: per ogni campo un array (indice = giorno - 1) di testi o null */
+/* Archivio vecchio (1960-2010): solo massima e minima. Riempie "out" e lo restituisce. */
+async function fetchOldMonth(month, year, out, days) {
+
+    const meseOld = String(month).padStart(2, "0") + String(year % 1000).padStart(3, "0");
+
+    const [mx, mn] = await Promise.all([
+        fetchArchiveSeries(["old_max"], meseOld),
+        fetchArchiveSeries(["old_min"], meseOld)
+    ]);
+
+    out.has = !!(mx || mn);
+
+    [[mx, "tmax"], [mn, "tmin"]].forEach(function (p) {
+        if (!p[0]) return;
+        p[0].arr.forEach(function (v, i) {
+            if (v !== "" && i < days) out[p[1]][i] = v;
+        });
+    });
+
+    return out;
+}
+
+/* Dati di un mese: per ogni campo un array (indice = giorno - 1) di testi o null.
+   Fino al 1999 solo l'archivio vecchio; dal 2000 al 2010 prima il moderno (2002-2026),
+   e se non ha il mese si ripiega sul vecchio. */
 async function fetchMonthData(month, year) {
 
     const cfg  = CFG[network];
@@ -631,26 +695,8 @@ async function fetchMonthData(month, year) {
 
     if (!cfg || !archiveIds.length) return out;
 
-    // anni vecchi: solo massima e minima
-    if (year <= OLD_UNTIL) {
-        const meseOld = String(month).padStart(2, "0") + String(year - 1000).padStart(3, "0");
-
-        const [mx, mn] = await Promise.all([
-            fetchArchiveSeries(["old_max"], meseOld),
-            fetchArchiveSeries(["old_min"], meseOld)
-        ]);
-
-        out.has = !!(mx || mn);
-
-        [[mx, "tmax"], [mn, "tmin"]].forEach(function (p) {
-            if (!p[0]) return;
-            p[0].arr.forEach(function (v, i) {
-                if (v !== "" && i < days) out[p[1]][i] = v;
-            });
-        });
-
-        return out;
-    }
+    // anni vecchi: solo archivio vecchio
+    if (year <= OLD_UNTIL) return fetchOldMonth(month, year, out, days);
 
     const mese = String(month).padStart(2, "0") + String(year).slice(2);
 
@@ -682,6 +728,9 @@ async function fetchMonthData(month, year) {
             if (v !== "" && i < days) out.rain[i] = v;
         });
     }
+
+    // il moderno non ha questo mese: tra il 2000 e il 2010 si cerca nel vecchio
+    if (!out.has && year <= OLD_MAX) return fetchOldMonth(month, year, out, days);
 
     return out;
 }
@@ -740,10 +789,14 @@ async function runPool(tasks, limit) {
 
 /* =========================================
    DATI AGGREGATI
-   YM[campo][anno][mese-1] = { s: somma dei giorni, n: giorni con dato, days: giorni del mese }
+   DAY[campo][anno][0..365] = valore di ogni giorno (griglia con il 29/02)
+   YM[campo][anno][mese-1]  = { s: somma, n: giorni con dato, days: giorni del mese }
 ========================================= */
 
-const YM = { tmax: {}, tmin: {}, tmean: {}, rain: {} };
+const DAY = { tmax: {}, tmin: {}, tmean: {}, rain: {} };
+const YM  = { tmax: {}, tmin: {}, tmean: {}, rain: {} };
+const YEV = {};   // fenomeni di temperatura: YEV[k][anno] = { count, first }
+const YRN = {};   // pioggia: YRN[anno] = { pioggia, r20, r50, r100, mmday }
 let loaded = false;
 
 function addYM(year, month, md) {
@@ -751,10 +804,17 @@ function addYM(year, month, md) {
 
         let s = 0, n = 0;
 
-        md[f].forEach(function (v) {
+        md[f].forEach(function (v, i) {
             const x = toNum(v);
 
-            if (x !== null) { s += x; n++; }
+            if (x === null) return;
+
+            s += x;
+            n++;
+
+            if (!DAY[f][year]) DAY[f][year] = new Array(366).fill(null);
+
+            DAY[f][year][LEAP_OFFSET[month - 1] + i] = x;
         });
 
         if (!n) return;
@@ -782,6 +842,31 @@ function monthVal(f, y, m) {
     if (!c || c.n < cover(f) * c.days) return null;
 
     return f === "rain" ? c.s : c.s / c.n;
+}
+
+// decade di 10 giorni (k = 0: 1-10, 1: 11-20, 2: dal 21 a fine mese)
+function dekadVal(f, y, m, k) {
+
+    if (!isComplete(y, m)) return null;
+
+    const arr = DAY[f][y];
+
+    if (!arr) return null;
+
+    const a = k * 10 + 1;
+    const b = k === 2 ? daysIn(y, m) : (k + 1) * 10;
+
+    let s = 0, n = 0;
+
+    for (let d = a; d <= b; d++) {
+        const v = arr[LEAP_OFFSET[m - 1] + d - 1];
+
+        if (v !== null) { s += v; n++; }
+    }
+
+    if (n < cover(f) * (b - a + 1)) return null;
+
+    return f === "rain" ? s : s / n;
 }
 
 // stagione: l'inverno dell'anno Y è dic (Y-1) + gen + feb (Y)
@@ -825,6 +910,87 @@ function annualVal(f, y) {
     return f === "rain" ? sum : sum / n;
 }
 
+// fenomeno di temperatura in un anno: giorni in cui accade e primo giorno
+function eventYear(ev, y) {
+
+    if (y >= cy) return null;
+
+    const arr = DAY[ev.f][y];
+
+    if (!arr) return null;
+
+    let have = 0, count = 0, first = null;
+
+    for (let i = 0; i < 366; i++) {
+
+        const v = arr[i];
+
+        if (v === null) continue;
+
+        have++;
+
+        if (ev.test(v)) {
+            count++;
+
+            // gelate, galaverna e gelo: la "prima" è quella dell'autunno (dal 1° luglio)
+            if (first === null && (!ev.cold || i >= COLD_START)) first = i;
+        }
+    }
+
+    if (have < COUNT_DAYS) return null;
+
+    return { count: count, first: first };
+}
+
+// pioggia in un anno: giorni sopra soglia e mm per giorno di pioggia
+function rainYear(y) {
+
+    if (y >= cy) return null;
+
+    const arr = DAY.rain[y];
+
+    if (!arr) return null;
+
+    let have = 0, rd = 0, c20 = 0, c50 = 0, c100 = 0, sumRainy = 0;
+
+    for (let i = 0; i < 366; i++) {
+
+        const v = arr[i];
+
+        if (v === null) continue;
+
+        have++;
+
+        if (v >= RAIN_DAY_MM) { rd++; sumRainy += v; }
+        if (v > 20) c20++;
+        if (v > 50) c50++;
+        if (v > 100) c100++;
+    }
+
+    if (have < YEAR_DAYS_R) return null;
+
+    return { pioggia: rd, r20: c20, r50: c50, r100: c100, mmday: rd ? sumRainy / rd : null };
+}
+
+function computeYearly() {
+
+    EVENTS.forEach(function (ev) {
+        YEV[ev.k] = {};
+
+        for (let y = TOTAL_FROM; y < cy; y++) {
+            const r = eventYear(ev, y);
+
+            if (r) YEV[ev.k][y] = r;
+        }
+    });
+
+    for (let y = TOTAL_FROM; y < cy; y++) {
+        const r = rainYear(y);
+
+        if (r) YRN[y] = r;
+    }
+}
+
 function pct(sorted, p) {
     const i = (sorted.length - 1) * p;
     const lo = Math.floor(i), hi = Math.ceil(i);
@@ -854,7 +1020,7 @@ function collect(y0, y1, fn) {
     for (let y = y0; y <= y1; y++) {
         const v = fn(y);
 
-        if (v !== null) a.push(v);
+        if (v !== null && v !== undefined) a.push(v);
     }
 
     return a;
@@ -868,9 +1034,37 @@ function statsFor(fn) {
     return o;
 }
 
+// anno con il valore più alto (o più basso) nel periodo
+function extremeYear(y0, y1, fn, wantMax) {
+
+    let best = null;
+
+    for (let y = y0; y <= y1; y++) {
+        const v = fn(y);
+
+        if (v === null || v === undefined) continue;
+
+        if (best === null || (wantMax ? v > best.v : v < best.v)) best = { v: v, y: y };
+    }
+
+    return best;
+}
+
+// giorno (posizione 0..365) -> "12 lug"
+function idxToDate(i) {
+
+    i = Math.max(0, Math.min(365, Math.round(i)));
+
+    let m = 11;
+
+    while (LEAP_OFFSET[m] > i) m--;
+
+    return (i - LEAP_OFFSET[m] + 1) + " " + SHORT[m].toLowerCase();
+}
+
 
 /* =========================================
-   PERIODO DI RIFERIMENTO (mesi, stagioni e riga "Anno")
+   PERIODO DI RIFERIMENTO (per tutte le medie)
 ========================================= */
 
 const PERIODS = [
@@ -910,6 +1104,15 @@ function periodLabel() {
    TABELLE
 ========================================= */
 
+function pctSub(st, fmt) {
+    let sub = "";
+
+    if (st.p10 !== null) sub += "10%: " + fmt(st.p10) + " · 90%: " + fmt(st.p90) + "<br>";
+
+    return sub + st.n + (st.n === 1 ? " anno" : " anni");
+}
+
+// riquadro temperatura/pioggia con media e percentili
 function chip(st, f) {
 
     if (!st) return '<span class="avg-chip sum empty">' + (f === "rain" ? "-- mm" : "--°") + "</span>";
@@ -917,15 +1120,18 @@ function chip(st, f) {
     const isRain = f === "rain";
     const glow = isRain ? getRainAnnualColor(st.mean) : getTempColor(st.mean);
 
-    let sub = "";
-
-    if (st.p10 !== null) sub += "10%: " + st.p10.toFixed(1) + " · 90%: " + st.p90.toFixed(1) + "<br>";
-
-    sub += st.n + (st.n === 1 ? " anno" : " anni");
-
     return '<span class="avg-chip sum" style="--card-glow:' + glow + '">' +
            st.mean.toFixed(1) + (isRain ? " mm" : "°") +
-           "<small>" + sub + "</small></span>";
+           "<small>" + pctSub(st, function (v) { return v.toFixed(1); }) + "</small></span>";
+}
+
+// riquadro generico (valore + riga piccola)
+function cell(main, sub, glow) {
+
+    if (main === null) return '<span class="avg-chip sum empty">--</span>';
+
+    return '<span class="avg-chip sum"' + (glow ? ' style="--card-glow:' + glow + '"' : "") + ">" +
+           main + (sub ? "<small>" + sub + "</small>" : "") + "</span>";
 }
 
 function tableHtml(title, head, rows) {
@@ -946,9 +1152,23 @@ function tableHtml(title, head, rows) {
     return h + "</div></div>";
 }
 
+// tabella con colonne a scelta: rows = [{ label, sub, cells: [html x 4] }]
+function customTable(title, head, heads, rows) {
+
+    let h = '<div class="averages-panel"><div class="panel-title">' + title + '</div><div class="avg-grid">' +
+            '<span class="avg-head first">' + head + "</span>" +
+            heads.map(function (t) { return '<span class="avg-head">' + t + "</span>"; }).join("");
+
+    rows.forEach(function (r) {
+        h += '<span class="avg-row-label">' + r.label + (r.sub ? "<small>" + r.sub + "</small>" : "") + "</span>" + r.cells.join("");
+    });
+
+    return h + "</div></div>";
+}
+
 
 /* =========================================
-   GRAFICI: media (continua) + 10° e 90° percentile (tratteggiati) con fascia
+   GRAFICI: linee con fascia tra 10° e 90° percentile
 ========================================= */
 
 let chartsState = [];
@@ -966,12 +1186,13 @@ function fmtAx(v) {
     return String(Math.round(v * 10) / 10);
 }
 
-function legendHtml() {
-    return '<div class="chart-legend">' +
-        '<span><i></i>Media</span>' +
-        '<span><i class="dash"></i>10° percentile</span>' +
-        '<span><i class="dot"></i>90° percentile</span>' +
-        "</div>";
+const LEG_PCT  = [{ name: "Media" }, { name: "10° percentile", cls: "dash" }, { name: "90° percentile", cls: "dot" }];
+const LEG_YEAR = [{ name: "Anno" }, { name: "Media del periodo", cls: "dash" }, { name: "10°–90° percentile", cls: "dot" }];
+
+function legendHtml(items) {
+    return '<div class="chart-legend">' + items.map(function (it) {
+        return "<span><i" + (it.cls ? ' class="' + it.cls + '"' : "") + "></i>" + it.name + "</span>";
+    }).join("") + "</div>";
 }
 
 function drawChart(wrap, cfg) {
@@ -979,7 +1200,7 @@ function drawChart(wrap, cfg) {
     const W = Math.max(280, wrap.clientWidth || 600);
     const H = window.innerWidth <= 700 ? 280 : 340;
 
-    const padL = 46, padR = 22, padT = 18, padB = 30;
+    const padL = cfg.padL || 46, padR = 22, padT = 18, padB = 30;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
@@ -1032,11 +1253,16 @@ function drawChart(wrap, cfg) {
     });
 
     // ----- tacche dell'asse orizzontale
-    const ticks = [];
-    const minGap = cfg.minGap || 44;
-    const stepD = Math.max(1, Math.ceil(minGap / (n > 1 ? plotW / (n - 1) : minGap)));
+    let ticks = [];
 
-    for (let i = 0; i < n; i += stepD) ticks.push({ i: i, label: cfg.tickLabels[i] });
+    if (cfg.tickAt) {
+        ticks = cfg.tickAt;
+    } else {
+        const minGap = cfg.minGap || 44;
+        const stepD = Math.max(1, Math.ceil(minGap / (n > 1 ? plotW / (n - 1) : minGap)));
+
+        for (let i = 0; i < n; i += stepD) ticks.push({ i: i, label: cfg.tickLabels[i] });
+    }
 
     // ----- svg
     let svg = "<defs>" +
@@ -1060,9 +1286,10 @@ function drawChart(wrap, cfg) {
     // griglia orizzontale e scala
     for (let k = 0; k <= divs; k++) {
         const y = padT + (1 - k / divs) * plotH;
+        const val = gMin + k * lStep;
 
         svg += '<line class="cg-line" x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + y.toFixed(1) + '"/>';
-        svg += '<text class="cg-label" x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + fmtAx(gMin + k * lStep) + "</text>";
+        svg += '<text class="cg-label" x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + (cfg.yFmt ? cfg.yFmt(val) : fmtAx(val)) + "</text>";
     }
 
     // griglia verticale
@@ -1073,7 +1300,7 @@ function drawChart(wrap, cfg) {
         svg += '<text class="cg-label" x="' + x + '" y="' + (H - 8) + '" text-anchor="middle">' + t.label + "</text>";
     });
 
-    svg += '<text class="cg-label" x="' + (padL - 8) + '" y="12" text-anchor="end" style="font-weight:600">' + cfg.unitL + "</text>";
+    svg += '<text class="cg-label" x="' + (padL - 8) + '" y="12" text-anchor="end" style="font-weight:600">' + (cfg.unitL || "") + "</text>";
 
     // fascia tra 10° e 90° percentile
     if (cfg.band) {
@@ -1104,7 +1331,7 @@ function drawChart(wrap, cfg) {
         flush();
     }
 
-    // linee: alone colorato sfocato (solo la media) + linea chiara
+    // linee: alone colorato sfocato (solo le serie principali) + linea chiara
     cfg.series.forEach(function (s, k) {
 
         const segs = [];
@@ -1194,7 +1421,8 @@ function drawChart(wrap, cfg) {
             dot.setAttribute("fill", col);
             dot.style.display = "";
 
-            html += '<br><span class="chip" style="background:' + col + '"></span>' + s.name + ": " + v.toFixed(cfg.decimals) + (s.unit || "");
+            html += '<br><span class="chip" style="background:' + col + '"></span>' + s.name + ": " +
+                    (s.fmt ? s.fmt(v) : v.toFixed(cfg.decimals) + (s.unit || ""));
         });
 
         tip.innerHTML = html;
@@ -1232,17 +1460,50 @@ if (window.ResizeObserver) {
    COSTRUZIONE DELLA PAGINA
 ========================================= */
 
+// 4 grafici (massima, minima, media, pioggia) con media + 10° e 90° percentile
 function chartsHtml(prefix, sub) {
 
     let h = '<div class="charts-grid">';
 
     FIELDS.forEach(function (f) {
         h += '<div class="averages-panel"><div class="panel-title">' + CTITLE[f] + " · " + sub + "</div>" +
-             legendHtml() +
+             legendHtml(LEG_PCT) +
              '<div class="chart-wrap" id="ch-' + prefix + "-" + f + '"></div></div>';
     });
 
     return h + "</div>";
+}
+
+// griglia di grafici con titolo: list = [{ id, title }]
+function panelsHtml(list) {
+    return '<div class="charts-grid">' + list.map(function (c) {
+        return '<div class="averages-panel"><div class="panel-title">' + c.title + "</div>" +
+               legendHtml(LEG_YEAR) + '<div class="chart-wrap" id="' + c.id + '"></div></div>';
+    }).join("") + "</div>";
+}
+
+const r1 = function (v) { return (v === null || v === undefined) ? null : Math.round(v * 10) / 10; };
+
+// grafico "anno per anno": valori di ogni anno + media e percentili calcolati sul periodo scelto
+function yearChartCfg(id, yrs, vals, st, color, opts) {
+
+    const fill = function (v) { return yrs.map(function () { return v === null || v === undefined ? null : r1(v); }); };
+
+    const cf = function () { return color; };
+
+    const fmt = opts.fmt;
+
+    return {
+        id: id, n: yrs.length, labels: yrs.map(String), tickLabels: yrs.map(String), minGap: 44,
+        decimals: 1, unitL: opts.unitL || "", minZero: !!opts.minZero, band: [2, 3],
+        yFmt: opts.yFmt, padL: opts.padL,
+        series: [
+            { name: "Anno",             vals: vals,                        colorFn: cf, fmt: fmt },
+            { name: "Media periodo",    vals: fill(st ? st.mean : null),   colorFn: cf, fmt: fmt, dash: "7 4", thin: true },
+            { name: "10° percentile",   vals: fill(st ? st.p10 : null),    colorFn: cf, fmt: fmt, dash: "2 4", thin: true },
+            { name: "90° percentile",   vals: fill(st ? st.p90 : null),    colorFn: cf, fmt: fmt, dash: "2 4", thin: true }
+        ]
+    };
 }
 
 function render() {
@@ -1274,23 +1535,80 @@ function render() {
         };
     });
 
-    // ----- decadi (indipendenti dal periodo scelto)
-    const dRows = [];
+    // ----- decadi di 10 giorni (3 al mese)
+    const kRows = [];
 
-    for (let d = Math.floor(TOTAL_FROM / 10) * 10; d <= cy; d += 10) {
-
-        const ye = Math.min(d + 9, cy);
-
-        const st = statsFor(function (f) { return stats(collect(d, ye, function (y) { return annualVal(f, y); })); });
-
-        if (FIELDS.some(function (f) { return st[f]; })) dRows.push({ label: d + "–" + ye, d: d, ye: ye, st: st });
+    for (let m = 1; m <= 12; m++) {
+        for (let k = 0; k < 3; k++) {
+            kRows.push({
+                label: MONTHS[m - 1] + " · " + (k + 1) + "ª decade",
+                st: statsFor(function (f) { return stats(collect(y0, y1, function (y) { return dekadVal(f, y, m, k); })); })
+            });
+        }
     }
 
-    const dTable = dRows.slice();
+    // ----- altre medie di temperatura
+    const evRows = [];
+    const evPanels = [];
 
-    dTable.push({
-        label: "Tutti gli anni", total: true,
-        st: statsFor(function (f) { return stats(collect(TOTAL_FROM, cy, function (y) { return annualVal(f, y); })); })
+    EVENTS.forEach(function (ev) {
+
+        const get = function (y) { return YEV[ev.k][y] ? YEV[ev.k][y].count : null; };
+
+        const cnt = collect(y0, y1, get);
+        const st  = stats(cnt);
+
+        const firsts = collect(y0, y1, function (y) { return YEV[ev.k][y] ? YEV[ev.k][y].first : null; });
+        const sf = stats(firsts);
+
+        const withEv = cnt.filter(function (c) { return c > 0; }).length;
+        const mx = extremeYear(y0, y1, get, true);
+
+        const dFmt = function (v) { return idxToDate(v); };
+
+        evRows.push({
+            label: ev.name, sub: ev.sub + (ev.cold ? " · primo dal 1° luglio" : ""),
+            cells: [
+                st ? cell(st.mean.toFixed(1) + " gg", pctSub(st, function (v) { return v.toFixed(1); }), st.mean === 0 ? "#808080" : ev.color) : cell(null),
+                sf ? cell(idxToDate(sf.mean), (sf.p10 !== null ? "10%: " + dFmt(sf.p10) + " · 90%: " + dFmt(sf.p90) + "<br>" : "") + sf.n + (sf.n === 1 ? " anno" : " anni") + " con evento", ev.color) : cell(null),
+                st ? cell(withEv + "/" + st.n, Math.round(withEv / st.n * 100) + "% degli anni", withEv ? ev.color : "#808080") : cell(null),
+                mx ? cell(mx.v + " gg", "nel " + mx.y, mx.v ? ev.color : "#808080") : cell(null)
+            ]
+        });
+
+        evPanels.push({ id: "ev-" + ev.k + "-n", title: ev.name + " (" + ev.sub + ") · giorni all'anno", ev: ev, kind: "n", st: st });
+        evPanels.push({ id: "ev-" + ev.k + "-f", title: ev.name + " (" + ev.sub + ") · primo giorno" + (ev.cold ? " (dal 1° luglio)" : ""), ev: ev, kind: "f", st: sf });
+    });
+
+    // ----- altre medie di pioggia
+    const rnRows = [];
+    const rnPanels = [];
+
+    RAINS.forEach(function (rn) {
+
+        const isMm = rn.k === "mmday";
+        const get = function (y) { return YRN[y] ? YRN[y][rn.k] : null; };
+
+        const vals = collect(y0, y1, get);
+        const st = stats(vals);
+
+        const mx = extremeYear(y0, y1, get, true);
+        const mn = extremeYear(y0, y1, get, false);
+
+        const u = isMm ? " mm" : " gg";
+        const glowOf = function (v) { return isMm ? getRainScaleColor(v) : "#4da9ff"; };
+
+        rnRows.push({
+            label: rn.name, sub: rn.sub,
+            cells: [
+                st ? cell(st.mean.toFixed(1) + u, pctSub(st, function (v) { return v.toFixed(1); }), glowOf(st.mean)) : cell(null),
+                mx ? cell(mx.v.toFixed(isMm ? 1 : 0) + u, "nel " + mx.y, glowOf(mx.v)) : cell(null),
+                mn ? cell(mn.v.toFixed(isMm ? 1 : 0) + u, "nel " + mn.y, glowOf(mn.v)) : cell(null),
+                st ? cell(String(st.n), st.n === 1 ? "anno valido" : "anni validi", "#808080") : cell(null)
+            ]
+        });
+
+        rnPanels.push({ id: "rn-" + rn.k, title: rn.name + " · " + (isMm ? "mm per giorno di pioggia" : "giorni all'anno"), rn: rn, st: st, isMm: isMm });
     });
 
     // ----- html
@@ -1303,13 +1621,21 @@ function render() {
         tableHtml("Medie stagionali · " + pl, "Stagione", sRows) +
         chartsHtml("s", "medie stagionali") +
 
-        '<div class="section-h">Decadi</div>' +
-        tableHtml("Medie per decade", "Decade", dTable) +
-        chartsHtml("d", "medie per decade");
+        '<div class="section-h">Decadi (10 giorni) · ' + pl + "</div>" +
+        tableHtml("Medie per decade di 10 giorni · " + pl, "Decade", kRows) +
+        chartsHtml("k", "medie per decade") +
+
+        '<div class="section-h">Altre medie di temperatura · ' + pl + "</div>" +
+        customTable("Fenomeni di temperatura · " + pl, "Fenomeno", ["Giorni all'anno", "Primo giorno", "Anni con evento", "Massimo in un anno"], evRows) +
+        panelsHtml(evPanels) +
+
+        '<div class="section-h">Altre medie di pioggia · ' + pl + "</div>" +
+        customTable("Fenomeni di pioggia · " + pl, "Fenomeno", ["Media annua", "Massimo", "Minimo", "Anni considerati"], rnRows) +
+        panelsHtml(rnPanels);
 
     document.getElementById("content").innerHTML = html;
 
-    // ----- grafici
+    // ----- grafici delle medie (mese, stagione, decade)
     const groups = [
         {
             prefix: "m",
@@ -1323,16 +1649,15 @@ function render() {
             ticks: SEASONS.map(function (s) { return s.short; }), minGap: 60
         },
         {
-            prefix: "d",
-            xs: dRows.map(function (x) { return x.st; }),
-            labels: dRows.map(function (x) { return x.label; }),
-            ticks: dRows.map(function (x) { return x.d + "s"; }), minGap: 44
+            prefix: "k",
+            xs: kRows.map(function (x) { return x.st; }),
+            labels: kRows.map(function (x) { return x.label; }),
+            ticks: kRows.map(function () { return ""; }),
+            tickAt: SHORT.map(function (s, i) { return { i: i * 3, label: s }; }), minGap: 20
         }
     ];
 
     chartsState = [];
-
-    const r1 = function (v) { return (v === null || v === undefined) ? null : Math.round(v * 10) / 10; };
 
     groups.forEach(function (g) {
         FIELDS.forEach(function (f) {
@@ -1348,7 +1673,7 @@ function render() {
             chartsState.push({
                 wrap: document.getElementById("ch-" + g.prefix + "-" + f),
                 cfg: {
-                    id: g.prefix + f, n: g.labels.length, labels: g.labels, tickLabels: g.ticks, minGap: g.minGap,
+                    id: g.prefix + f, n: g.labels.length, labels: g.labels, tickLabels: g.ticks, tickAt: g.tickAt, minGap: g.minGap,
                     decimals: 1, unitL: isRain ? "mm" : "°C", minZero: isRain, band: [1, 2],
                     series: [
                         { name: "Media",          vals: col("mean"), colorFn: color, unit: unit },
@@ -1360,12 +1685,54 @@ function render() {
         });
     });
 
+    // ----- grafici anno per anno: dal primo anno con dati all'ultimo anno concluso
+    let fy = cy;
+
+    FIELDS.forEach(function (f) {
+        Object.keys(DAY[f]).forEach(function (y) { if (Number(y) < fy) fy = Number(y); });
+    });
+
+    const yrs = [];
+
+    for (let y = Math.max(fy, TOTAL_FROM); y < cy; y++) yrs.push(y);
+
+    const gg = function (v) { return String(Math.round(v * 10) / 10) + " gg"; };
+    const mm = function (v) { return v.toFixed(1) + " mm"; };
+
+    evPanels.forEach(function (p) {
+
+        const ev = p.ev;
+        let cfg;
+
+        if (p.kind === "n") {
+            const vals = yrs.map(function (y) { return YEV[ev.k][y] ? YEV[ev.k][y].count : null; });
+
+            cfg = yearChartCfg("e" + ev.k + "n", yrs, vals, p.st, ev.color, { fmt: gg, unitL: "giorni", minZero: true });
+        } else {
+            const vals = yrs.map(function (y) { return YEV[ev.k][y] && YEV[ev.k][y].first !== null ? YEV[ev.k][y].first : null; });
+
+            cfg = yearChartCfg("e" + ev.k + "f", yrs, vals, p.st, ev.color, { fmt: idxToDate, yFmt: idxToDate, padL: 60 });
+        }
+
+        chartsState.push({ wrap: document.getElementById(p.id), cfg: cfg });
+    });
+
+    rnPanels.forEach(function (p) {
+
+        const vals = yrs.map(function (y) { return YRN[y] ? r1(YRN[y][p.rn.k]) : null; });
+
+        const cfg = yearChartCfg("r" + p.rn.k, yrs, vals, p.st, p.isMm ? "#4dc8ff" : "#4da9ff",
+                                 { fmt: p.isMm ? mm : gg, unitL: p.isMm ? "mm" : "giorni", minZero: true });
+
+        chartsState.push({ wrap: document.getElementById(p.id), cfg: cfg });
+    });
+
     chartsState.forEach(function (c) { drawChart(c.wrap, c.cfg); });
 
     document.getElementById("note").textContent =
         "10% e 90% = 10° e 90° percentile tra gli anni (mostrati con almeno " + MIN_PCT + " anni). " +
-        "Esclusi: mese in corso, anni incompleti (mese sotto l'80% dei giorni, pioggia sotto il 90%; anno sotto i 310 giorni, pioggia 340). " +
-        "Fino al 1999 l'archivio ha solo massima e minima.";
+        "Esclusi: mese in corso, anno in corso, periodi incompleti (mese/decade sotto l'80% dei giorni, pioggia sotto il 90%; anno sotto i 310 giorni, pioggia 340, conteggi dei fenomeni 330). " +
+        "L'archivio vecchio (1960-2010) ha solo massima e minima: temperatura media e pioggia partono dal moderno (dal 2002).";
 }
 
 
@@ -1411,6 +1778,8 @@ async function loadAll() {
     }), 6);
 
     note.textContent = "";
+
+    computeYearly();
     loaded = true;
 
     render();
@@ -1421,7 +1790,168 @@ async function loadAll() {
 }
 
 periodPicker.addEventListener("change", render);
+/* ===== OVERRIDE: richieste annuali (incolla prima di "AVVIO") ===== */
 
+const yearsCache = new Map();
+
+// UNA richiesta per serie e stazione, con tutti gli anni
+function loadYears(src, y0, y1) {
+    const k = src + "|" + y0 + "-" + y1 + "|" + archiveIds.join(",");
+
+    if (!yearsCache.has(k)) {
+        yearsCache.set(k, (async function () {
+            for (const id of archiveIds) {
+                try {
+                    const d = await getJson(
+                        ARCHIVE_BASE + "/archivio?src=" + encodeURIComponent(src) +
+                        "&anno=" + y0 + "-" + y1 + "&st=" + encodeURIComponent(id)
+                    );
+
+                    const ys = d.stations && d.stations[id];
+                    if (!ys) continue;
+
+                    const res = {};
+                    Object.keys(ys).forEach(function (y) {
+                        res[y] = ys[y].split(",").map(function (s) { return s.trim(); });
+                    });
+
+                    return res;
+                } catch (err) {
+                    console.warn("Archivio non disponibile per", src, id, err);
+                }
+            }
+            return {};
+        })());
+    }
+
+    return yearsCache.get(k);
+}
+
+// valori di un mese (per = valori al giorno) dalla prima serie che ne ha
+async function pickMonth(srcs, year, month, per) {
+    for (const src of srcs) {
+        const arr = (await loadYears(src, 2000, cy))[year];
+        if (!arr) continue;
+
+        let off = 0;
+        for (let m = 1; m < month; m++) off += daysIn(year, m);
+
+        const sl = arr.slice(off * per, (off + daysIn(year, month)) * per);
+        if (sl.some(function (v) { return v !== ""; })) return sl;
+    }
+    return null;
+}
+
+// archivio vecchio: 1960-2010 in una sola richiesta per old_max e old_min
+let oldPromise = null;
+
+function loadOldAll() {
+    if (!oldPromise) {
+        oldPromise = (async function () {
+            const res = { old_max: {}, old_min: {} };
+
+            for (const src of ["old_max", "old_min"]) {
+                const ys = await loadYears(src, TOTAL_FROM, OLD_MAX);
+
+                Object.keys(ys).forEach(function (y) {
+                    const vals = ys[y];
+                    const months = [];
+                    let off = 0;
+
+                    for (let m = 1; m <= 12; m++) {
+                        const dim = daysIn(Number(y), m);
+                        months.push(vals.slice(off, off + dim));
+                        off += dim;
+                    }
+
+                    res[src][y] = months;
+                });
+            }
+            return res;
+        })();
+    }
+    return oldPromise;
+}
+
+fetchOldMonth = async function (month, year, out, days) {
+    const old = await loadOldAll();
+
+    [["old_max", "tmax"], ["old_min", "tmin"]].forEach(function (p) {
+        const ym = old[p[0]][year];
+        if (!ym) return;
+
+        ym[month - 1].forEach(function (v, i) {
+            if (v !== "" && i < days) {
+                out[p[1]][i] = v;
+                out.has = true;
+            }
+        });
+    });
+
+    return out;
+};
+
+fetchMonthData = async function (month, year) {
+    const cfg  = CFG[network];
+    const days = new Date(year, month, 0).getDate();
+
+    const out = {
+        has:   false,
+        tmax:  new Array(days).fill(null),
+        tmin:  new Array(days).fill(null),
+        tmean: new Array(days).fill(null),
+        rain:  new Array(days).fill(null)
+    };
+
+    if (!cfg || !archiveIds.length) return out;
+
+    // fino a OLD_UNTIL solo archivio vecchio
+    if (year <= OLD_UNTIL) return fetchOldMonth(month, year, out, days);
+
+    const tempArr = await pickMonth(cfg.arc.t, year, month, 3);
+    const rainArr = await pickMonth(cfg.arc.r, year, month, 1);
+
+    out.has = !!(tempArr || rainArr);
+
+    if (tempArr) {
+        for (let d = 1; d <= days; d++) {
+            const tmax = tempArr[(d - 1) * 3];
+            const tmed = tempArr[(d - 1) * 3 + 1];
+            const tmin = tempArr[(d - 1) * 3 + 2];
+
+            if (tmax) out.tmax[d - 1]  = tmax;
+            if (tmin) out.tmin[d - 1]  = tmin;
+            if (tmed) out.tmean[d - 1] = tmed;
+        }
+    }
+
+    if (rainArr) {
+        rainArr.forEach(function (v, i) {
+            if (v !== "" && i < days) out.rain[i] = v;
+        });
+    }
+
+    // dal 2000 al 2010: il vecchio completa massima e minima dove il moderno non ha il giorno
+    if (year <= OLD_MAX) {
+        const old = await fetchOldMonth(month, year, {
+            has:  false,
+            tmax: new Array(days).fill(null),
+            tmin: new Array(days).fill(null)
+        }, days);
+
+        for (let i = 0; i < days; i++) {
+            if (out.tmax[i] === null && old.tmax[i] !== null) out.tmax[i] = old.tmax[i];
+            if (out.tmin[i] === null && old.tmin[i] !== null) out.tmin[i] = old.tmin[i];
+        }
+
+        if (old.has) out.has = true;
+    }
+
+    return out;
+};
+
+// nuova chiave di cache: i mesi 2000-2010 salvati prima non avevano il completamento col vecchio
+lsKey = function (m, y) { return "mm2|" + network + "|" + archiveIds[0] + "|" + m + "-" + y; };/* ===== fine override ===== */
 
 /* =========================================
    AVVIO
