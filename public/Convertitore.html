@@ -36,7 +36,7 @@
   pre{margin:6px 0 0;max-height:180px;overflow:auto;background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;word-break:break-all}
   .log{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:8px;max-height:160px;overflow:auto;white-space:pre-wrap}
   .err{color:var(--err);font-weight:600}
-  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
   select{padding:7px 9px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
   @media(max-width:560px){.ch{flex-direction:column}}
 </style>
@@ -49,6 +49,7 @@
   <div class="tabs">
     <button id="tabN" class="pri">N — Nuovi dati (OMIRL)</button>
     <button id="tabV">V — Vecchi dati</button>
+    <button id="tabI">I — Ignorete</button>
   </div>
 
   <div id="pN">
@@ -104,6 +105,34 @@
       <div class="card" id="vlogcard" style="display:none">
         <label>Avvisi</label>
         <div class="log" id="vlog"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pI" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div><label for="icode">Codice stazione</label><input type="text" id="icode" placeholder="es. STAGL"></div>
+        <div><label for="isrcT">src temperature</label><input type="text" id="isrcT" value="ignorete_T"></div>
+        <div><label for="isrcR">src pioggia</label><input type="text" id="isrcR" value="ignorete"></div>
+        <div><label for="iupc">Max stazione-anno per comando</label><input type="number" id="iupc" value="5" min="1" max="50"></div>
+        <div><label for="ilim">Limite caratteri D1</label><input type="number" id="ilim" value="100000" min="1000"></div>
+      </div>
+      <label for="iinp">Report mensile Ignorete incollato (anche più mesi di seguito)</label>
+      <textarea id="iinp" placeholder="Report Mensile di Novembre 2026 ... Data  Avg Temp  Min  Ora Min  Max  Ora Max ..."></textarea>
+      <div class="row" style="margin:10px 0 0">
+        <button class="pri" id="igo">Genera comandi SQL</button>
+        <button id="iclr">Svuota</button>
+      </div>
+    </div>
+    <div id="iout" style="display:none">
+      <div class="card">
+        <div class="stats" id="istats"></div>
+        <div id="ilist"></div>
+      </div>
+      <div class="card" id="ilogcard" style="display:none">
+        <label>Avvisi</label>
+        <div class="log" id="ilog"></div>
       </div>
     </div>
   </div>
@@ -744,14 +773,89 @@ $("vkind").onchange = () => {
   const s = $("vsrc").value;
   if (s === "old_max" || s === "old_min") $("vsrc").value = "old_" + $("vkind").value;
 };
-function showTab(v) {
-  $("pN").style.display = v ? "none" : "block";
-  $("pV").style.display = v ? "block" : "none";
-  $("tabN").className = v ? "" : "pri";
-  $("tabV").className = v ? "pri" : "";
+
+// ---------- I: Ignorete ----------
+const MESI = {gennaio:1, febbraio:2, marzo:3, aprile:4, maggio:5, giugno:6, luglio:7,
+              agosto:8, settembre:9, ottobre:10, novembre:11, dicembre:12};
+// 12 colonne: Data, Avg Temp, Min, Ora Min, Max, Ora Max, Avg UR, Avg Rad, Pioggia, Avg Vento, Raffica, Dir Dom
+const IGN_ROW = /(?<!\S)(\d{1,2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+([A-Za-z]{1,3})(?!\S)/g;
+
+function buildIgn(text, code, srcT, srcR, UPC, LIM) {
+  LOG = [];
+  const byYear = new Map();
+  const push = (y, r) => { if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(r); };
+  let nT = 0, nR = 0;
+  const blocks = text.split(/Report\s+Mensile\s+di\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})/i);
+  if (blocks.length === 1) log("non trovo 'Report Mensile di <Mese> <Anno>'.");
+  for (let i = 1; i < blocks.length; i += 3) {
+    const mo = MESI[blocks[i].toLowerCase()], y = +blocks[i + 1], body = blocks[i + 2] || "";
+    if (!mo) { log(`mese non riconosciuto: '${blocks[i]}' (blocco saltato)`); continue; }
+    const hm = /Dir\s*Dom/i.exec(body);
+    const sec = hm ? body.slice(hm.index + hm[0].length) : body;
+    if (!hm) log(`${pad(mo)}/${y}: intestazione 'Dir Dom' non trovata, provo comunque`);
+    const dim = new Date(y, mo, 0).getDate();
+    const seen = new Set();
+    for (const m of sec.matchAll(IGN_ROW)) {
+      const d = +m[1];
+      if (d < 1 || d > dim) { log(`${pad(mo)}/${y}: giorno ${m[1]} non valido (saltato)`); continue; }
+      if (seen.has(d)) { log(`${pad(d)}/${pad(mo)}/${y}: giorno duplicato (saltato)`); continue; }
+      seen.add(d);
+      const avg = toFloat(m[2]), min = toFloat(m[3]), max = toFloat(m[5]), rain = toFloat(m[9]);
+      const mk = meseKey(y, mo);
+      if ([avg, min, max].some(isNaN)) log(`${pad(d)}/${pad(mo)}/${y}: temperatura mancante: salto le temperature`);
+      else { push(y, `('${mk}', ${d}, '${srcT}', '${code}', '${max.toFixed(1)},${avg.toFixed(1)},${min.toFixed(1)}')`); nT++; }
+      if (isNaN(rain)) log(`${pad(d)}/${pad(mo)}/${y}: pioggia mancante: salto la pioggia`);
+      else { push(y, `('${mk}', ${d}, '${srcR}', '${code}', '${rain.toFixed(1)}')`); nR++; }
+    }
+    if (!seen.size) log(`${pad(mo)}/${y}: nessuna riga giornaliera riconosciuta`);
+  }
+  const units = [...byYear.keys()].sort((a, b) => a - b).map(y => ({code, year: y, rows: byYear.get(y)}));
+  const commands = [];
+  let cur = [], curRows = [], curLen = HEAD.length + 1;
+  for (const u of units) {
+    const add = u.rows.reduce((s, r) => s + r.length + 2, 0);
+    if (cur.length && (cur.length >= UPC || curLen + add > LIM)) {
+      commands.push({members: cur, rows: curRows});
+      cur = []; curRows = []; curLen = HEAD.length + 1;
+    }
+    cur.push(u); curRows.push(...u.rows); curLen += add;
+  }
+  if (cur.length) commands.push({members: cur, rows: curRows});
+  commands.forEach(c => { c.sql = HEAD + c.rows.join(",\n") + ";"; });
+  return {commands, units, nT, nR, total: nT + nR, LIM};
 }
-$("tabN").onclick = () => showTab(false);
-$("tabV").onclick = () => showTab(true);
+
+$("igo").onclick = () => {
+  const code = $("icode").value.trim().toUpperCase().replace(/'/g, "");
+  const srcT = ($("isrcT").value.trim() || "ignorete_T").replace(/'/g, "");
+  const srcR = ($("isrcR").value.trim() || "ignorete").replace(/'/g, "");
+  const UPC = Math.max(1, parseInt($("iupc").value) || 5);
+  const LIM = Math.max(1000, parseInt($("ilim").value) || 100000);
+  $("iout").style.display = "block";
+  if (!code) { $("istats").innerHTML = `<span class="err">Scrivi il codice della stazione.</span>`; $("ilist").innerHTML = ""; $("ilogcard").style.display = "none"; return; }
+  const r = buildIgn($("iinp").value, code, srcT, srcR, UPC, LIM);
+  if (!r.commands.length) {
+    $("istats").innerHTML = `<span class="err">Nessun dato riconosciuto.</span>`;
+    $("ilist").innerHTML = "";
+  } else {
+    $("istats").textContent = `${code} · ${r.nT} giorni temperatura · ${r.nR} giorni pioggia · ${r.total} righe · ${r.commands.length} comandi`;
+    renderInto(r, $("ilist"));
+  }
+  $("ilogcard").style.display = LOG.length ? "block" : "none";
+  $("ilog").textContent = LOG.map(l => "-- " + l).join("\n");
+};
+$("iclr").onclick = () => { $("iinp").value = ""; $("iout").style.display = "none"; };
+
+function showTab(t) {
+  const tabs = {N: ["pN", "tabN"], V: ["pV", "tabV"], I: ["pI", "tabI"]};
+  for (const k in tabs) {
+    $(tabs[k][0]).style.display = k === t ? "block" : "none";
+    $(tabs[k][1]).className = k === t ? "pri" : "";
+  }
+}
+$("tabN").onclick = () => showTab("N");
+$("tabV").onclick = () => showTab("V");
+$("tabI").onclick = () => showTab("I");
 $("copyall").onclick = async e => {
   if (!current) return;
   const ok = await copyText(current.commands.map(c => c.sql).join("\n\n"));
