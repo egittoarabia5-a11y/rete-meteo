@@ -50,6 +50,7 @@
     <button id="tabN" class="pri">N — Nuovi dati (OMIRL)</button>
     <button id="tabV">V — Vecchi dati</button>
     <button id="tabI">I — Ignorete</button>
+    <button id="tab3">3 — 3R</button>
   </div>
 
   <div id="pN">
@@ -136,6 +137,33 @@
       </div>
     </div>
   </div>
+  <div id="p3" style="display:none">
+  <div class="card">
+    <div class="row">
+      <div><label for="r3code">Nome stazione</label><input type="text" id="r3code" placeholder="come in archivio"></div>
+      <div><label for="r3src">src temperature</label><input type="text" id="r3src" value="3r_T"></div>
+      <div><label for="r3srcR">src pioggia</label><input type="text" id="r3srcR" value="3r"></div>
+      <div><label for="r3upc">Max anni per comando</label><input type="number" id="r3upc" value="5" min="1" max="50"></div>
+      <div><label for="r3lim">Limite caratteri D1</label><input type="number" id="r3lim" value="100000" min="1000"></div>
+    </div>
+    <label for="r3inp">Dati 3R incollati (JSON, anche molto lungo)</label>
+    <textarea id="r3inp" placeholder='{"header":["DATA","Temperatura massima (°C)", ...],"body":[["2026-11-23","14.9","6.8","2.0", ...]]}'></textarea>
+    <div class="row" style="margin:10px 0 0">
+      <button class="pri" id="r3go">Genera comandi SQL</button>
+      <button id="r3clr">Svuota</button>
+    </div>
+  </div>
+  <div id="r3out" style="display:none">
+    <div class="card">
+      <div class="stats" id="r3stats"></div>
+      <div id="r3list"></div>
+    </div>
+    <div class="card" id="r3logcard" style="display:none">
+      <label>Avvisi</label>
+      <div class="log" id="r3log"></div>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -845,14 +873,79 @@ $("igo").onclick = () => {
   $("ilog").textContent = LOG.map(l => "-- " + l).join("\n");
 };
 $("iclr").onclick = () => { $("iinp").value = ""; $("iout").style.display = "none"; };
+// ---------- 3R ----------
+// Righe: ["AAAA-MM-GG","max","media","min", ...]  (le altre colonne si ignorano)
+// ---------- 3R ----------
+// ["AAAA-MM-GG","max","media","min","classe","GG20","GG18","GG21","pioggia", ...]
+const R3_ROW = /\[\s*"(\d{4})-(\d{2})-(\d{2})"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"[^"]*"\s*,\s*"[^"]*"\s*,\s*"[^"]*"\s*,\s*"[^"]*"\s*,\s*"([^"]*)"/g;
 
+function build3R(text, code, srcT, srcR, UPC, LIM) {
+  LOG = [];
+  const byYear = new Map();
+  const push = (y, r) => { if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(r); };
+  let nT = 0, nR = 0, emptyT = 0, emptyR = 0, dup = 0;
+  const seen = new Set();
+  for (const m of text.matchAll(R3_ROW)) {
+    const y = +m[1], mo = +m[2], d = +m[3];
+    const key = dk(y, mo, d);
+    if (seen.has(key)) { dup++; continue; }
+    seen.add(key);
+    const mk = meseKey(y, mo);
+    const [mx, av, mn] = [m[4], m[5], m[6]].map(s => s.trim() === "" ? NaN : toFloat(s));
+    if ([mx, av, mn].some(isNaN)) emptyT++;
+    else { push(y, `('${mk}', ${d}, '${srcT}', '${code}', '${mx.toFixed(1)},${av.toFixed(1)},${mn.toFixed(1)}')`); nT++; }
+    const rain = m[7].trim() === "" ? NaN : toFloat(m[7]);
+    if (isNaN(rain)) emptyR++;
+    else { push(y, `('${mk}', ${d}, '${srcR}', '${code}', '${rain.toFixed(1)}')`); nR++; }
+  }
+  if (!seen.size) log("non trovo righe del formato atteso (data, max, media, min, classe, 3 gradi giorno, pioggia).");
+  if (emptyT) log(`${emptyT} giorni senza max/media/min completi: temperature saltate`);
+  if (emptyR) log(`${emptyR} giorni senza pioggia: pioggia saltata`);
+  if (dup) log(`${dup} giorni duplicati: tenuto il primo`);
+  const units = [...byYear.keys()].sort((a, b) => a - b).map(y => ({code, year: y, rows: byYear.get(y)}));
+  const commands = [];
+  let cur = [], curRows = [], curLen = HEAD.length + 1;
+  for (const u of units) {
+    const add = u.rows.reduce((s, r) => s + r.length + 2, 0);
+    if (cur.length && (cur.length >= UPC || curLen + add > LIM)) {
+      commands.push({members: cur, rows: curRows});
+      cur = []; curRows = []; curLen = HEAD.length + 1;
+    }
+    cur.push(u); curRows.push(...u.rows); curLen += add;
+  }
+  if (cur.length) commands.push({members: cur, rows: curRows});
+  commands.forEach(c => { c.sql = HEAD + c.rows.join(",\n") + ";"; });
+  return {commands, units, nT, nR, total: nT + nR, LIM};
+}
+
+$("r3go").onclick = () => {
+  const code = $("r3code").value.trim().replace(/'/g, "");
+  const srcT = ($("r3src").value.trim() || "3r_T").replace(/'/g, "");
+  const srcR = ($("r3srcR").value.trim() || "3r").replace(/'/g, "");
+  const UPC = Math.max(1, parseInt($("r3upc").value) || 5);
+  const LIM = Math.max(1000, parseInt($("r3lim").value) || 100000);
+  $("r3out").style.display = "block";
+  if (!code) { $("r3stats").innerHTML = `<span class="err">Scrivi il nome della stazione.</span>`; $("r3list").innerHTML = ""; $("r3logcard").style.display = "none"; return; }
+  const r = build3R($("r3inp").value, code, srcT, srcR, UPC, LIM);
+  if (!r.commands.length) {
+    $("r3stats").innerHTML = `<span class="err">Nessun dato riconosciuto.</span>`;
+    $("r3list").innerHTML = "";
+  } else {
+    $("r3stats").textContent = `${code} · ${r.units.length} anni · ${r.nT} giorni temperatura · ${r.nR} giorni pioggia · ${r.total} righe · ${r.commands.length} comandi`;
+    renderInto(r, $("r3list"));
+  }
+  $("r3logcard").style.display = LOG.length ? "block" : "none";
+  $("r3log").textContent = LOG.map(l => "-- " + l).join("\n");
+};
+$("r3clr").onclick = () => { $("r3inp").value = ""; $("r3out").style.display = "none"; };
 function showTab(t) {
-  const tabs = {N: ["pN", "tabN"], V: ["pV", "tabV"], I: ["pI", "tabI"]};
+  const tabs = {N: ["pN", "tabN"], V: ["pV", "tabV"], I: ["pI", "tabI"], R: ["p3", "tab3"]};
   for (const k in tabs) {
     $(tabs[k][0]).style.display = k === t ? "block" : "none";
     $(tabs[k][1]).className = k === t ? "pri" : "";
   }
 }
+$("tab3").onclick = () => showTab("R");
 $("tabN").onclick = () => showTab("N");
 $("tabV").onclick = () => showTab("V");
 $("tabI").onclick = () => showTab("I");

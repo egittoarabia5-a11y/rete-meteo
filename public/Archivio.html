@@ -341,7 +341,7 @@ const CFG = {
         urls: [BASE + "meteo3rpiemonte.json"],
         match: s => s.id,
         f: { t: ["T"], h: ["H"], w: ["V"], d: ["VD", "WD"], r: ["R"] },
-        arc: { t: ["3r_T"], r: [] }
+        arc: { t: ["3r_T"], r: ["3r"] }
     },
     dma: {
         urls: [BASE + "asti-test.json"],
@@ -939,10 +939,33 @@ async function fetchMonthData(month, year) {
 
     if (!cfg || !archiveIds.length) return out;
 
-    // anni vecchi: solo archivio vecchio
-    if (year <= OLD_UNTIL) return fetchOldMonth(month, year, out, days);
-
     const mese = String(month).padStart(2, "0") + String(year).slice(2);
+
+    // 3R: anche prima del 2000 la temperatura arriva dalla serie mensile 3r_T.
+    // Il codice MMYY (es. 1099 = ottobre 1999) identifica il mese nell'archivio.
+    if (network === "3r" && year <= OLD_UNTIL) {
+        const tempData = await fetchArchiveSeries(cfg.arc.t, mese);
+        const tempArr = tempData ? tempData.arr : null;
+
+        if (tempArr) {
+            out.has = tempArr.some(function (v) { return v !== ""; });
+
+            for (let d = 1; d <= days; d++) {
+                const tmax = tempArr[(d - 1) * 3];
+                const tmed = tempArr[(d - 1) * 3 + 1];
+                const tmin = tempArr[(d - 1) * 3 + 2];
+
+                if (tmax) out.tmax[d - 1] = tmax;
+                if (tmin) out.tmin[d - 1] = tmin;
+                if (tmed) out.tmean[d - 1] = tmed;
+            }
+        }
+
+        return out;
+    }
+
+    // Per le altre reti, gli anni precedenti al 2000 usano l'archivio vecchio.
+    if (year <= OLD_UNTIL) return fetchOldMonth(month, year, out, days);
 
     const tempArr = await pickMonth(cfg.arc.t, year, month, 3);
     const rainArr = await pickMonth(cfg.arc.r, year, month, 1);
