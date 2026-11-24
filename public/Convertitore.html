@@ -112,7 +112,7 @@
   <div id="pI" style="display:none">
     <div class="card">
       <div class="row">
-        <div><label for="icode">Codice stazione</label><input type="text" id="icode" placeholder="es. STAGL"></div>
+        <div><label for="icode">Codice stazione</label><input type="text" id="icode" placeholder="come in archivio"></div>
         <div><label for="isrcT">src temperature</label><input type="text" id="isrcT" value="ignorete_T"></div>
         <div><label for="isrcR">src pioggia</label><input type="text" id="isrcR" value="ignorete"></div>
         <div><label for="iupc">Max stazione-anno per comando</label><input type="number" id="iupc" value="5" min="1" max="50"></div>
@@ -826,7 +826,7 @@ function buildIgn(text, code, srcT, srcR, UPC, LIM) {
 }
 
 $("igo").onclick = () => {
-  const code = $("icode").value.trim().toUpperCase().replace(/'/g, "");
+  const code = $("icode").value.trim().replace(/'/g, "");
   const srcT = ($("isrcT").value.trim() || "ignorete_T").replace(/'/g, "");
   const srcR = ($("isrcR").value.trim() || "ignorete").replace(/'/g, "");
   const UPC = Math.max(1, parseInt($("iupc").value) || 5);
