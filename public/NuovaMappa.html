@@ -1939,7 +1939,10 @@ if (variable === "wind") return getColorMain("wind", v);
        </div>`
     : "";
   // 📊 URL GAUGES
-  const gaugesUrl = `gauges.html?station=${encodeURIComponent(id)}&source=${encodeURIComponent(source)}&name=${encodeURIComponent(name)}`;
+// 📊 URL GAUGES
+const encodeParam = s => encodeURIComponent(s).replace(/'/g, "%27");
+
+const gaugesUrl = `gauges.html?station=${encodeParam(id)}&source=${encodeParam(source)}&name=${encodeParam(name)}`;
 const windDirDeg = isWind ? parseWindDir(station.windDir) : null;
 const windNote = (isWind && windDirDeg != null)
   ? `<div style="font-size:12px;line-height:1.2;">Da ${windDirLabel(windDirDeg)} (${Math.round(windDirDeg)}°)</div>`
