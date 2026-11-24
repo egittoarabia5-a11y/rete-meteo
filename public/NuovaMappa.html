@@ -584,7 +584,7 @@
       <option value="accMto">Accumulo mensile al…</option>
     </select>
     <button type="button" id="arcShow">Mostra</button>
-    <div class="archiveNote" id="arcNote">Stazioni OMIRL</div>
+    <div class="archiveNote" id="arcNote">Tutte le reti</div>
   </div>
   <button class="varButton" id="archiveButton">
     <img src="/archivio.png" alt="Archivio">
@@ -1516,7 +1516,7 @@ function updateLayer() {
         const estimated =
           (currentVariable === "rainClim" && st.rainClimRef != null) ||
           (currentVariable === "media" && st.tempClimRef != null) ||
-          (currentVariable === "archive" && archiveState.stars[st.id]);
+                    (currentVariable === "archive" && arcGet(archiveState.stars, st));
 
         if (estimated) {
           srcLabel = "*";
@@ -1603,7 +1603,8 @@ const Altitudine = {
     "Genova S.Martino": 104,
   },
 };
-
+const mkArchIds = (...vals) =>
+  vals.filter(v => v != null && v !== "").map(v => String(v).trim());
 function getAltitudine(source, id, name) {
   const group = Altitudine[source];
   if (!group) return null;
@@ -2052,6 +2053,61 @@ ${windNote}
 }
 // ================= ARCHIVIO: menu in basso a destra =================
 const ARCHIVE_BASE = "https://archivio-eventi.eggittof.workers.dev";
+// rete (st.source) -> serie dell'archivio per temperatura (t) e pioggia (r)
+const ARC_NETS = {
+  "OMIRL":              { t: ["omirl_T"],                 r: ["omirl"] },
+  "IGNORETE":           { t: ["ignorete_T"],              r: ["ignorete"] },
+  "LIMET":              { t: ["limet1_T", "limet2_T"],    r: ["limet1", "limet2"] },
+  "ACRONET":            { t: ["gepo_T"],                  r: ["gepo"] },
+  "Comune di Genova":   { t: ["comuneGenova_T"],          r: ["comuneGenova"] },
+  "3R":                 { t: ["3r_T"],                    r: [] },
+  "DMA":                { t: ["dma_T"],                   r: ["dma"] },
+  "WeatherLink":        { t: ["soluzionimeteo_T"],        r: ["soluzionimeteo"] },
+  "Parco di Portofino": { t: ["portofino_T"],             r: ["portofino"] }
+};
+
+// reti da interrogare per ogni regione (così non si scaricano serie inutili)
+const REGION_ARC_NETS = {
+  liguria:   ["OMIRL", "IGNORETE", "LIMET", "ACRONET", "Comune di Genova", "DMA", "Parco di Portofino"],
+  piemonte:  ["DMA", "3R", "IGNORETE", "WeatherLink"],
+  lombardia: [],
+  trentino:  []
+};
+
+function regionNets() { return REGION_ARC_NETS[currentRegion] ?? []; }
+
+const arcGroup = (obj, net) => obj[net] ?? (obj[net] = Object.create(null));
+
+// valore di una stazione: prova tutti gli id con cui può essere salvata nell'archivio
+function arcGet(group, st) {
+  const g = group[st.source];
+  if (!g) return undefined;
+  const ids = st.archIds ?? [st.id];
+  for (const a of ids) {
+    const v = g[String(a)];
+    if (v !== undefined) return v;
+  }
+  return undefined;
+}
+
+// scarica più mesi/serie, 6 richieste alla volta
+async function fetchArcJobs(jobs, limit = 6) {
+  const out = new Array(jobs.length);
+  let next = 0;
+
+  async function worker() {
+    while (true) {
+      const i = next++;
+      if (i >= jobs.length) return;
+
+      try { out[i] = { ok: true, data: await fetchArchiveMonth(jobs[i].src, jobs[i].mese) }; }
+      catch (e) { out[i] = { ok: false }; }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, jobs.length) }, worker));
+  return out;
+}
 const ARC_MONTHS = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
                     "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 
@@ -2107,31 +2163,36 @@ function archiveTitle() {
 }
 // valore da mostrare sul marker (solo OMIRL)
 function getArchiveValue(st) {
-  if (st.source !== "OMIRL") return null;
+  const net = ARC_NETS[st.source];
+  if (!net) return null;                                   // rete senza archivio
+
+  const kind = isRainArchive() ? "r" : "t";
+  if (!net[kind].length) return null;                      // es. 3R non ha la pioggia
+
   if (isAccMode(archiveState.what)) {
-    const base = archiveState.sums[st.id];
+    const base = arcGet(archiveState.sums, st);
     let total = base;
-    let days = archiveState.counts[st.id] ?? 0;
+    let days = arcGet(archiveState.counts, st) ?? 0;
 
     if (archiveState.includesToday) {
-      let tv = archiveState.todayArc[st.id];
+      let tv = arcGet(archiveState.todayArc, st);
       if (tv === undefined && st.rainDaily != null && Number.isFinite(Number(st.rainDaily))) {
         tv = Number(st.rainDaily);        // oggi l'archivio non è completo: uso il dato attuale
-        days += 1;                        // e conta come giorno con dato
+        days += 1;
       }
       if (tv !== undefined) total = (base ?? 0) + tv;
     }
 
-    if (days < archiveState.needDays) return null;   // dati insufficienti: stazione nascosta
+    if (days < archiveState.needDays) return null;         // dati insufficienti
 
     return total === undefined ? null : +total.toFixed(1);
   }
-  const v = archiveState.values[st.id];
+
+  const v = arcGet(archiveState.values, st);
 
   if (v !== undefined) return v;
 
-  // oggi l'archivio non è ancora scritto (si completa a fine giornata):
-  // uso i dati attuali della stazione
+  // oggi l'archivio non è ancora scritto (si completa a fine giornata): dati attuali
   const t = new Date();
 
   if (archiveState.day === t.getDate() &&
@@ -2145,7 +2206,6 @@ function getArchiveValue(st) {
 
   return null;
 }
-
 async function fetchArchiveMonth(src, mese) {
   const key = src + "|" + mese;
   const c = archiveCache[key];
@@ -2247,12 +2307,11 @@ async function loadArchiveAcc() {
   archiveState.stars  = {};
   archiveState.sums = {};
   archiveState.todayArc = {};
-    archiveState.counts = {};
+  archiveState.counts = {};
   archiveState.includesToday = false;
   arcNote.textContent = "Caricamento…";
   updateLayer();
 
-  // periodo: dal (sM/sD) al (eM/eD)
   let sM, sD, eM, eD;
   if (what === "accY")        { sM = 1;     sD = 1; eM = 12;    eD = 31; }
   else if (what === "accM")   { sM = month; sD = 1; eM = month; eD = new Date(year, month, 0).getDate(); }
@@ -2280,34 +2339,61 @@ async function loadArchiveAcc() {
     return;
   }
 
-  const results = await Promise.allSettled(
-    months.map(m => fetchArchiveMonth("omirl", String(m).padStart(2, "0") + yy))
-  );
+  // una richiesta per ogni rete della regione, serie di pioggia e mese
+  const jobs = [];
+  regionNets().forEach(function (net) {
+    ARC_NETS[net].r.forEach(function (src) {
+      months.forEach(function (m) {
+        jobs.push({ net: net, src: src, m: m, mese: String(m).padStart(2, "0") + yy });
+      });
+    });
+  });
+
+  if (!jobs.length) {
+    arcNote.textContent = "Nessuna rete con archivio pioggia in questa regione";
+    updateLayer();
+    return;
+  }
+
+  const res = await fetchArcJobs(jobs);
 
   if (token !== archiveToken) return;   // nel frattempo hai cambiato scelta
 
-  let okMonths = 0;
+  let okJobs = 0;
+  const seen = new Set();               // stessa stazione in due serie (es. limet1 e limet2): vale la prima
 
-  results.forEach((r, i) => {
-    if (r.status !== "fulfilled") return;
-    okMonths++;
+  res.forEach(function (r, i) {
+    if (!r.ok) return;
+    okJobs++;
 
-    const m = months[i];
+    const net = jobs[i].net;
+    const m   = jobs[i].m;
     const dFrom = (m === sM) ? sD : 1;
     const dTo   = (m === eM) ? eD : new Date(year, m, 0).getDate();
 
-    Object.entries(r.value.stations || {}).forEach(([id, str]) => {
+    const sums   = arcGroup(archiveState.sums, net);
+    const counts = arcGroup(archiveState.counts, net);
+    const today  = arcGroup(archiveState.todayArc, net);
+
+    Object.entries(r.data.stations || {}).forEach(function ([aid, str]) {
       const parts = String(str).split(",");
 
       for (let d = dFrom; d <= dTo && d <= parts.length; d++) {
         const n = parseFloat((parts[d - 1] ?? "").trim());
         if (!Number.isFinite(n)) continue;
-        archiveState.counts[id] = (archiveState.counts[id] ?? 0) + 1;
+
+        const key = net + "|" + aid + "|" + m + "|" + d;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        counts[aid] = (counts[aid] ?? 0) + 1;
+
         if (year === t.y && m === t.m && d === t.d) {   // oggi a parte
-          archiveState.todayArc[id] = n;
+          today[aid] = n;
           continue;
         }
-        archiveState.sums[id] = (archiveState.sums[id] ?? 0) + n;
+
+        sums[aid] = (sums[aid] ?? 0) + n;
       }
     });
   });
@@ -2316,23 +2402,25 @@ async function loadArchiveAcc() {
   archiveState.includesToday =
     year === t.y && todayKey >= sM * 100 + sD && todayKey <= eM * 100 + eD;
 
-    const n = Object.keys(archiveState.counts)
-    .filter(id => archiveState.counts[id] >= archiveState.needDays).length;
+  let n = 0;
+  Object.values(archiveState.counts).forEach(function (g) {
+    Object.values(g).forEach(function (c) { if (c >= archiveState.needDays) n++; });
+  });
 
   arcNote.textContent =
-    okMonths === 0 ? "Archivio non raggiungibile"
-    : n ? ("Stazioni OMIRL · " + n + " con dato")
+    okJobs === 0 ? "Archivio non raggiungibile"
+    : n ? (n + " stazioni con dato")
     : "Nessun dato in archivio per questo periodo";
 
   updateLayer();
-}   // ogni 15 minuti
+}
 async function loadArchiveDay() {
   if (isAccMode(archiveState.what)) return loadArchiveAcc();
   const { day, month, year, what } = archiveState;
 
   const mese   = String(month).padStart(2, "0") + String(year).slice(2);
   const isRain = what === "rain";
-  const src    = isRain ? "omirl" : "omirl_T";
+  const kind   = isRain ? "r" : "t";
   const per    = isRain ? 1 : 3;                                    // temperature: TMAX, TMED, TMIN per giorno
   const off    = isRain ? 0 : (what === "tmax" ? 0 : what === "tmean" ? 1 : 2);
 
@@ -2344,13 +2432,34 @@ async function loadArchiveDay() {
 
   updateLayer();
 
-  try {
+  const jobs = [];
+  regionNets().forEach(function (net) {
+    ARC_NETS[net][kind].forEach(function (src) { jobs.push({ net: net, src: src, mese: mese }); });
+  });
 
-    const data = await fetchArchiveMonth(src, mese);
+  if (!jobs.length) {
+    arcNote.textContent = "Nessuna rete con archivio in questa regione";
+    updateLayer();
+    return;
+  }
 
-    if (token !== archiveToken) return;   // nel frattempo hai cambiato scelta
+  const res = await fetchArcJobs(jobs);
 
-    Object.entries(data.stations || {}).forEach(function ([id, str]) {
+  if (token !== archiveToken) return;   // nel frattempo hai cambiato scelta
+
+  let okJobs = 0;
+
+  res.forEach(function (r, i) {
+    if (!r.ok) return;
+    okJobs++;
+
+    const net   = jobs[i].net;
+    const vals  = arcGroup(archiveState.values, net);
+    const stars = arcGroup(archiveState.stars, net);
+
+    Object.entries(r.data.stations || {}).forEach(function ([aid, str]) {
+
+      if (vals[aid] !== undefined) return;    // già preso da un'altra serie della stessa rete
 
       const parts = String(str).split(",");
       const raw = (parts[(day - 1) * per + off] ?? "").trim();
@@ -2361,24 +2470,22 @@ async function loadArchiveDay() {
 
       if (!Number.isFinite(n)) return;
 
-      archiveState.values[id] = n;
+      vals[aid] = n;
 
-      if (raw.endsWith("*")) archiveState.stars[id] = true;
+      if (raw.endsWith("*")) stars[aid] = true;
     });
+  });
 
-    const n = Object.keys(archiveState.values).length;
+  let n = 0;
+  Object.values(archiveState.values).forEach(function (g) { n += Object.keys(g).length; });
 
-    arcNote.textContent = n ? ("Stazioni OMIRL · " + n + " con dato") : "Nessun dato in archivio per questo giorno";
-
-  } catch (err) {
-
-    console.error("Errore archivio:", err);
-    arcNote.textContent = "Archivio non raggiungibile";
-  }
+  arcNote.textContent =
+    okJobs === 0 ? "Archivio non raggiungibile"
+    : n ? (n + " stazioni con dato")
+    : "Nessun dato in archivio per questo giorno";
 
   updateLayer();
 }
-
 function fillArcDays() {
 
   const days = new Date(Number(arcYear.value), Number(arcMonth.value), 0).getDate();
@@ -4586,7 +4693,7 @@ const fetchDMA = async () => {
         N: st.name,
 
         source: "DMA",
-
+        archIds: mkArchIds(st.id, st.name),
         temp: st.T ?? null,
         tempHigh: st.TH ?? null,
         tempLow: st.TL ?? null,
@@ -5204,7 +5311,7 @@ const fetchLimet = async () => {
         id,
 
         source: "LIMET",
-
+        archIds: mkArchIds(st.id, st.code, st.shortCode, st.name, st.N),
         N: st.N ?? null,
 
 
@@ -5923,6 +6030,7 @@ function setRegion(region){
 
   document.getElementById("regionButton").innerText =
     region.charAt(0).toUpperCase() + region.slice(1);
+      if (currentVariable === "archive") loadArchiveDay();
 }
 document.getElementById("regionButton").onclick = () => {
   const m = document.getElementById("regionMenu");
