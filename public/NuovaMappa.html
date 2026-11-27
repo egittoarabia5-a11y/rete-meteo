@@ -744,6 +744,7 @@ const PIEinLIG = {
   VLSCS: {nome: "Villar San Costanzo", rete: "IGNORETE"},
   PERNO: {nome: "Sommariva Perno - Loc. Piano", rete: "IGNORETE"},
   CCERM: {nome: "Casal Cermelli", rete: "IGNORETE"},
+  VIGUZ: {nome: "Viguzzolo", rete: "IGNORETE"},
 };
 const PIEOUT = [
   "Genova Multedo (GE)",
@@ -1212,7 +1213,7 @@ else if (currentVariable === "rainClim") {
   else if (currentVariable === "rainRate") value = st.rainRate; 
     else if (currentVariable === "rainYearly") {
     value = st.rainYearly;
-    colorVariable = archiveColorVar();   // stessa scala colori della media annuale
+    colorVariable = "rainClim";   // stessa scala colori della media annuale
   }
  
   if (value !== null) { 
@@ -1469,7 +1470,7 @@ function getSourceLabel(source) {
 }
 function updateLayer() {
   applyRainClimOverrides();
-  applyOmirlYearRain();
+  applyYearRain();
   const isRainMean =
     (currentVariable === "rainClim" &&
       (modes.rainClim === "year" || modes.rainClim === "today" || modes.rainClim === "month")) ||
@@ -2225,8 +2226,9 @@ async function fetchArchiveMonth(src, mese) {
 
   return data;
 }
-// ================= PIOGGIA ANNUA OMIRL (somma archivio dal 1 gennaio) =================
-const omirlYear = { sums: {}, today: {}, ok: false };
+// ================= PIOGGIA ANNUA, TUTTE LE RETI (somma archivio dal 1 gennaio) =================
+const YEAR_MIN_FRACTION = 0.9;   // servono dati per più del 90% dei giorni
+const yearRain = { nets: {}, pastDays: 0 };
 
 function romeToday() {
   const p = new Intl.DateTimeFormat("en-GB", {
@@ -2236,69 +2238,99 @@ function romeToday() {
   return { y: g("year"), m: g("month"), d: g("day") };
 }
 
-async function loadOmirlYearRain() {
+async function loadYearRain() {
   try {
     const t = romeToday();
     const yy = String(t.y).slice(2);
-    const months = [];
-    for (let m = 1; m <= t.m; m++) months.push(m);
 
-    // tutti i mesi da gennaio a quello corrente (stesso endpoint dell'archivio pioggia)
-    const results = await Promise.all(
-      months.map(m => fetchArchiveMonth("omirl", String(m).padStart(2, "0") + yy))
-    );
+    const jobs = [];
+    regionNets().forEach(net => {
+      ARC_NETS[net].r.forEach(src => {
+        for (let m = 1; m <= t.m; m++) {
+          jobs.push({ net, src, m, mese: String(m).padStart(2, "0") + yy });
+        }
+      });
+    });
+    if (!jobs.length) return;
 
-    const sums = {}, today = {};
+    const res = await fetchArcJobs(jobs);
 
-    results.forEach((data, i) => {
-      const m = months[i];
-      const lastDay = (m === t.m) ? t.d : 31;
+    const nets = {};
+    const failed = new Set();
+    const seen = new Set();   // stessa stazione in limet1 e limet2: ogni giorno conta una volta
 
-      Object.entries(data.stations || {}).forEach(([id, str]) => {
+    res.forEach((r, i) => {
+      const { net, m } = jobs[i];
+      if (!r.ok) { failed.add(net); return; }
+
+      const g = nets[net] ?? (nets[net] = {
+        sums: Object.create(null), counts: Object.create(null), today: Object.create(null)
+      });
+      const lastDay = (m === t.m) ? t.d : new Date(t.y, m, 0).getDate();
+
+      Object.entries(r.data.stations || {}).forEach(([id, str]) => {
         const parts = String(str).split(",");
 
         for (let d = 1; d <= lastDay && d <= parts.length; d++) {
           const n = parseFloat((parts[d - 1] ?? "").trim());
           if (!Number.isFinite(n)) continue;
 
-          if (m === t.m && d === t.d) { today[id] = n; continue; }   // oggi a parte
-          sums[id] = (sums[id] ?? 0) + n;
+          const key = net + "|" + id + "|" + m + "|" + d;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          if (m === t.m && d === t.d) { g.today[id] = n; continue; }   // oggi a parte
+          g.sums[id] = (g.sums[id] ?? 0) + n;
+          g.counts[id] = (g.counts[id] ?? 0) + 1;
         }
       });
     });
 
-    omirlYear.sums = sums;
-    omirlYear.today = today;
-    omirlYear.ok = true;
+    // giorni trascorsi dal 1 gennaio a ieri
+    yearRain.pastDays = Math.round(
+      (Date.UTC(t.y, t.m - 1, t.d) - Date.UTC(t.y, 0, 1)) / 86400000
+    );
 
-    if (map.loaded()) updateLayer();
+    // aggiorno solo le reti scaricate per intero (un mese mancante falserebbe il conteggio)
+    Object.entries(nets).forEach(([net, g]) => {
+      if (!failed.has(net)) yearRain.nets[net] = g;
+    });
+
+    if (map.getSource('weather-stations')) updateLayer();
 
   } catch (err) {
-    // se un mese non si carica non sovrascrivo nulla: resta il valore del worker
-    console.error("Errore pioggia annua OMIRL:", err);
+    console.error("Errore pioggia annua:", err);
   }
 }
 
-function applyOmirlYearRain() {
-  if (!omirlYear.ok) return;
+function applyYearRain() {
+  if (!regionNets().length) return;       // regione senza archivio: restano i dati attuali
 
   Object.values(allStations).forEach(st => {
-    if (st.source !== "OMIRL") return;
+    const g = yearRain.nets[st.source] ?? { sums: {}, counts: {}, today: {} };
 
-    const hasArc = omirlYear.sums[st.id] !== undefined || omirlYear.today[st.id] !== undefined;
-    if (!hasArc) return;
+    const aid = (st.archIds ?? [st.id]).map(String)
+      .find(a => g.counts[a] !== undefined || g.today[a] !== undefined);
 
-    const base = omirlYear.sums[st.id] ?? 0;
-    const live = st.rainDaily != null ? Number(st.rainDaily) : 0;
-    const todayVal = omirlYear.today[st.id] ?? (Number.isFinite(live) ? live : 0);
+    const days = aid !== undefined ? (g.counts[aid] ?? 0) : 0;
 
-    st.rainYearly = +(base + todayVal).toFixed(1);
+    const enough = yearRain.pastDays === 0 || days > yearRain.pastDays * YEAR_MIN_FRACTION;
+
+    if (aid === undefined || !enough) {
+      st.rainYearly = null;               // dati insufficienti: stazione nascosta
+      return;
+    }
+
+    const live = Number(st.rainDaily ?? 0);
+    const todayVal = g.today[aid] ?? (Number.isFinite(live) ? live : 0);
+
+    st.rainYearly = +((g.sums[aid] ?? 0) + todayVal).toFixed(1);
   });
 }
 
-if (map.loaded()) loadOmirlYearRain();
-else map.once("load", loadOmirlYearRain);
-setInterval(loadOmirlYearRain, 900000);
+if (map.loaded()) loadYearRain();
+else map.once("load", loadYearRain);
+setInterval(loadYearRain, 900000);
 const MIN_ACC_YEAR_DAYS  = 330;   // giorni minimi per l'accumulo annuo
 const MIN_ACC_MONTH_DAYS = 15;    // giorni minimi per l'accumulo mensile
 async function loadArchiveAcc() {
@@ -6034,6 +6066,7 @@ function setRegion(region){
   document.getElementById("regionButton").innerText =
     region.charAt(0).toUpperCase() + region.slice(1);
       if (currentVariable === "archive") loadArchiveDay();
+  loadYearRain();       // serie della nuova regione
 }
 document.getElementById("regionButton").onclick = () => {
   const m = document.getElementById("regionMenu");
